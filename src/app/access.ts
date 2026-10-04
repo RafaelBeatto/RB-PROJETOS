@@ -27,10 +27,12 @@ const TAB_ACCESS: Record<ProjectTab, PermissionModule> = {
   info: 'projects',
   kanban: 'kanban',
   structure: 'structure',
+  // Quem vê o projeto participa do chat dele.
+  chat: 'projects',
 };
 
 export const PAGE_ORDER: Page[] = ['home', 'board', 'today', 'history', 'collaborators', 'archive', 'settings'];
-export const TAB_ORDER: ProjectTab[] = ['kanban', 'overview', 'info', 'structure'];
+export const TAB_ORDER: ProjectTab[] = ['kanban', 'overview', 'info', 'structure', 'chat'];
 
 export function canOpenPage(page: Page): boolean {
   return can(PAGE_ACCESS[page], 'view');

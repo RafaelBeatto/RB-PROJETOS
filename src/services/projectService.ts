@@ -46,7 +46,7 @@ export function createProject(draft: ProjectDraft): Project {
   const owner = { ref: { kind: 'project' as const, projectId: NEW_ID, id: NEW_ID }, dependencies: draft.dependencies };
   const dependencies = validateDependencies(owner);
   assertCanEnter(draft.status, undefined, draftBlockers({ ...owner, dependencies }));
-  const project: Project = { id: uid('p'), ...draft, dependencies, owner: ownerFrom(draft.coordinators, ''), archived: false, branches: [], tasks: [], milestones: [], activity: [] };
+  const project: Project = { id: uid('p'), ...draft, dependencies, owner: ownerFrom(draft.coordinators, ''), archived: false, branches: [], tasks: [], milestones: [], activity: [], chat: [] };
   db.projects.unshift(project);
   logActivity(project, 'criou o projeto', { kind: 'project' });
   persistProjects();
