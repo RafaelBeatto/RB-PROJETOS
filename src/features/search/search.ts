@@ -21,7 +21,7 @@ function search(query: string): Result[] {
     if (hasAgreement(p) && `${agreementName(p)} ${p.convPolitico}`.toLowerCase().includes(q)) {
       results.push({ projectId: p.id, kind: 'Convênio', label: `${[agreementName(p), p.convPolitico].filter(Boolean).join(' · ')} — ${p.name}` });
     }
-    for (const b of p.branches) if (b.name.toLowerCase().includes(q)) results.push({ projectId: p.id, kind: 'Ramificação', label: b.name });
+    for (const b of p.branches) if (b.name.toLowerCase().includes(q)) results.push({ projectId: p.id, kind: 'Etapa', label: b.name });
     for (const t of p.tasks) if (`${t.title}${t.assignee}`.toLowerCase().includes(q)) results.push({ projectId: p.id, kind: 'Tarefa', label: t.title });
   }
   return results;

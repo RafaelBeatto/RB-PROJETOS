@@ -1,11 +1,11 @@
 /**
- * Regras de dependência entre projetos, ramificações e tarefas.
+ * Regras de dependência entre projetos, etapas e tarefas.
  *
  * - Cada item guarda as próprias dependências (o que precisa acontecer antes dele).
- * - Um item herda os bloqueios de onde está: a tarefa, os da sua ramificação (e das
- *   ramificações acima) e os do projeto; a ramificação, os das ramificações acima e do projeto.
- * - Condições: "Concluído" e "Iniciado". Para projeto e ramificação, o estado vem das
- *   tarefas que estão dentro deles (incluindo sub-ramificações).
+ * - Um item herda os bloqueios de onde está: a tarefa, os da sua etapa (e das
+ *   etapas acima) e os do projeto; a etapa, os das etapas acima e do projeto.
+ * - Condições: "Concluído" e "Iniciado". Para projeto e etapa, o estado vem das
+ *   tarefas que estão dentro deles (incluindo subetapas).
  * - Enquanto bloqueada, a tarefa só pode ficar em "A fazer"; o projeto bloqueado não
  *   pode ir para "Em andamento" nem "Concluído".
  *
@@ -70,7 +70,7 @@ function branchById(p: Project, id: string | null | undefined): Branch | undefin
   return id ? p.branches.find((b) => b.id === id) : undefined;
 }
 
-/** Ramificações que contêm o item, da mais próxima até a raiz. */
+/** Etapas que contêm o item, da mais próxima até a raiz. */
 function containerBranches(p: Project, startId: string | null | undefined): Branch[] {
   const chain: Branch[] = [];
   let cur = branchById(p, startId);
@@ -81,7 +81,7 @@ function containerBranches(p: Project, startId: string | null | undefined): Bran
   return chain;
 }
 
-/** Tarefas dentro da ramificação e de todas as sub-ramificações. */
+/** Tarefas dentro da etapa e de todas as subetapas. */
 function tasksUnder(p: Project, branchId: string): Task[] {
   const ids = new Set([branchId]);
   let grew = true;
@@ -97,7 +97,7 @@ function tasksUnder(p: Project, branchId: string): Task[] {
   return p.tasks.filter((t) => ids.has(t.branch));
 }
 
-/** Caminho legível: "Projeto / Ramificação / Sub". */
+/** Caminho legível: "Projeto / Etapa / Sub". */
 export function itemPath(item: ResolvedItem): string {
   const p = item.project;
   if (item.ref.kind === 'project') return '';
@@ -133,7 +133,14 @@ export function evaluate(item: ResolvedItem, condition: DepCondition): Condition
     const t = item.task;
     return { met: condition === 'done' ? isTaskDone(t) : isTaskStarted(t), detail: `status atual: ${t.status}` };
   }
-  if (item.branch) return tasksState(tasksUnder(item.project, item.branch.id), condition, 'ramificação sem tarefas');
+  if (item.branch) {
+    // A etapa segue a coluna do Kanban "Etapas"; as tarefas de dentro só complementam o "iniciada".
+    const b = item.branch;
+    const tasks = tasksUnder(item.project, b.id);
+    if (condition === 'done') return { met: b.status === 'Concluído', detail: `etapa em “${b.status}”` };
+    const started = b.status !== TASK_NOT_STARTED || tasks.some(isTaskStarted);
+    return { met: started, detail: `etapa em “${b.status}”${tasks.some(isTaskStarted) ? ' · com tarefas iniciadas' : ''}` };
+  }
   const p = item.project;
   // Projeto: o status "Concluído" (ou "Em andamento") vale; senão, olha as tarefas.
   if (condition === 'done' && p.status === 'Concluído') return { met: true, detail: 'projeto concluído' };
@@ -164,7 +171,7 @@ export interface Blocker extends DependencyState {
   inherited: boolean;
 }
 
-/** O item e os itens que o contêm (ramificações acima e projeto), do mais próximo ao mais distante. */
+/** O item e os itens que o contêm (etapas acima e projeto), do mais próximo ao mais distante. */
 function gateChain(item: ResolvedItem): ResolvedItem[] {
   const p = item.project;
   if (item.ref.kind === 'project') return [item];
@@ -191,13 +198,13 @@ export function blockersOf(ref: ItemRef, world: Project[] = db.projects): Blocke
 export const isRefBlocked = (ref: ItemRef, world: Project[] = db.projects): boolean => blockersOf(ref, world).length > 0;
 export const isTaskBlocked = (p: Project, t: Task): boolean => isRefBlocked(taskRef(p, t));
 
-/** "concluída", "iniciado"…: tarefa e ramificação são femininas; projeto, masculino. */
+/** "concluída", "iniciado"…: tarefa e etapa são femininas; projeto, masculino. */
 export function conditionWord(kind: DepKind, condition: DepCondition): string {
   const base = CONDITION_LABELS[condition].toLowerCase();
   return kind === 'project' ? base : `${base.slice(0, -1)}a`;
 }
 
-const sourceLabel = (r: ResolvedItem): string => (r.ref.kind === 'project' ? `no projeto “${r.name}”` : `na ramificação “${r.name}”`);
+const sourceLabel = (r: ResolvedItem): string => (r.ref.kind === 'project' ? `no projeto “${r.name}”` : `na etapa “${r.name}”`);
 
 /** Frase curta para um bloqueio: "Tarefa “Criar API” precisa estar concluída (status atual: A fazer)". */
 export function blockerText(b: Blocker): string {
@@ -225,7 +232,7 @@ export function blockedSnapshot(world: Project[] = db.projects): Set<string> {
   const keys = new Set<string>();
   for (const p of world) {
     if (isRefBlocked(projectRef(p), world)) keys.add(refKey(projectRef(p)));
-    for (const b of p.branches) if (isRefBlocked(branchRef(p, b), world)) keys.add(refKey(branchRef(p, b)));
+    for (const b of p.branches) if (b.status !== 'Concluído' && isRefBlocked(branchRef(p, b), world)) keys.add(refKey(branchRef(p, b)));
     for (const t of p.tasks) if (t.status !== 'Concluído' && isRefBlocked(taskRef(p, t), world)) keys.add(refKey(taskRef(p, t)));
   }
   return keys;
@@ -247,8 +254,8 @@ export function releasedSince(before: Set<string>): number {
  * Arestas "A → B" significam "A espera B":
  *   G(item) → S(alvo) para cada dependência;
  *   S(item) → G(item): o item só se cumpre se puder avançar;
- *   G(filho) → G(contêiner): tarefa e ramificação herdam os bloqueios de onde estão;
- *   S(contêiner) → S(filhos): projeto e ramificação dependem do que têm dentro.
+ *   G(filho) → G(contêiner): tarefa e etapa herdam os bloqueios de onde estão;
+ *   S(contêiner) → S(filhos): projeto e etapa dependem do que têm dentro.
  * Um ciclo nesse grafo é uma espera impossível (dependência circular, direta ou indireta).
  */
 type Graph = Map<string, string[]>;
@@ -325,7 +332,7 @@ function reachingSet(g: Graph, target: string): Set<string> {
 export interface OwnerDraft {
   /** Item que recebe as dependências; para um item novo, use `id: NEW_ID`. */
   ref: ItemRef;
-  /** Tarefa: id da ramificação; ramificação: id da ramificação pai. Ignorado para projetos. */
+  /** Tarefa: id da etapa; etapa: id da etapa pai. Ignorado para projetos. */
   parent?: string | null;
   dependencies: Dependency[];
 }
@@ -353,7 +360,7 @@ function simulate(owner: OwnerDraft): Project[] {
   if (ref.kind === 'branch') {
     let b = p.branches.find((x) => x.id === ref.id);
     if (!b) {
-      b = { id: ref.id, name: 'Nova ramificação', parent: null, designer: null, x: 0, y: 0, dependencies: [] };
+      b = { id: ref.id, name: 'Nova etapa', parent: null, designer: null, status: 'A fazer', x: 0, y: 0, dependencies: [] };
       p.branches.push(b);
     }
     if (owner.parent !== undefined) b.parent = owner.parent;
@@ -406,7 +413,7 @@ export function validateDependencies(owner: OwnerDraft): Dependency[] {
       throw new DependencyError(`Dependência circular: “${target?.name ?? 'item'}” depende, direta ou indiretamente, deste item.`);
     }
   }
-  // Mudar a ramificação (ou o pai) também pode fechar um ciclo com dependências de outros itens.
+  // Mudar a etapa (ou o pai) também pode fechar um ciclo com dependências de outros itens.
   const onCycle = (key: string): boolean => (g.get(key) ?? []).some((next) => reaches(g, next, key));
   if (onCycle(gKey(owner.ref)) || onCycle(sKey(owner.ref))) {
     throw new DependencyError('Essa posição criaria uma dependência circular com outros itens.');

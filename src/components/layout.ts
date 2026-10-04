@@ -12,9 +12,9 @@ const NAV: { page: Page; label: string; icon: IconName; mobile: boolean; perm: s
 ];
 
 const TABS: { tab: ProjectTab; label: string }[] = [
+  { tab: 'kanban', label: 'Etapas' },
   { tab: 'overview', label: 'Visão geral' },
   { tab: 'info', label: 'Informações' },
-  { tab: 'kanban', label: 'Kanban' },
   { tab: 'structure', label: 'Estrutura' },
   { tab: 'list', label: 'Lista' },
   { tab: 'timeline', label: 'Timeline' },
@@ -59,7 +59,7 @@ export function appShell(): string {
         <div><h1 id="pName"></h1><p class="sub" id="pDescription"></p></div>
         <div class="top-actions">
           <button class="ghost" data-action="project-edit" data-perm="projects.edit">${icon('edit')}<span>Editar</span></button>
-          <button class="primary" data-action="add-menu" data-perm="tasks.create|structure.create|projects.edit">${icon('plus')}<span>Adicionar</span></button>
+          <button class="primary" data-action="add-menu" data-perm="structure.create|projects.edit">${icon('plus')}<span>Adicionar</span></button>
         </div>
       </div>
       <nav class="tabs" aria-label="Seções do projeto">

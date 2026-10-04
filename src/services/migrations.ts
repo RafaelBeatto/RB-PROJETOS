@@ -90,6 +90,8 @@ function migrateBranch(r: Raw, projectId: string): Branch {
     name: str(r.name),
     parent: str(r.parent) || null,
     designer: str(r.designer) || null,
+    // Sem status salvo: calculado pelas tarefas em migrateProject.
+    status: oneOf<TaskStatus>(TASK_STATUSES, r.status, 'A fazer'),
     dependencies: migrateDependencies(r.dependencies, projectId),
     // NaN marca "sem posição"; ensureLayout calcula depois.
     x: num(r.x) ?? Number.NaN,
@@ -145,6 +147,19 @@ function migrateProject(r: Raw): Project {
     milestones: objs(r.milestones).map(migrateMilestone),
     activity: objs(r.activity).map(migrateActivity),
   };
+  // Etapas antigas (etapas sem status) começam na coluna que as tarefas indicam.
+  const rawBranches = objs(r.branches);
+  for (const [i, b] of project.branches.entries()) {
+    if (TASK_STATUSES.includes(rawBranches[i]?.status as TaskStatus)) continue;
+    const ids = new Set([b.id]);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const x of project.branches) if (x.parent && ids.has(x.parent) && !ids.has(x.id)) grew = !!ids.add(x.id);
+    }
+    const tasks = project.tasks.filter((t) => ids.has(t.branch));
+    if (tasks.length && tasks.every((t) => t.status === 'Concluído')) b.status = 'Concluído';
+    else if (tasks.some((t) => t.status !== 'A fazer')) b.status = 'Em andamento';
+  }
   if (root) project.root = root;
   if (view) project.view = view;
   return project;

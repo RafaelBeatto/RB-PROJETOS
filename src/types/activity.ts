@@ -3,7 +3,7 @@ export const ACTIVITY_KINDS = {
   task: 'Tarefas',
   checklist: 'Checklist',
   comment: 'Comentários',
-  branch: 'Ramificações',
+  branch: 'Etapas',
   milestone: 'Marcos',
   project: 'Projetos',
 } as const;

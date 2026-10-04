@@ -108,7 +108,7 @@ function linksText(u: User): string {
   const l = userLinks(u);
   return [
     l.coordinates ? `Coordena ${plural(l.coordinates, 'projeto', 'projetos')}` : '',
-    l.designs ? `Projetista de ${plural(l.designs, 'ramificação', 'ramificações')}` : '',
+    l.designs ? `Projetista de ${plural(l.designs, 'etapa', 'etapas')}` : '',
     l.tasks ? plural(l.tasks, 'tarefa', 'tarefas') : '',
   ]
     .filter(Boolean)
@@ -230,7 +230,7 @@ function menuFor(user: User): MenuItem[] {
       run: async () => {
         const ok = await confirmDanger(
           `Excluir ${user.name}?`,
-          'A pessoa sai da coordenação dos projetos e das ramificações. As tarefas continuam com o nome no campo Responsável. Para apenas bloquear o acesso, use Desativar.',
+          'A pessoa sai da coordenação dos projetos e das etapas. As tarefas continuam com o nome no campo Responsável. Para apenas bloquear o acesso, use Desativar.',
         );
         if (!ok) return;
         removeUser(user);

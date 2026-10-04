@@ -5,7 +5,6 @@ import { showToast } from '../components/toast';
 import { openMilestoneModal } from '../features/projects/milestoneModal';
 import { openProjectModal } from '../features/projects/projectModal';
 import { openNewBranchModal } from '../features/structure/branchModals';
-import { openTaskModal } from '../features/tasks/taskModal';
 import { can } from '../services/permissionService';
 import { findProject } from '../services/projectService';
 import { ui, type Page, type ProjectTab } from '../state/store';
@@ -16,13 +15,12 @@ import { currentProject, goTo, openProject, refreshProject } from './navigation'
 function openAddMenu(): void {
   const p = currentProject().id;
   const options = [
-    can('tasks', 'create', p) ? `<button class="ghost" id="chooseTask">${icon('plus')}Tarefa</button>` : '',
-    can('structure', 'create', p) ? `<button class="ghost" id="chooseBranch">${icon('branch')}Ramificação</button>` : '',
+    // Tarefas são criadas dentro de cada etapa.
+    can('structure', 'create', p) ? `<button class="ghost" id="chooseBranch">${icon('branch')}Etapa</button>` : '',
     can('projects', 'edit', p) ? `<button class="ghost" id="chooseMs">${icon('milestone')}Marco</button>` : '',
   ].join('');
   if (!options) return;
   openModal('Adicionar', `<div class="form-grid">${options}</div>`);
-  document.getElementById('chooseTask')?.addEventListener('click', () => openTaskModal());
   document.getElementById('chooseBranch')?.addEventListener('click', () => openNewBranchModal(null));
   if (can('projects', 'edit', p)) modalField('#chooseMs').addEventListener('click', () => openMilestoneModal());
 }

@@ -25,9 +25,9 @@ export function matchesBranchFilters(p: Project, b: Branch): boolean {
     case 'late':
       return tasks.some(isLate);
     case 'open':
-      return tasks.some((t) => t.status !== 'Concluído');
+      return b.status !== 'Concluído';
     case 'done':
-      return tasks.length > 0 && tasks.every((t) => t.status === 'Concluído');
+      return b.status === 'Concluído';
     case 'empty':
       return !tasks.length;
     default:
@@ -39,7 +39,7 @@ export function branchFilterBar(p: Project): string {
   const f = ui.branchFilters;
   const active = branchFiltersActive();
   const found = active ? p.branches.filter((b) => matchesBranchFilters(p, b)).length : 0;
-  return `<div class="fbar">${filterSearch('branches.q', 'Filtrar ramificações ou projetista', f.q)}<div class="fchips">${filterSelect(
+  return `<div class="fbar">${filterSearch('branches.q', 'Filtrar etapas ou projetista', f.q)}<div class="fchips">${filterSelect(
     'branches.designer',
     'Projetista',
     [['none', 'Sem projetista'] as const, ...db.users.map((u) => [u.id, u.name] as const)],
@@ -50,7 +50,7 @@ export function branchFilterBar(p: Project): string {
     'Situação',
     [
       ['late', 'Com atraso'],
-      ['open', 'Com pendências'],
+      ['open', 'Não concluídas'],
       ['done', 'Concluídas'],
       ['empty', 'Sem tarefas'],
     ],

@@ -3,6 +3,7 @@
  * Cada controle declara `data-filter="grupo.campo"`; um único listener atualiza
  * o objeto de filtros correspondente e pede uma nova renderização.
  */
+import { onClick } from '../utils/actions';
 import { esc, refocus } from '../utils/dom';
 import { icon } from './icons';
 
@@ -77,6 +78,8 @@ function handle(el: HTMLInputElement | HTMLSelectElement): void {
 }
 
 export function installFilters(): void {
+  // Botão "Limpar" de qualquer barra: volta o grupo aos filtros padrão.
+  onClick('filter-clear', (el) => clearFilterGroup(el.dataset.group ?? ''));
   document.addEventListener('input', (e) => {
     const el = e.target;
     if (el instanceof HTMLInputElement && el.dataset.filter && el.type !== 'checkbox') handle(el);

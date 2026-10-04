@@ -1,4 +1,5 @@
 import type { Dependency } from './dependency';
+import type { TaskStatus } from './task';
 
 export interface Point {
   x: number;
@@ -8,10 +9,12 @@ export interface Point {
 export interface Branch extends Point {
   id: string;
   name: string;
-  /** Id da ramificação pai; null quando fica direto no projeto. */
+  /** Id da etapa pai; null quando fica direto no projeto. */
   parent: string | null;
   /** Id do usuário projetista. */
   designer: string | null;
-  /** O que precisa acontecer antes de a ramificação (e suas tarefas) poder avançar. */
+  /** Coluna da etapa no Kanban "Etapas" (mesmas colunas das tarefas). */
+  status: TaskStatus;
+  /** O que precisa acontecer antes de a etapa (e suas tarefas) poder avançar. */
   dependencies: Dependency[];
 }

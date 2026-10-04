@@ -25,8 +25,8 @@ function renderStructure(p: Project): string {
   if (ensureLayout(p)) persistProjects();
   // Sem acesso ao Mapa, a Estrutura abre direto em Cartões.
   if (!can('map', 'view', p.id)) ui.structureMode = 'cards';
-  if (ui.structureMode === 'cards') return `<div class="toolbar">${modeSwitch()}</div>${branchFilterBar(p)}${renderCards(p)}`;
-  return `<div class="toolbar">${modeSwitch()}<button class="ghost" data-perm="structure.create" data-action="branch-new">${icon('plus')}Ramificação</button>${mapToolbar()}</div>${branchFilterBar(
+  if (ui.structureMode === 'cards') return `<div class="toolbar">${modeSwitch()}<span class="sub flat struct-note">Só visualização — edite pela aba Etapas</span></div>${branchFilterBar(p)}${renderCards(p)}`;
+  return `<div class="toolbar">${modeSwitch()}<span class="sub flat struct-note">Só visualização — edite pela aba Etapas</span>${mapToolbar()}</div>${branchFilterBar(
     p,
   )}${renderMap(p)}`;
 }

@@ -1,4 +1,4 @@
-/** Janela larga com tudo sobre uma ramificação: tarefas, checklist, projetista, filhas e histórico. */
+/** Janela larga com tudo sobre uma etapa: tarefas, checklist, projetista, filhas e histórico. */
 import { applyPerms } from '../../app/access';
 import { currentProject, refreshProject } from '../../app/navigation';
 import { can } from '../../services/permissionService';
@@ -61,8 +61,8 @@ function render(p: Project, id: string): void {
     late ? 'late-txt' : ''
   }">${late}</b><span>atrasadas</span></div><div><b>${itemsDone}/${items.length}</b><span>itens de checklist</span></div></div>`;
   const tasksSection = `<section><div class="sec-head" style="margin-top:0"><h3>Tarefas e checklist</h3><button class="ghost" id="bdNewTask" data-perm="tasks.create">${icon('plus')}Nova tarefa</button></div>${
-    own.length ? own.map((t) => taskBlock(t, p)).join('') : '<p class="sub">Nenhuma tarefa nesta ramificação.</p>'
-  }${all.length > own.length ? `<p class="sub small">Mais ${plural(all.length - own.length, 'tarefa', 'tarefas')} nas sub-ramificações.</p>` : ''}</section>`;
+    own.length ? own.map((t) => taskBlock(t, p)).join('') : '<p class="sub">Nenhuma tarefa nesta etapa.</p>'
+  }${all.length > own.length ? `<p class="sub small">Mais ${plural(all.length - own.length, 'tarefa', 'tarefas')} nas subetapas.</p>` : ''}</section>`;
   const designerBox = `<div class="bd-box"><div class="lbl">Projetista</div><div class="bd-owner">${
     designer
       ? `${avatar(designer)}<div><b>${esc(designer.name)}</b>${designer.role || designer.email ? `<small>${esc([designer.role, designer.email].filter(Boolean).join(' · '))}</small>` : ''}</div>`
@@ -72,9 +72,9 @@ function render(p: Project, id: string): void {
     b.designer ?? '',
     'Sem projetista',
   )}</select></div>`;
-  const kidsBox = `<div class="bd-box"><div class="lbl">Sub-ramificações</div><div class="bd-kids">${
+  const kidsBox = `<div class="bd-box"><div class="lbl">Subetapas</div><div class="bd-kids">${
     kids.map((k) => `<button class="chip" data-detail="${k.id}">${icon('branch')} ${esc(k.name)}</button>`).join('') || '<span class="sub flat">Nenhuma</span>'
-  }</div><button class="ghost" id="bdNewKid" data-perm="structure.create">${icon('plus')}Sub-ramificação</button>${
+  }</div><button class="ghost" id="bdNewKid" data-perm="structure.create">${icon('plus')}Subetapa</button>${
     parent ? `<div class="lbl" style="margin-top:14px">Dentro de</div><button class="chip" data-detail="${parent.id}">${icon('branch')} ${esc(parent.name)}</button>` : ''
   }</div>`;
   const historyBox = `<div class="bd-box"><div class="lbl">Histórico</div>${
@@ -85,13 +85,15 @@ function render(p: Project, id: string): void {
 
   openModal(
     b.name,
-    `<div class="bd">${blockersPanel(branchRef(p, b), 'Ramificação bloqueada — as tarefas dentro dela não podem ser iniciadas')}${dependentsLine(
+    `<div class="bd">${blockersPanel(branchRef(p, b), 'Etapa bloqueada — as tarefas dentro dela não podem ser iniciadas')}${dependentsLine(
       branchRef(p, b),
-    )}<div class="bd-head"><div class="bd-path">${esc(p.name)}${path ? ` / ${esc(path)}` : ''}</div>${stats}${progressRow(
+    )}<div class="bd-head"><div class="bd-path">${esc(p.name)}${path ? ` / ${esc(path)}` : ''} · <span class="status ${taskStatusClass(b.status)}">${esc(
+      b.status,
+    )}</span></div>${stats}${progressRow(
       pct(done, all.length),
     )}</div><div class="bd-grid">${tasksSection}<aside>${designerBox}${kidsBox}${historyBox}</aside></div><div class="modal-actions"><button class="ghost" id="bdCards">${icon(
       'cards',
-    )}Abrir em Cartões</button><button class="primary" id="bdEdit" data-perm="structure.edit|structure.delete">${icon('edit')}Editar ramificação</button></div></div>`,
+    )}Abrir em Cartões</button><button class="primary" id="bdEdit" data-perm="structure.edit|structure.delete">${icon('edit')}Editar etapa</button></div></div>`,
     { wide: true },
   );
   applyPerms($('#modal'), p.id);

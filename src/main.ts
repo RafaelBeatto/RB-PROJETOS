@@ -16,9 +16,9 @@ import { initProjectFilters } from './features/projects/projectFilters';
 import { initProjectView } from './features/projects/projectView';
 import { initSearch } from './features/search/search';
 import { initSettings } from './features/settings/settings';
+import { initEtapaBoard } from './features/structure/etapaBoard';
 import { initStructure } from './features/structure/structureTab';
 import { initTaskActions } from './features/tasks/taskActions';
-import { initTaskBoard } from './features/tasks/taskBoard';
 import { initTaskList } from './features/tasks/taskList';
 import { initTimeline } from './features/timeline/timeline';
 import { initToday } from './features/today/today';
@@ -62,10 +62,10 @@ function start(): void {
   initInfo();
   initMilestones();
   initTaskActions();
-  initTaskBoard();
   initTaskList();
   initTimeline();
   initStructure();
+  initEtapaBoard();
   initSearch();
   initSettings();
 
