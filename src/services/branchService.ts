@@ -3,7 +3,9 @@ import type { Project } from '../types/project';
 import type { Task } from '../types/task';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
+import type { Dependency } from '../types/dependency';
 import { persistProjects } from './db';
+import { NEW_ID, branchRef, dropDependenciesOn, sameDependencies, validateDependencies } from './dependencyService';
 import { authorize } from './permissionService';
 import { findUser } from './userService';
 
@@ -94,10 +96,11 @@ function freeSpotNear(p: Project, parent: Branch | undefined): { x: number; y: n
   return { x, y };
 }
 
-export function createBranch(p: Project, name: string, parentId: string | null, designer: string | null): Branch {
+export function createBranch(p: Project, name: string, parentId: string | null, designer: string | null, deps: Dependency[] = []): Branch {
   authorize('structure', 'create', p.id);
   const parent = findBranch(p, parentId);
-  const branch: Branch = { id: uid('b'), name, parent: parent ? parent.id : null, designer, ...freeSpotNear(p, parent) };
+  const dependencies = validateDependencies({ ref: { kind: 'branch', projectId: p.id, id: NEW_ID }, parent: parent?.id ?? null, dependencies: deps });
+  const branch: Branch = { id: uid('b'), name, parent: parent ? parent.id : null, designer, dependencies, ...freeSpotNear(p, parent) };
   p.branches.push(branch);
   logActivity(p, `criou a ramificação "${branch.name}"`, { kind: 'branch', branch: branch.id });
   persistProjects();
@@ -113,12 +116,15 @@ export interface BranchDraft {
   name: string;
   parent: string | null;
   designer: string | null;
+  dependencies: Dependency[];
 }
 
 export function updateBranch(p: Project, b: Branch, draft: BranchDraft): void {
   authorize('structure', 'edit', p.id);
-  const old = { name: b.name, parent: b.parent, designer: b.designer };
-  Object.assign(b, draft);
+  const dependencies = validateDependencies({ ref: branchRef(p, b), parent: draft.parent, dependencies: draft.dependencies });
+  const old = { name: b.name, parent: b.parent, designer: b.designer, dependencies: b.dependencies };
+  Object.assign(b, draft, { dependencies });
+  if (!sameDependencies(old.dependencies, dependencies)) logActivity(p, `alterou as dependências da ramificação "${b.name}"`, { kind: 'branch', branch: b.id });
   if (old.name !== b.name) logActivity(p, `renomeou a ramificação "${old.name}" para "${b.name}"`, { kind: 'branch', branch: b.id });
   if (old.parent !== b.parent) logActivity(p, `moveu a ramificação "${b.name}"`, { kind: 'branch', branch: b.id });
   if (old.designer !== b.designer) logDesigner(p, b);
@@ -139,6 +145,9 @@ export function deleteBranch(p: Project, b: Branch): void {
   for (const t of p.tasks) if (t.branch === b.id) t.branch = '';
   p.branches = p.branches.filter((x) => x.id !== b.id);
   logActivity(p, `excluiu a ramificação "${b.name}"`, { kind: 'branch' });
+  for (const other of dropDependenciesOn(branchRef(p, b))) {
+    logActivity(other, `excluiu a ramificação "${b.name}" (${p.name}); ela foi retirada das dependências deste projeto`, { kind: 'branch' });
+  }
   persistProjects();
 }
 

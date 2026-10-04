@@ -10,7 +10,9 @@ import { progressBar, progressRow } from '../../components/progress';
 import { showToast } from '../../components/toast';
 import { childrenOf, findBranch, pathLabel, setDesigner, tasksIn } from '../../services/branchService';
 import { db } from '../../services/db';
-import { findTask, isBlocked, isLate, setSubtaskDone } from '../../services/taskService';
+import { branchRef, taskRef } from '../../services/dependencyService';
+import { findTask, isLate, setSubtaskDone } from '../../services/taskService';
+import { blockedBadge, blockersPanel, dependentsLine } from '../dependencies/dependencyView';
 import { findUser, personByName } from '../../services/userService';
 import { ui } from '../../state/store';
 import type { Project } from '../../types/project';
@@ -37,7 +39,7 @@ function taskBlock(t: Task, p: Project): string {
     t.status,
   )}">${esc(t.status)}</span></div><div class="bd-task-meta"><span><i class="priority ${priorityClass(t.priority)}"></i> ${esc(t.priority)}</span>${who}${
     t.due ? `<span class="${isLate(t) ? 'late-txt' : ''}">Prazo ${formatShortDate(t.due)}</span>` : ''
-  }${isBlocked(t, p) ? '<span class="status todo">Bloqueada</span>' : ''}${items.length ? `<span>Checklist ${done}/${items.length}</span>` : ''}</div>${checklist}</div>`;
+  }${t.status === 'Concluído' ? '' : blockedBadge(taskRef(p, t))}${items.length ? `<span>Checklist ${done}/${items.length}</span>` : ''}</div>${checklist}</div>`;
 }
 
 function render(p: Project, id: string): void {
@@ -83,7 +85,9 @@ function render(p: Project, id: string): void {
 
   openModal(
     b.name,
-    `<div class="bd"><div class="bd-head"><div class="bd-path">${esc(p.name)}${path ? ` / ${esc(path)}` : ''}</div>${stats}${progressRow(
+    `<div class="bd">${blockersPanel(branchRef(p, b), 'Ramificação bloqueada — as tarefas dentro dela não podem ser iniciadas')}${dependentsLine(
+      branchRef(p, b),
+    )}<div class="bd-head"><div class="bd-path">${esc(p.name)}${path ? ` / ${esc(path)}` : ''}</div>${stats}${progressRow(
       pct(done, all.length),
     )}</div><div class="bd-grid">${tasksSection}<aside>${designerBox}${kidsBox}${historyBox}</aside></div><div class="modal-actions"><button class="ghost" id="bdCards">${icon(
       'cards',

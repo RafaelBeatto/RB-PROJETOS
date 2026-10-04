@@ -1,10 +1,12 @@
-import type { Milestone, MilestoneStatus, Project, ProjectDraft, ProjectStatus } from '../types/project';
+import { PROJECT_STARTED_STATUSES, type Milestone, type MilestoneStatus, type Project, type ProjectDraft, type ProjectStatus } from '../types/project';
 import { today } from '../utils/date';
 import { pct } from '../utils/format';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
 import { db, persistProjects } from './db';
+import { DependencyError, NEW_ID, blockedMessage, blockersOf, draftBlockers, projectRef, sameDependencies, validateDependencies } from './dependencyService';
 import { authorize } from './permissionService';
+import { findUser } from './userService';
 import { isLate } from './taskService';
 
 export function findProject(id: string | null | undefined): Project | undefined {
@@ -30,9 +32,21 @@ export function isProjectOverdue(p: Project): boolean {
   return !!p.due && p.due < today() && p.status !== 'Concluído';
 }
 
+/** Projeto bloqueado por dependências não pode ser iniciado nem concluído. */
+function assertCanEnter(status: ProjectStatus, previous: ProjectStatus | undefined, blockers: ReturnType<typeof blockersOf>): void {
+  if (status === previous || !PROJECT_STARTED_STATUSES.includes(status) || !blockers.length) return;
+  throw new DependencyError(blockedMessage('O projeto está bloqueado e não pode ser iniciado nem concluído', blockers));
+}
+
+/** O antigo campo "Responsável" passa a acompanhar o primeiro coordenador. */
+const ownerFrom = (coordinators: string[], fallback: string): string => findUser(coordinators[0])?.name ?? fallback;
+
 export function createProject(draft: ProjectDraft): Project {
   authorize('projects', 'create');
-  const project: Project = { id: uid('p'), ...draft, archived: false, branches: [], tasks: [], milestones: [], activity: [] };
+  const owner = { ref: { kind: 'project' as const, projectId: NEW_ID, id: NEW_ID }, dependencies: draft.dependencies };
+  const dependencies = validateDependencies(owner);
+  assertCanEnter(draft.status, undefined, draftBlockers({ ...owner, dependencies }));
+  const project: Project = { id: uid('p'), ...draft, dependencies, owner: ownerFrom(draft.coordinators, ''), archived: false, branches: [], tasks: [], milestones: [], activity: [] };
   db.projects.unshift(project);
   logActivity(project, 'criou o projeto', { kind: 'project' });
   persistProjects();
@@ -41,9 +55,14 @@ export function createProject(draft: ProjectDraft): Project {
 
 export function updateProject(p: Project, draft: ProjectDraft): void {
   authorize('projects', 'edit', p.id);
+  const owner = { ref: projectRef(p), dependencies: draft.dependencies };
+  const dependencies = validateDependencies(owner);
+  assertCanEnter(draft.status, p.status, draftBlockers({ ...owner, dependencies }));
+  if (p.status !== draft.status) logActivity(p, `mudou o status do projeto para ${draft.status}`, { kind: 'project' });
+  if (!sameDependencies(p.dependencies, dependencies)) logActivity(p, 'alterou as dependências do projeto', { kind: 'project' });
   if (String(p.coordinators) !== String(draft.coordinators)) logActivity(p, 'alterou a coordenação do projeto', { kind: 'project' });
-  if (p.prefeituraId !== draft.prefeituraId) logActivity(p, 'alterou a prefeitura do projeto', { kind: 'project' });
-  Object.assign(p, draft);
+  if (p.contratanteId !== draft.contratanteId) logActivity(p, 'alterou a contratante do projeto', { kind: 'project' });
+  Object.assign(p, draft, { dependencies, owner: ownerFrom(draft.coordinators, p.owner) });
   persistProjects();
 }
 
@@ -58,6 +77,7 @@ export function setProjectStatus(p: Project, status: ProjectStatus): boolean {
   authorize('projects', 'edit', p.id);
   authorize('kanban', 'edit', p.id);
   if (p.status === status) return false;
+  assertCanEnter(status, p.status, blockersOf(projectRef(p)));
   p.status = status;
   logActivity(p, `mudou o status do projeto para ${status}`, { kind: 'project' });
   persistProjects();

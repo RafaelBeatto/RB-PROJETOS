@@ -1,7 +1,9 @@
 import { applyPerms } from '../../app/access';
 import { currentProject, registerProjectView } from '../../app/navigation';
 import { ui, type ProjectTab } from '../../state/store';
+import { contratanteName } from '../../services/contratanteService';
 import type { Project } from '../../types/project';
+import { formatDate } from '../../utils/date';
 import { $, $$ } from '../../utils/dom';
 
 export interface TabView {
@@ -19,7 +21,9 @@ export function registerTab(tab: ProjectTab, view: TabView): void {
 function renderProjectView(): void {
   const p = currentProject();
   $('#pName').textContent = p.name;
-  $('#pDescription').textContent = p.description || 'Sem descrição';
+  // Subtítulo: dados de identificação (a descrição saiu da interface).
+  $('#pDescription').textContent =
+    [p.processo && `Processo ${p.processo}`, contratanteName(p), p.due && `Prazo ${formatDate(p.due)}`].filter(Boolean).join(' · ') || p.status;
   $$('[data-action="tab"]').forEach((t) => {
     const active = t.dataset.tab === ui.tab;
     t.classList.toggle('active', active);

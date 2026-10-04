@@ -1,5 +1,7 @@
 import { icon } from '../../components/icons';
 import { tasksIn } from '../../services/branchService';
+import { branchRef, projectRef } from '../../services/dependencyService';
+import { blockedBadge } from '../dependencies/dependencyView';
 import { findUser } from '../../services/userService';
 import type { Branch } from '../../types/branch';
 import type { Project } from '../../types/project';
@@ -19,9 +21,7 @@ function node(p: Project, b: Branch, dim: boolean): string {
     'branch',
   )}<span class="node-name">${esc(b.name)}</span><button data-perm="structure.create" data-action="branch-new" data-parent="${b.id}" title="Nova sub-ramificação" aria-label="Nova sub-ramificação">${icon(
     'plus',
-  )}</button><button data-perm="structure.edit|structure.delete" data-action="branch-edit" data-id="${b.id}" title="Opções" aria-label="Opções da ramificação">${icon('moreVertical')}</button></div>${designerLine(
-    b,
-  )}<div class="node-meta">${plural(tasks.length, 'tarefa', 'tarefas')}<br>${plural(done, 'concluída', 'concluídas')}</div><button class="node-add" data-perm="tasks.create" data-action="task-new" data-branch="${
+  )}</button><button data-perm="structure.edit|structure.delete" data-action="branch-edit" data-id="${b.id}" title="Opções" aria-label="Opções da ramificação">${icon('moreVertical')}</button></div>${designerLine(b)}${blockedBadge(branchRef(p, b))}<div class="node-meta">${plural(tasks.length, 'tarefa', 'tarefas')}<br>${plural(done, 'concluída', 'concluídas')}</div><button class="node-add" data-perm="tasks.create" data-action="task-new" data-branch="${
     b.id
   }">${icon('plus')}adicionar tarefa</button></article>`;
 }
@@ -40,7 +40,7 @@ export function renderMap(p: Project): string {
     .map((b) => `<path data-line="${b.id}"/>`)
     .join('')}</svg><article class="map-node root" data-node="root" style="left:${root.x}px;top:${root.y}px"><div class="node-top">${icon(
     'projects',
-  )}<span class="node-name">${esc(p.name)}</span></div><div class="node-meta">${p.tasks.length} tarefas · ${p.branches.length} ramificações</div><button class="node-add" data-perm="structure.create" data-action="branch-new">${icon(
+  )}<span class="node-name">${esc(p.name)}</span></div>${blockedBadge(projectRef(p), 'Bloqueado')}<div class="node-meta">${p.tasks.length} tarefas · ${p.branches.length} ramificações</div><button class="node-add" data-perm="structure.create" data-action="branch-new">${icon(
     'plus',
   )}adicionar ramificação</button></article>${p.branches
     .map((b) => node(p, b, filtering && !matchesBranchFilters(p, b)))

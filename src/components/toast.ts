@@ -9,5 +9,5 @@ export function showToast(message: string): void {
   clearTimeout(timer);
   timer = setTimeout(() => {
     el.hidden = true;
-  }, 2200);
+  }, Math.max(2200, message.length * 45));
 }

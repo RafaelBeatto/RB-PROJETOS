@@ -1,4 +1,5 @@
-import { isBlocked } from '../../services/taskService';
+import { taskRef } from '../../services/dependencyService';
+import { blockedBadge } from '../dependencies/dependencyView';
 import type { Project } from '../../types/project';
 import { TASK_STATUSES, type Task } from '../../types/task';
 import { formatShortDate } from '../../utils/date';
@@ -13,7 +14,7 @@ function rows(tasks: Task[], p: Project): string {
     .map(
       (t) =>
         `<div class="list-row" data-action="task-open" data-id="${t.id}" tabindex="0"><strong>${esc(t.title)} ${
-          isBlocked(t, p) ? '<small class="status todo">Bloqueada</small>' : ''
+          t.status === 'Concluído' ? '' : blockedBadge(taskRef(p, t))
         }</strong><span class="status ${taskStatusClass(t.status)}">${t.status}</span><span>${esc(t.assignee || '—')}</span><span>${formatShortDate(t.due) || '—'}</span></div>`,
     )
     .join('');

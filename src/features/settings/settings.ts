@@ -1,4 +1,4 @@
-/** Página Configurações (Usuários | Perfis e permissões | Prefeituras), Minha conta e menu "Mais" do celular. */
+/** Página Configurações (Usuários | Perfis e permissões | Contratantes), Minha conta e menu "Mais" do celular. */
 import { canOpenPage } from '../../app/access';
 import { pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
 import { avatar } from '../../components/avatar';
@@ -12,18 +12,18 @@ import { MIN_PASSWORD, changeOwnPassword } from '../../services/userService';
 import { ui, type SettingsTab } from '../../state/store';
 import { onClick } from '../../utils/actions';
 import { esc } from '../../utils/dom';
-import { initPrefeiturasAdmin, renderPrefeiturasTab } from './prefeiturasAdmin';
+import { initContratantesAdmin, renderContratantesTab } from './contratantesAdmin';
 import { initProfilesAdmin, mountProfilesTab, renderProfilesTab } from './profilesAdmin';
 import { initUsersAdmin, renderUsersTab, usersFilterBar } from './usersAdmin';
 
-const TABS: { tab: SettingsTab; label: string; module: 'users' | 'profiles' | 'prefeituras' }[] = [
+const TABS: { tab: SettingsTab; label: string; module: 'users' | 'profiles' | 'contratantes' }[] = [
   { tab: 'users', label: 'Usuários', module: 'users' },
   { tab: 'profiles', label: 'Perfis e permissões', module: 'profiles' },
-  { tab: 'prefeituras', label: 'Prefeituras', module: 'prefeituras' },
+  { tab: 'contratantes', label: 'Contratantes', module: 'contratantes' },
 ];
 
 function renderSettings(): void {
-  setPageHeader('Configurações', 'Usuários, perfis, permissões de acesso e prefeituras.', false);
+  setPageHeader('Configurações', 'Usuários, perfis, permissões de acesso e contratantes.', false);
   const allowed = TABS.filter((t) => can(t.module, 'view'));
   if (!allowed.some((t) => t.tab === ui.settingsTab) && allowed[0]) ui.settingsTab = allowed[0].tab;
   const tabs = `<nav class="tabs settings-tabs" aria-label="Configurações">${allowed
@@ -31,15 +31,15 @@ function renderSettings(): void {
     .join('')}</nav>`;
   if (!allowed.length) {
     setFilterBar('settings-empty', () => '');
-    pageContent().innerHTML = '<div class="empty">Seu perfil não tem acesso a usuários, perfis nem prefeituras.</div>';
+    pageContent().innerHTML = '<div class="empty">Seu perfil não tem acesso a usuários, perfis nem contratantes.</div>';
     return;
   }
   if (ui.settingsTab === 'users') {
     setFilterBar('users', () => tabs + usersFilterBar());
     pageContent().innerHTML = renderUsersTab();
-  } else if (ui.settingsTab === 'prefeituras') {
-    setFilterBar('prefeituras', () => tabs);
-    pageContent().innerHTML = renderPrefeiturasTab();
+  } else if (ui.settingsTab === 'contratantes') {
+    setFilterBar('contratantes', () => tabs);
+    pageContent().innerHTML = renderContratantesTab();
   } else {
     setFilterBar('profiles', () => tabs);
     pageContent().innerHTML = renderProfilesTab();
@@ -91,11 +91,11 @@ function openMore(): void {
 export function initSettings(): void {
   initUsersAdmin();
   initProfilesAdmin();
-  initPrefeiturasAdmin();
+  initContratantesAdmin();
   registerPage('settings', renderSettings);
   onClick('settings-tab', (el) => {
     const tab = el.dataset.tab;
-    ui.settingsTab = tab === 'profiles' || tab === 'prefeituras' ? tab : 'users';
+    ui.settingsTab = tab === 'profiles' || tab === 'contratantes' ? tab : 'users';
     renderSettings();
   });
   onClick('account', openAccount);

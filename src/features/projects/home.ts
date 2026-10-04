@@ -1,11 +1,12 @@
 import { pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
 import { avatar } from '../../components/avatar';
 import { icon } from '../../components/icons';
-import { progressRow } from '../../components/progress';
 import { db } from '../../services/db';
 import { can } from '../../services/permissionService';
-import { prefeituraName } from '../../services/prefeituraService';
-import { agreementName, agreementTotal, hasAgreement, lateTaskCount, projectProgress } from '../../services/projectService';
+import { projectRef } from '../../services/dependencyService';
+import { contratanteCidade, contratanteName } from '../../services/contratanteService';
+import { blockedBadge } from '../dependencies/dependencyView';
+import { agreementName, agreementTotal, hasAgreement, lateTaskCount } from '../../services/projectService';
 import { findUser } from '../../services/userService';
 import type { Project } from '../../types/project';
 import { daysUntil, formatDate } from '../../utils/date';
@@ -41,26 +42,27 @@ function coordinators(p: Project): string {
 }
 
 function projectCard(p: Project): string {
-  const prog = projectProgress(p);
   const late = lateTaskCount(p);
   const agreement = agreementName(p);
-  const prefeitura = prefeituraName(p);
+  const contratante = contratanteName(p);
+  const cidade = contratanteCidade(p);
   const facts = [
     fact('Processo', esc(p.processo.trim() || '—')),
-    fact('Valor total', hasAgreement(p) ? currency(agreementTotal(p)) : '—'),
-    fact('Prefeitura', esc(prefeitura || '—')),
+    fact('Contratante', esc(contratante || '—'), cidade ? `<span class="pc-city">${esc(cidade)}</span>` : ''),
     fact('Prazo', formatDate(p.due), dueBadge(p)),
   ].join('');
-  const meta = [
-    `<span>${prog.total} tarefas</span>`,
-    `<span>${prog.done} concluídas</span>`,
-    late ? `<span class="late-txt">${late} atrasadas</span>` : '',
+  // Informação secundária: valor, convênio e quem enviou o recurso.
+  const secondary = [
+    hasAgreement(p) ? `<span>Valor total <b>${currency(agreementTotal(p))}</b></span>` : '',
     agreement ? `<span>${esc(agreement)}</span>` : '',
-    p.convPolitico ? `<span>${esc(p.convPolitico)}</span>` : '',
-  ].join('');
-  return `<article class="project-card" data-action="project-open" data-id="${p.id}" tabindex="0"><div><h2>${esc(p.name)}</h2><div class="pc-coords">${coordinators(
+    p.convPolitico ? `<span>Enviado por ${esc(p.convPolitico)}</span>` : '',
+    late ? `<span class="late-txt">${plural(late, 'tarefa atrasada', 'tarefas atrasadas')}</span>` : '',
+  ]
+    .filter(Boolean)
+    .join('');
+  return `<article class="project-card" data-action="project-open" data-id="${p.id}" tabindex="0"><div><h2>${esc(p.name)}</h2>${blockedBadge(projectRef(p), 'Bloqueado')}<div class="pc-coords">${coordinators(
     p,
-  )}</div><div class="pc-facts">${facts}</div><p>${esc(p.description || 'Sem descrição')}</p>${progressRow(prog.pct)}<div class="meta">${meta}</div></div><span class="status ${projectStatusClass(
+  )}</div><div class="pc-facts">${facts}</div>${secondary ? `<div class="meta pc-secondary">${secondary}</div>` : ''}</div><span class="status ${projectStatusClass(
     p.status,
   )}">${esc(p.status)}</span></article>`;
 }

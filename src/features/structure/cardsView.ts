@@ -1,6 +1,8 @@
 /** Visão "Cartões": navegação por níveis da estrutura do projeto. */
 import { icon } from '../../components/icons';
 import { progressBar } from '../../components/progress';
+import { branchRef, taskRef } from '../../services/dependencyService';
+import { blockedBadge } from '../dependencies/dependencyView';
 import { ancestorsOf, childrenOf, findBranch, pathLabel, tasksIn } from '../../services/branchService';
 import { ui } from '../../state/store';
 import type { Branch } from '../../types/branch';
@@ -18,7 +20,7 @@ function branchCard(p: Project, b: Branch, showPath: boolean): string {
   const path = showPath ? pathLabel(p, b) : '';
   return `<article class="bcard" data-action="cards-enter" data-id="${b.id}" tabindex="0"><button class="bcard-edit" data-perm="structure.edit|structure.delete" data-action="branch-edit" data-id="${
     b.id
-  }" aria-label="Opções da ramificação">${icon('moreVertical')}</button><div class="bcard-name">${icon('branch')} ${esc(b.name)}</div>${
+  }" aria-label="Opções da ramificação">${icon('moreVertical')}</button><div class="bcard-name">${icon('branch')} ${esc(b.name)}</div>${blockedBadge(branchRef(p, b))}${
     path ? `<div class="node-meta bcard-path">${esc(path)}</div>` : ''
   }${designerLine(b)}<div class="node-meta bcard-stats">${kids ? `${plural(kids, 'ramificação', 'ramificações')}<br>` : ''}${plural(tasks.length, 'tarefa', 'tarefas')}<br>${plural(
     done,
@@ -29,8 +31,10 @@ function branchCard(p: Project, b: Branch, showPath: boolean): string {
   }">Detalhes</button></div></article>`;
 }
 
-function taskCard(t: Task): string {
-  return `<article class="bcard task" data-action="task-open" data-id="${t.id}" tabindex="0"><div class="bcard-name">${esc(t.title)}</div><div class="node-meta">${esc(
+function taskCard(p: Project, t: Task): string {
+  return `<article class="bcard task" data-action="task-open" data-id="${t.id}" tabindex="0"><div class="bcard-name">${esc(t.title)}</div>${
+    t.status === 'Concluído' ? '' : blockedBadge(taskRef(p, t))
+  }<div class="node-meta">${esc(
     t.status,
   )}<br><i class="priority ${priorityClass(t.priority)}"></i> ${esc(t.priority)}</div></article>`;
 }
@@ -56,6 +60,6 @@ export function renderCards(p: Project): string {
   const actions = `<div class="toolbar"><button class="ghost" data-perm="structure.create" data-action="branch-new" data-parent="${level?.id ?? ''}">${icon(
     'plus',
   )}Nova ramificação</button><button class="ghost" data-perm="tasks.create" data-action="task-new" data-branch="${level?.id ?? ''}">${icon('plus')}Nova tarefa</button></div>`;
-  const tasks = ownTasks.length ? `<h3>Tarefas</h3><div class="cards">${ownTasks.map(taskCard).join('')}</div>` : '';
+  const tasks = ownTasks.length ? `<h3>Tarefas</h3><div class="cards">${ownTasks.map((t) => taskCard(p, t)).join('')}</div>` : '';
   return `<div class="cards-wrap">${head}${grid}${actions}${tasks}</div>`;
 }

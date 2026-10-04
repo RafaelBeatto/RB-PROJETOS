@@ -1,12 +1,17 @@
 import type { Activity } from './activity';
 import type { Branch, Point } from './branch';
+import type { Dependency } from './dependency';
 import type { Task } from './task';
 
-/** Ordem usada no formulário do projeto. */
-export const PROJECT_STATUSES = ['Planejamento', 'Em andamento', 'Em pausa', 'Concluído', 'Atrasado'] as const;
-/** Ordem das colunas no Kanban de projetos. */
-export const PROJECT_BOARD_COLUMNS = ['Planejamento', 'Em andamento', 'Em pausa', 'Atrasado', 'Concluído'] as const;
+/**
+ * Status do projeto (formulário e colunas do Kanban, nesta ordem).
+ * Atraso não é status: é calculado pelo prazo (ver isProjectOverdue).
+ */
+export const PROJECT_STATUSES = ['Em espera', 'Em andamento', 'Em pausa', 'Concluído'] as const;
+export const PROJECT_BOARD_COLUMNS = PROJECT_STATUSES;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+/** Status que contam como "projeto iniciado"; exigem as dependências do projeto atendidas. */
+export const PROJECT_STARTED_STATUSES: readonly ProjectStatus[] = ['Em andamento', 'Concluído'];
 
 export const MILESTONE_STATUSES = ['Pendente', 'Concluído'] as const;
 export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number];
@@ -35,14 +40,18 @@ export interface Agreement {
 export interface Project extends Agreement {
   id: string;
   name: string;
+  /** Campo antigo: não é mais pedido no formulário; mantido para não perder dados. */
   description: string;
   status: ProjectStatus;
+  /** Campo antigo "Responsável": substituído pelos coordenadores; mantido por compatibilidade. */
   owner: string;
   due: string;
   archived: boolean;
   coordinators: string[];
-  /** Prefeitura cadastrada pelo administrador (vazio = nenhuma). */
-  prefeituraId: string;
+  /** Contratante cadastrada pelo administrador (vazio = nenhuma). */
+  contratanteId: string;
+  /** O que precisa acontecer antes de o projeto (e tudo dentro dele) poder avançar. */
+  dependencies: Dependency[];
   branches: Branch[];
   tasks: Task[];
   milestones: Milestone[];
@@ -52,4 +61,4 @@ export interface Project extends Agreement {
   view?: MapView;
 }
 
-export type ProjectDraft = Pick<Project, 'name' | 'owner' | 'status' | 'due' | 'description' | 'coordinators' | 'prefeituraId'> & Agreement;
+export type ProjectDraft = Pick<Project, 'name' | 'status' | 'due' | 'description' | 'coordinators' | 'contratanteId' | 'dependencies'> & Agreement;
