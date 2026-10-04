@@ -173,7 +173,6 @@ export function updateUser(user: User, fields: UserFields): void {
   if (oldName !== user.name) {
     for (const p of db.projects) {
       if (p.owner === oldName) p.owner = user.name;
-      for (const t of p.tasks) if (t.assignee === oldName) t.assignee = user.name;
     }
     persistProjects();
   }
@@ -196,6 +195,7 @@ export function removeUser(user: User): void {
   for (const p of db.projects) {
     p.coordinators = p.coordinators.filter((id) => id !== user.id);
     for (const b of p.branches) if (b.designer === user.id) b.designer = null;
+    for (const t of p.tasks) t.assignees = t.assignees.filter((id) => id !== user.id);
   }
   persistProjects();
   persistUsers();
@@ -227,16 +227,21 @@ export function userLinks(user: User): UserLinks {
   for (const p of db.projects) {
     if (!p.archived && p.coordinators.includes(user.id)) coordinates++;
     designs += p.branches.filter((b) => b.designer === user.id).length;
-    tasks += p.tasks.filter((t) => userByName(t.assignee) === user).length;
+    tasks += p.tasks.filter((t) => t.assignees.includes(user.id)).length;
   }
   return { coordinates, designs, tasks };
 }
 
-/** Todos os nomes conhecidos: usuários cadastrados e responsáveis de tarefas. */
-export function knownPeople(): string[] {
-  const names = new Set(db.users.map((u) => u.name));
-  for (const p of db.projects) for (const t of p.tasks) if (t.assignee.trim()) names.add(t.assignee.trim());
-  return [...names].sort((a, b) => a.localeCompare(b));
+/** Pessoas da tarefa para exibição: colaboradores cadastrados e, se houver, o nome antigo sem cadastro. */
+export function taskPeople(t: { assignees: string[]; assignee: string }): Person[] {
+  const users: Person[] = t.assignees.map((id) => findUser(id)).filter((u): u is User => !!u);
+  return t.assignee.trim() ? [...users, personByName(t.assignee.trim())] : users;
+}
+
+export function taskPeopleNames(t: { assignees: string[]; assignee: string }): string {
+  return taskPeople(t)
+    .map((x) => x.name)
+    .join(', ');
 }
 
 export function initials(name: string): string {

@@ -7,7 +7,7 @@ import { contratanteCidade, contratanteName } from '../../services/contratanteSe
 import { projectRef, taskRef } from '../../services/dependencyService';
 import { isLate } from '../../services/taskService';
 import { blockedBadge, blockersPanel, dependentsLine } from '../dependencies/dependencyView';
-import { findUser } from '../../services/userService';
+import { findUser, taskPeople } from '../../services/userService';
 import type { Project } from '../../types/project';
 import { dayLabel, formatDate, formatShortDate, today } from '../../utils/date';
 import { esc, plural } from '../../utils/dom';
@@ -55,12 +55,11 @@ function nextTasks(p: Project): string {
 function workload(p: Project): string {
   const counts = new Map<string, number>();
   for (const t of p.tasks) {
-    const name = t.assignee.trim();
-    if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+    for (const person of taskPeople(t)) counts.set(person.name, (counts.get(person.name) ?? 0) + 1);
   }
   const rows = [...counts].sort((a, b) => b[1] - a[1]);
   if (!rows.length) return '';
-  return `<h3 class="sec-title">Responsáveis</h3><div class="people">${rows
+  return `<h3 class="sec-title">Colaboradores</h3><div class="people">${rows
     .map(([name, n]) => `<div class="person">${esc(name)}<small>${plural(n, 'tarefa', 'tarefas')}</small></div>`)
     .join('')}</div>`;
 }

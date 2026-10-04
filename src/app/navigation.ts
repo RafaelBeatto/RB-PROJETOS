@@ -6,7 +6,7 @@
 import { showToast } from '../components/toast';
 import { can } from '../services/permissionService';
 import { findProject } from '../services/projectService';
-import { emptyBranchFilters, emptyTaskFilters, ui, type Page } from '../state/store';
+import { emptyBranchFilters, ui, type Page } from '../state/store';
 import type { Project } from '../types/project';
 import { $, $$ } from '../utils/dom';
 import { NO_ACCESS, PAGE_ORDER, TAB_ORDER, applyAccess, canOpenPage, canOpenTab } from './access';
@@ -82,7 +82,6 @@ export function openProject(id: string): void {
   // O projeto abre nas Etapas; sem acesso ao Kanban, refreshProject cai na primeira aba permitida.
   ui.tab = 'kanban';
   ui.cardLevel = null;
-  ui.taskFilters = emptyTaskFilters();
   ui.branchFilters = emptyBranchFilters();
   $('#home').hidden = true;
   $('#projectView').hidden = false;

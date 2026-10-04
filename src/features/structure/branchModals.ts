@@ -1,6 +1,7 @@
 import { currentProject, refreshProject } from '../../app/navigation';
 import { options } from '../../components/filterBar';
 import { confirmDanger } from '../../components/dialog';
+import { icon } from '../../components/icons';
 import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
 import { createBranch, deleteBranch, findBranch, possibleParents, updateBranch } from '../../services/branchService';
@@ -27,10 +28,10 @@ function trySave(errorBox: string, save: () => void): boolean {
 }
 
 function designerField(selected: string | null): string {
-  return `<div class="form-full"><label>Projetista<select class="field" name="designer">${options(
+  return `<div class="form-full"><label>Responsável<select class="field" name="designer">${options(
     db.users.map((u) => [u.id, u.name] as const),
     selected ?? '',
-    'Sem projetista',
+    'Sem responsável',
   )}</select></label></div>`;
 }
 
@@ -75,7 +76,7 @@ export function openEditBranchModal(id: string): void {
       b.name,
     )}"></label></div><div class="form-full"><label>Dentro de<select class="field" name="parent">${options(parents, b.parent ?? '', 'Nenhuma (etapa principal)')}</select></label></div>${designerField(
       b.designer,
-    )}${dependencySection()}</fieldset><p class="form-error" id="branchErr" role="alert"></p><div class="modal-actions">${removable ? '<button class="danger" type="button" id="deleteBranch">Excluir</button>' : '<span></span>'}${
+    )}${dependencySection()}</fieldset><p class="form-error" id="branchErr" role="alert"></p><div class="modal-actions">${removable ? `<button class="danger" type="button" id="deleteBranch">${icon('trash')}Excluir etapa</button>` : '<span></span>'}${
       editable ? '<button class="primary">Salvar</button>' : ''
     }</div></form>`,
   );
@@ -106,12 +107,33 @@ export function openEditBranchModal(id: string): void {
     showToast(`Etapa salva${released ? ` · ${plural(released, 'item liberado', 'itens liberados')}` : ''}`);
   });
   if (!removable) return;
-  modalField('#deleteBranch').addEventListener('click', async () => {
-    const ok = await confirmDanger('Excluir etapa?', 'Subetapas sobem um nível e as tarefas ficam sem etapa.');
-    if (!ok) return;
-    deleteBranch(p, b);
-    closeModal();
-    refreshProject();
-    showToast('Etapa excluída');
-  });
+  modalField('#deleteBranch').addEventListener('click', () => void confirmDeleteEtapa(b.id));
+}
+
+/** Pede confirmação dizendo o que será apagado e exclui a etapa. */
+export async function confirmDeleteEtapa(id: string): Promise<void> {
+  const p = currentProject();
+  const b = findBranch(p, id);
+  if (!b) return;
+  if (!can('structure', 'delete', p.id)) {
+    showToast(NO_ACCESS);
+    return;
+  }
+  const tasks = p.tasks.filter((t) => t.branch === b.id).length;
+  const kids = p.branches.filter((x) => x.parent === b.id).length;
+  if (tasks && !can('tasks', 'delete', p.id)) {
+    showToast('Esta etapa tem tarefas e seu perfil não pode excluir tarefas.');
+    return;
+  }
+  const parts = [
+    tasks ? `${plural(tasks, 'tarefa desta etapa será excluída', 'tarefas desta etapa serão excluídas')} junto (com checklist, comentários e anexos).` : 'A etapa não tem tarefas.',
+    kids ? `${plural(kids, 'subetapa sobe', 'subetapas sobem')} um nível, com as tarefas dela${kids === 1 ? '' : 's'}.` : '',
+    'Dependências que apontavam para ela deixam de existir. Esta ação não pode ser desfeita.',
+  ];
+  const ok = await confirmDanger(`Excluir a etapa “${b.name}”?`, parts.filter(Boolean).join(' '), 'Excluir etapa');
+  if (!ok) return;
+  deleteBranch(p, b);
+  closeModal();
+  refreshProject();
+  showToast('Etapa excluída');
 }

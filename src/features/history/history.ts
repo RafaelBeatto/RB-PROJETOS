@@ -7,7 +7,7 @@ import { findBranch } from '../../services/branchService';
 import { db } from '../../services/db';
 import { findProject } from '../../services/projectService';
 import { findTask } from '../../services/taskService';
-import { knownPeople, personByName } from '../../services/userService';
+import { personByName } from '../../services/userService';
 import { emptyHistoryFilters, ui } from '../../state/store';
 import { ACTIVITY_KINDS } from '../../types/activity';
 import { onClick } from '../../utils/actions';
@@ -20,7 +20,7 @@ const PAGE_SIZE = 100;
 
 function filterBar(): string {
   const f = ui.historyFilters;
-  const people = [...new Set([...knownPeople(), ...allEvents().map(whoOf)])].sort((a, b) => a.localeCompare(b));
+  const people = [...new Set([...db.users.map((u) => u.name), ...allEvents().map(whoOf)])].sort((a, b) => a.localeCompare(b));
   return `<div class="fbar">${filterSearch('history.q', 'Buscar no histórico', f.q)}<div class="fchips">${filterSelect(
     'history.project',
     'Projeto',

@@ -18,6 +18,7 @@ const PAGE_ACCESS: Record<Page, PermissionModule> = {
   today: 'projects',
   history: 'projects',
   board: 'kanban',
+  collaborators: 'collaborators',
   settings: 'settings',
 };
 
@@ -26,12 +27,10 @@ const TAB_ACCESS: Record<ProjectTab, PermissionModule> = {
   info: 'projects',
   kanban: 'kanban',
   structure: 'structure',
-  list: 'list',
-  timeline: 'timeline',
 };
 
-export const PAGE_ORDER: Page[] = ['home', 'board', 'today', 'history', 'archive', 'settings'];
-export const TAB_ORDER: ProjectTab[] = ['kanban', 'overview', 'info', 'structure', 'list', 'timeline'];
+export const PAGE_ORDER: Page[] = ['home', 'board', 'today', 'history', 'collaborators', 'archive', 'settings'];
+export const TAB_ORDER: ProjectTab[] = ['kanban', 'overview', 'info', 'structure'];
 
 export function canOpenPage(page: Page): boolean {
   return can(PAGE_ACCESS[page], 'view');

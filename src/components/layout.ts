@@ -9,6 +9,7 @@ const NAV: { page: Page; label: string; icon: IconName; mobile: boolean; perm: s
   { page: 'today', label: 'Hoje', icon: 'today', mobile: true, perm: 'projects.view' },
   { page: 'archive', label: 'Arquivados', icon: 'archive', mobile: false, perm: 'projects.view' },
   { page: 'history', label: 'Histórico', icon: 'activity', mobile: true, perm: 'projects.view' },
+  { page: 'collaborators', label: 'Colaboradores', icon: 'collaborators', mobile: false, perm: 'collaborators.view' },
 ];
 
 const TABS: { tab: ProjectTab; label: string }[] = [
@@ -16,8 +17,6 @@ const TABS: { tab: ProjectTab; label: string }[] = [
   { tab: 'overview', label: 'Visão geral' },
   { tab: 'info', label: 'Informações' },
   { tab: 'structure', label: 'Estrutura' },
-  { tab: 'list', label: 'Lista' },
-  { tab: 'timeline', label: 'Timeline' },
 ];
 
 const navItem = (n: (typeof NAV)[number]): string =>

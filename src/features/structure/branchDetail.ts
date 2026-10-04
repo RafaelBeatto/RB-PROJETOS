@@ -1,4 +1,4 @@
-/** Janela larga com tudo sobre uma etapa: tarefas, checklist, projetista, filhas e histórico. */
+/** Janela larga com tudo sobre uma etapa: tarefas, checklist, responsável, filhas e histórico. */
 import { applyPerms } from '../../app/access';
 import { currentProject, refreshProject } from '../../app/navigation';
 import { can } from '../../services/permissionService';
@@ -13,7 +13,7 @@ import { db } from '../../services/db';
 import { branchRef, taskRef } from '../../services/dependencyService';
 import { findTask, isLate, setSubtaskDone } from '../../services/taskService';
 import { blockedBadge, blockersPanel, dependentsLine } from '../dependencies/dependencyView';
-import { findUser, personByName } from '../../services/userService';
+import { findUser, taskPeople } from '../../services/userService';
 import { ui } from '../../state/store';
 import type { Project } from '../../types/project';
 import type { Task } from '../../types/task';
@@ -21,12 +21,14 @@ import { dayLabel, formatShortDate, formatTime } from '../../utils/date';
 import { $, $$, esc, plural } from '../../utils/dom';
 import { pct, priorityClass, taskStatusClass } from '../../utils/format';
 import { openTaskModal } from '../tasks/taskModal';
-import { openEditBranchModal, openNewBranchModal } from './branchModals';
+import { confirmDeleteEtapa, openEditBranchModal, openNewBranchModal } from './branchModals';
 
 function taskBlock(t: Task, p: Project): string {
   const items = t.subtasks;
   const done = items.filter((s) => s.done).length;
-  const who = t.assignee ? `<span class="bd-who">${avatar(personByName(t.assignee), true)} ${esc(t.assignee)}</span>` : '';
+  const who = taskPeople(t)
+    .map((x) => `<span class="bd-who">${avatar(x, true)} ${esc(x.name)}</span>`)
+    .join('');
   const checklist = items.length
     ? `${progressBar(pct(done, items.length), true)}<div class="bd-check">${items
         .map(
@@ -63,14 +65,14 @@ function render(p: Project, id: string): void {
   const tasksSection = `<section><div class="sec-head" style="margin-top:0"><h3>Tarefas e checklist</h3><button class="ghost" id="bdNewTask" data-perm="tasks.create">${icon('plus')}Nova tarefa</button></div>${
     own.length ? own.map((t) => taskBlock(t, p)).join('') : '<p class="sub">Nenhuma tarefa nesta etapa.</p>'
   }${all.length > own.length ? `<p class="sub small">Mais ${plural(all.length - own.length, 'tarefa', 'tarefas')} nas subetapas.</p>` : ''}</section>`;
-  const designerBox = `<div class="bd-box"><div class="lbl">Projetista</div><div class="bd-owner">${
+  const designerBox = `<div class="bd-box"><div class="lbl">Responsável</div><div class="bd-owner">${
     designer
       ? `${avatar(designer)}<div><b>${esc(designer.name)}</b>${designer.role || designer.email ? `<small>${esc([designer.role, designer.email].filter(Boolean).join(' · '))}</small>` : ''}</div>`
-      : '<span class="sub flat">Sem projetista</span>'
-  }</div><select class="field" id="bdDesigner" aria-label="Trocar projetista" ${can('structure', 'edit', p.id) ? '' : 'disabled'}>${options(
+      : '<span class="sub flat">Sem responsável</span>'
+  }</div><select class="field" id="bdDesigner" aria-label="Trocar responsável" ${can('structure', 'edit', p.id) ? '' : 'disabled'}>${options(
     db.users.map((u) => [u.id, u.name] as const),
     b.designer ?? '',
-    'Sem projetista',
+    'Sem responsável',
   )}</select></div>`;
   const kidsBox = `<div class="bd-box"><div class="lbl">Subetapas</div><div class="bd-kids">${
     kids.map((k) => `<button class="chip" data-detail="${k.id}">${icon('branch')} ${esc(k.name)}</button>`).join('') || '<span class="sub flat">Nenhuma</span>'
@@ -93,7 +95,7 @@ function render(p: Project, id: string): void {
       pct(done, all.length),
     )}</div><div class="bd-grid">${tasksSection}<aside>${designerBox}${kidsBox}${historyBox}</aside></div><div class="modal-actions"><button class="ghost" id="bdCards">${icon(
       'cards',
-    )}Abrir em Cartões</button><button class="primary" id="bdEdit" data-perm="structure.edit|structure.delete">${icon('edit')}Editar etapa</button></div></div>`,
+    )}Abrir em Cartões</button><span class="bd-actions"><button class="danger" id="bdDelete" data-perm="structure.delete">${icon('trash')}Excluir etapa</button><button class="primary" id="bdEdit" data-perm="structure.edit|structure.delete">${icon('edit')}Editar etapa</button></span></div></div>`,
     { wide: true },
   );
   applyPerms($('#modal'), p.id);
@@ -126,11 +128,12 @@ function bind(p: Project, id: string): void {
     setDesigner(p, b, (e.target as HTMLSelectElement).value || null);
     refreshProject();
     render(p, id);
-    showToast('Projetista atualizado');
+    showToast('Responsável atualizado');
   });
   modalField('#bdNewTask').addEventListener('click', () => openTaskModal(undefined, 'A fazer', id));
   modalField('#bdNewKid').addEventListener('click', () => openNewBranchModal(id));
   modalField('#bdEdit').addEventListener('click', () => openEditBranchModal(id));
+  modalField('#bdDelete').addEventListener('click', () => void confirmDeleteEtapa(id));
   modalField('#bdCards').addEventListener('click', () => {
     closeModal();
     ui.tab = 'structure';

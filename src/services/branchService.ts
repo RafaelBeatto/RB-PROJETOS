@@ -5,7 +5,7 @@ import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
 import type { Dependency } from '../types/dependency';
 import { persistProjects } from './db';
-import { DependencyError, NEW_ID, blockedMessage, blockersOf, draftBlockers, branchRef, dropDependenciesOn, sameDependencies, validateDependencies } from './dependencyService';
+import { DependencyError, NEW_ID, blockedMessage, blockersOf, draftBlockers, branchRef, taskRef, dropDependenciesOn, sameDependencies, validateDependencies } from './dependencyService';
 import { authorize } from './permissionService';
 import { findUser } from './userService';
 
@@ -116,7 +116,7 @@ export function createBranch(p: Project, name: string, parentId: string | null, 
 }
 
 function logDesigner(p: Project, b: Branch): void {
-  const text = b.designer ? `definiu ${findUser(b.designer)?.name ?? 'alguém'} como projetista de "${b.name}"` : `removeu o projetista de "${b.name}"`;
+  const text = b.designer ? `definiu ${findUser(b.designer)?.name ?? 'alguém'} como responsável pela etapa "${b.name}"` : `removeu o responsável da etapa "${b.name}"`;
   logActivity(p, text, { kind: 'branch', branch: b.id });
 }
 
@@ -172,14 +172,22 @@ export function setDesigner(p: Project, b: Branch, designer: string | null): voi
 }
 
 /** Filhas sobem um nível; tarefas ficam sem etapa. */
+/**
+ * Exclui a etapa. As tarefas que estão diretamente nela são excluídas junto (tarefas só
+ * existem dentro de etapas); as subetapas sobem um nível com as tarefas delas.
+ * Dependências que apontavam para a etapa ou para essas tarefas são removidas.
+ */
 export function deleteBranch(p: Project, b: Branch): void {
   authorize('structure', 'delete', p.id);
+  const ownTasks = p.tasks.filter((t) => t.branch === b.id);
+  if (ownTasks.length) authorize('tasks', 'delete', p.id);
   for (const x of p.branches) if (x.parent === b.id) x.parent = b.parent;
-  for (const t of p.tasks) if (t.branch === b.id) t.branch = '';
+  p.tasks = p.tasks.filter((t) => t.branch !== b.id);
   p.branches = p.branches.filter((x) => x.id !== b.id);
-  logActivity(p, `excluiu a etapa "${b.name}"`, { kind: 'branch' });
-  for (const other of dropDependenciesOn(branchRef(p, b))) {
-    logActivity(other, `excluiu a etapa "${b.name}" (${p.name}); ela foi retirada das dependências deste projeto`, { kind: 'branch' });
+  logActivity(p, ownTasks.length ? `excluiu a etapa "${b.name}" e ${ownTasks.length === 1 ? '1 tarefa' : `${ownTasks.length} tarefas`} dela` : `excluiu a etapa "${b.name}"`, { kind: 'branch' });
+  const touched = new Set([...dropDependenciesOn(branchRef(p, b)), ...ownTasks.flatMap((t) => dropDependenciesOn(taskRef(p, t)))]);
+  for (const other of touched) {
+    logActivity(other, `excluiu a etapa "${b.name}" (${p.name}); ela e suas tarefas foram retiradas das dependências deste projeto`, { kind: 'branch' });
   }
   persistProjects();
 }

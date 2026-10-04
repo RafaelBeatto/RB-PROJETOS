@@ -79,67 +79,6 @@
 .priority.baixa {
   background: var(--blue);
 }
-.list {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: auto;
-}
-.list-row {
-  display: grid;
-  grid-template-columns: minmax(210px, 2fr) 150px 130px 105px;
-  gap: 10px;
-  align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--line);
-}
-.list-row:last-child {
-  border: 0;
-}
-.list-row.head {
-  font-size: 12px;
-  color: var(--muted);
-  background: var(--panel);
-}
-.timeline {
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 18px;
-  overflow: auto;
-}
-.months {
-  margin-left: 170px;
-  color: var(--muted);
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  min-width: 500px;
-  padding-bottom: 14px;
-}
-.time-row {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  align-items: center;
-  min-width: 670px;
-  margin: 14px 0;
-}
-.bar-area {
-  height: 24px;
-  background: #151923;
-  border-radius: 5px;
-  position: relative;
-}
-.bar {
-  position: absolute;
-  height: 100%;
-  border-radius: 5px;
-  background: linear-gradient(90deg, #2774e9, #4b93ff);
-}
-.chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: 14px;
-  align-items: center;
-}
 .chip {
   border: 1px solid var(--line);
   background: transparent;
@@ -152,12 +91,6 @@
   background: #172435;
   border-color: #2d5fb0;
   color: #91bdfd;
-}
-.chip-sep {
-  width: 1px;
-  height: 16px;
-  background: var(--line);
-  margin: 0 4px;
 }
 .flow {
   display: flex;

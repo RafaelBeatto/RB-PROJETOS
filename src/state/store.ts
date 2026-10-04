@@ -2,32 +2,16 @@
  * Estado da interface (o que está aberto e quais filtros estão ativos).
  * Não é salvo: ao recarregar, a aplicação volta para a lista de projetos.
  */
-import type { Priority } from '../types/task';
-
-export type Page = 'home' | 'archive' | 'board' | 'today' | 'history' | 'settings';
+export type Page = 'home' | 'archive' | 'board' | 'today' | 'history' | 'collaborators' | 'settings';
 export type SettingsTab = 'users' | 'profiles' | 'contratantes';
-export type ProjectTab = 'overview' | 'info' | 'kanban' | 'structure' | 'list' | 'timeline';
+export type ProjectTab = 'overview' | 'info' | 'kanban' | 'structure';
 export type StructureMode = 'map' | 'cards';
 export type QuickTaskFilter = 'all' | 'mine' | 'today' | 'late' | 'soon';
 
-export interface TaskFilters {
-  quick: QuickTaskFilter;
-  priority: Priority | '';
-  assignee: string;
-  /** Id da etapa, 'none' para sem etapa, '' para todas. */
-  branch: string;
-}
-
 export interface ProjectFilters {
   q: string;
-  status: string;
   coordinator: string;
   contratante: string;
-  cidade: string;
-  /** Tarefas atrasadas. */
-  late: boolean;
-  /** Prazo do projeto vencido (não é status). */
-  overdue: boolean;
   sort: '' | 'name' | 'due' | 'prog';
 }
 
@@ -49,6 +33,14 @@ export interface UserFilters {
   status: '' | 'active' | 'inactive';
 }
 
+export interface CollaboratorFilters {
+  q: string;
+  /** Só quem tem atividade atrasada ou bloqueada. */
+  attention: boolean;
+  /** Inclui usuários desativados. */
+  inactive: boolean;
+}
+
 export interface HistoryFilters {
   q: string;
   project: string;
@@ -58,10 +50,10 @@ export interface HistoryFilters {
   limit: number;
 }
 
-export const emptyTaskFilters = (): TaskFilters => ({ quick: 'all', priority: '', assignee: '', branch: '' });
-export const emptyProjectFilters = (): ProjectFilters => ({ q: '', status: '', coordinator: '', contratante: '', cidade: '', late: false, overdue: false, sort: '' });
+export const emptyProjectFilters = (): ProjectFilters => ({ q: '', coordinator: '', contratante: '', sort: '' });
 export const emptyBranchFilters = (): BranchFilters => ({ q: '', designer: '', state: '' });
 export const emptyUserFilters = (): UserFilters => ({ q: '', role: '', profile: '', status: '' });
+export const emptyCollaboratorFilters = (): CollaboratorFilters => ({ q: '', attention: false, inactive: false });
 export const emptyHistoryFilters = (): HistoryFilters => ({ q: '', project: '', person: '', kind: '', period: '', limit: 100 });
 
 export const ui = {
@@ -71,7 +63,6 @@ export const ui = {
   structureMode: 'map' as StructureMode,
   /** Nível aberto na visão Cartões (null = raiz do projeto). */
   cardLevel: null as string | null,
-  taskFilters: emptyTaskFilters(),
   projectFilters: emptyProjectFilters(),
   branchFilters: emptyBranchFilters(),
   todayFilters: { project: '', person: '' } as TodayFilters,
@@ -79,5 +70,8 @@ export const ui = {
   settingsTab: 'users' as SettingsTab,
   /** Perfil aberto no editor de permissões. */
   profileId: null as string | null,
+  collaboratorFilters: emptyCollaboratorFilters(),
+  /** Colaborador aberto no painel individual (null = lista). */
+  collaboratorId: null as string | null,
   historyFilters: { ...emptyHistoryFilters(), period: '30' } as HistoryFilters,
 };

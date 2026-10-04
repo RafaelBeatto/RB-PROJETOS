@@ -32,6 +32,9 @@ export interface Task {
   title: string;
   status: TaskStatus;
   priority: Priority;
+  /** Colaboradores que executam a tarefa (ids de usuários cadastrados); pode ter mais de um. */
+  assignees: string[];
+  /** Nome antigo digitado à mão que não corresponde a nenhum usuário; só exibição. */
   assignee: string;
   due: string;
   /** Id da etapa; string vazia quando a tarefa não pertence a nenhuma. */
@@ -45,4 +48,4 @@ export interface Task {
   links: TaskLink[];
 }
 
-export type TaskDraft = Pick<Task, 'title' | 'status' | 'priority' | 'assignee' | 'due' | 'branch' | 'description' | 'dependencies' | 'subtasks'>;
+export type TaskDraft = Pick<Task, 'title' | 'status' | 'priority' | 'assignees' | 'assignee' | 'due' | 'branch' | 'description' | 'dependencies' | 'subtasks'>;

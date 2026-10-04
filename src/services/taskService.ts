@@ -17,7 +17,7 @@ import {
   validateDependencies,
 } from './dependencyService';
 import { authorize } from './permissionService';
-import { currentActor } from './userService';
+import { currentActor, findUser } from './userService';
 
 export function findTask(p: Project, id: string | null | undefined): Task | undefined {
   return id ? p.tasks.find((t) => t.id === id) : undefined;
@@ -74,7 +74,9 @@ export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): 
   const owner = { ref: { kind: 'task' as const, projectId: p.id, id: task?.id ?? NEW_ID }, parent: draft.branch, dependencies: draft.dependencies };
   const dependencies = validateDependencies(owner);
   assertCanEnter(draft.status, task?.status, draftBlockers({ ...owner, dependencies }));
-  draft = { ...draft, dependencies };
+  // Só usuários cadastrados, sem repetição.
+  const assignees = draft.assignees.filter((id, i, all) => !!findUser(id) && all.indexOf(id) === i);
+  draft = { ...draft, dependencies, assignees };
   if (!task) {
     const created: Task = { id: uid('t'), tags: '', comments: [], links: [], ...draft };
     p.tasks.push(created);
@@ -85,6 +87,10 @@ export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): 
   }
   const oldStatus = task.status;
   if (!sameDependencies(task.dependencies, dependencies)) logActivity(p, `alterou as dependências de "${task.title}"`, { kind: 'task', task: task.id, branch: draft.branch });
+  if (String([...task.assignees].sort()) !== String([...assignees].sort())) {
+    const names = assignees.map((id) => findUser(id)?.name).filter(Boolean).join(', ');
+    logActivity(p, names ? `definiu ${names} em "${task.title}"` : `removeu os colaboradores de "${task.title}"`, { kind: 'task', task: task.id, branch: draft.branch });
+  }
   const doneBefore = new Set(task.subtasks.filter((s) => s.done).map((s) => s.id));
   Object.assign(task, draft);
   if (oldStatus !== task.status) logTaskStatus(p, task);

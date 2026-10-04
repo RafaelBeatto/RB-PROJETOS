@@ -2,6 +2,7 @@ import { currentProject, refreshProject } from '../../app/navigation';
 import { askFields } from '../../components/dialog';
 import { icon } from '../../components/icons';
 import { closeModal, modalField, openModal } from '../../components/modal';
+import { bindUserPicker, readUserPicker, userPickerHtml } from '../../components/userPicker';
 import { showToast } from '../../components/toast';
 import { DependencyError, NEW_ID, blockedSnapshot, releasedSince, taskRef } from '../../services/dependencyService';
 import { addComment, addLink, deleteTask, findTask, removeLink, saveTask } from '../../services/taskService';
@@ -64,14 +65,16 @@ function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: s
   const branchOpts = p.branches.map((b) => `<option value="${b.id}" ${sel(selectedBranch === b.id)}>${esc(b.name)}</option>`).join('');
   return `${t ? dependencyStatus(t, p) : ''}<form id="taskForm"><fieldset class="plain" ${access.editable ? '' : 'disabled'}><div class="form-grid"><label>Título<input class="field" name="title" required value="${esc(
     t?.title ?? '',
-  )}"></label><label>Status<select class="field" name="status">${statusOpts}</select></label><label>Responsável<input class="field" name="assignee" list="usersList" value="${esc(
-    t?.assignee ?? '',
-  )}"></label><label>Prazo<input class="field" type="date" name="due" value="${esc(
+  )}"></label><label>Status<select class="field" name="status">${statusOpts}</select></label><label>Prazo<input class="field" type="date" name="due" value="${esc(
     t?.due ?? '',
   )}"></label><label>Prioridade<select class="field" name="priority">${prioOpts}</select></label><label>Etapa<select class="field" name="branch" ${t ? "" : "required"}>${
     // Tarefa nova sempre nasce dentro de uma etapa; "Sem etapa" só aparece para tarefas antigas que já estão assim.
     t && !p.branches.some((b) => b.id === t.branch) ? '<option value="" selected>Sem etapa</option>' : t ? '' : '<option value="">Escolha a etapa</option>'
-  }${branchOpts}</select></label></div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
+  }${branchOpts}</select></label></div><div class="form-full"><div class="lbl">Colaboradores (quem executa a tarefa)</div>${userPickerHtml('assigneePick', t?.assignees ?? [])}${
+    t?.assignee.trim()
+      ? `<label class="check-row legacy-assignee"><input type="checkbox" name="keepLegacy" checked> Manter também o nome antigo “${esc(t.assignee)}” (sem cadastro de usuário)</label>`
+      : ''
+  }</div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
     t?.description ?? '',
   )}</textarea></label></div>${dependencySection()}<div class="form-full"><label>Checklist <span id="subProg"></span></label><div class="pbar" style="margin:8px 0"><i id="subBar"></i></div><div id="subs">${(
     t?.subtasks ?? []
@@ -157,7 +160,7 @@ function bindExtras(p: Project, t: Task): void {
   });
 }
 
-function readDraft(form: HTMLFormElement, deps: DependencyEditor): TaskDraft {
+function readDraft(form: HTMLFormElement, deps: DependencyEditor, task: Task | undefined): TaskDraft {
   const data = new FormData(form);
   const text = (name: string): string => String(data.get(name) ?? '').trim();
   const status = text('status') as TaskStatus;
@@ -166,7 +169,9 @@ function readDraft(form: HTMLFormElement, deps: DependencyEditor): TaskDraft {
     title: text('title'),
     status: TASK_STATUSES.includes(status) ? status : 'A fazer',
     priority: PRIORITIES.includes(priority) ? priority : 'Média',
-    assignee: text('assignee'),
+    assignees: readUserPicker(modalField('#assigneePick')),
+    // O nome antigo (sem cadastro) só continua se a caixa ficar marcada.
+    assignee: data.get('keepLegacy') === 'on' ? (task?.assignee ?? '') : '',
     due: text('due'),
     branch: text('branch'),
     description: text('description'),
@@ -189,6 +194,7 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
   const access = { editable: can('tasks', task ? 'edit' : 'create', p.id), canDelete: can('tasks', 'delete', p.id) };
   openModal(task ? (access.editable ? 'Editar tarefa' : 'Tarefa') : 'Nova tarefa', formHtml(p, task, status, branch, access));
   bindChecklist(access.editable);
+  bindUserPicker(modalField('#assigneePick'));
   if (task && access.editable) bindExtras(p, task);
   const form = modalField<HTMLFormElement>('#taskForm');
   const deps = mountDependencyEditor(
@@ -203,7 +209,7 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
     e.preventDefault();
     const before = blockedSnapshot();
     try {
-      saveTask(p, task, readDraft(form, deps));
+      saveTask(p, task, readDraft(form, deps, task));
     } catch (error) {
       if (!(error instanceof DependencyError)) throw error;
       modalField('#taskErr').textContent = error.message;

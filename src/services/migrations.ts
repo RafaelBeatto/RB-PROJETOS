@@ -72,6 +72,7 @@ function migrateTask(r: Raw, projectId: string): Task {
     title: str(r.title),
     status: oneOf<TaskStatus>(TASK_STATUSES, r.status, 'A fazer'),
     priority: oneOf<Priority>(PRIORITIES, r.priority, 'Média'),
+    assignees: list(r.assignees).map((a) => str(a)).filter(Boolean),
     assignee: str(r.assignee),
     due: str(r.due),
     branch: str(r.branch),

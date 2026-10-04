@@ -39,10 +39,10 @@ export function branchFilterBar(p: Project): string {
   const f = ui.branchFilters;
   const active = branchFiltersActive();
   const found = active ? p.branches.filter((b) => matchesBranchFilters(p, b)).length : 0;
-  return `<div class="fbar">${filterSearch('branches.q', 'Filtrar etapas ou projetista', f.q)}<div class="fchips">${filterSelect(
+  return `<div class="fbar">${filterSearch('branches.q', 'Filtrar etapas ou responsável', f.q)}<div class="fchips">${filterSelect(
     'branches.designer',
-    'Projetista',
-    [['none', 'Sem projetista'] as const, ...db.users.map((u) => [u.id, u.name] as const)],
+    'Responsável',
+    [['none', 'Sem responsável'] as const, ...db.users.map((u) => [u.id, u.name] as const)],
     f.designer,
     'Todos',
   )}${filterSelect(

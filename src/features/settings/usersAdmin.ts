@@ -96,7 +96,7 @@ export function usersFilterBar(): string {
     'Vínculo',
     [
       ['coord', 'Coordenadores'],
-      ['designer', 'Projetistas'],
+      ['designer', 'Responsáveis de etapa'],
       ['none', 'Sem vínculo'],
     ],
     f.role,
@@ -108,7 +108,7 @@ function linksText(u: User): string {
   const l = userLinks(u);
   return [
     l.coordinates ? `Coordena ${plural(l.coordinates, 'projeto', 'projetos')}` : '',
-    l.designs ? `Projetista de ${plural(l.designs, 'etapa', 'etapas')}` : '',
+    l.designs ? `Responsável por ${plural(l.designs, 'etapa', 'etapas')}` : '',
     l.tasks ? plural(l.tasks, 'tarefa', 'tarefas') : '',
   ]
     .filter(Boolean)
