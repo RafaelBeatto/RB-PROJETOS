@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   auth: 'rb-projects-auth',
   /** Perfis e permissões (controle de acesso). */
   access: 'rb-access-v1',
+  /** Prefeituras cadastradas pelo administrador. */
+  prefeituras: 'rb-prefeituras-v1',
   /** Cópia de segurança de um conteúdo de projetos ilegível, guardada antes de usar os dados de exemplo. */
   projectsBackup: 'rb-projects-v1-backup',
 } as const;

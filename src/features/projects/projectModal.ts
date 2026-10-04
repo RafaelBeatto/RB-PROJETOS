@@ -5,6 +5,7 @@ import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
 import { db } from '../../services/db';
 import { can } from '../../services/permissionService';
+import { findPrefeitura, sortedPrefeituras } from '../../services/prefeituraService';
 import { createProject, toggleArchived, updateProject } from '../../services/projectService';
 import { ui } from '../../state/store';
 import { PROJECT_STATUSES, type Project, type ProjectDraft, type ProjectStatus } from '../../types/project';
@@ -50,6 +51,20 @@ function bindPicker(): void {
 const input = (name: string, label: string, value: string, extra = ''): string =>
   `<label>${label}<input class="field" name="${name}" value="${esc(value)}" ${extra}></label>`;
 
+/** Só lista prefeituras cadastradas pelo administrador; não aceita texto livre. */
+function prefeituraSelect(selected: string): string {
+  const list = sortedPrefeituras();
+  // Mantém a atual visível mesmo se ela tiver sido removida da lista.
+  const missing = selected && !findPrefeitura(selected) ? `<option value="${esc(selected)}" selected>(prefeitura removida)</option>` : '';
+  const opts = list.map((x) => `<option value="${esc(x.id)}" ${x.id === selected ? 'selected' : ''}>${esc(x.uf ? `${x.name} — ${x.uf}` : x.name)}</option>`).join('');
+  const hint = list.length
+    ? ''
+    : `<small class="field-hint">Nenhuma prefeitura cadastrada. ${
+        can('prefeituras', 'create') ? 'Cadastre em Configurações → Prefeituras.' : 'Peça ao administrador para cadastrar.'
+      }</small>`;
+  return `<label>Prefeitura<select class="field" name="prefeituraId"><option value="">Sem prefeitura</option>${missing}${opts}</select>${hint}</label>`;
+}
+
 function formHtml(p: Project | undefined): string {
   const statusOptions = PROJECT_STATUSES.map((s) => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('');
   const archive = !p || !can('projects', 'delete', p.id)
@@ -62,7 +77,7 @@ function formHtml(p: Project | undefined): string {
     'Prazo',
     p?.due ?? '',
     'type="date"',
-  )}</div>${coordinatorPicker(p?.coordinators ?? [])}<div class="form-full">${input('processo', 'Processo', p?.processo ?? '', 'placeholder="Ex: 12345/2026"')}</div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
+  )}</div>${coordinatorPicker(p?.coordinators ?? [])}<div class="form-full form-grid">${input('processo', 'Processo', p?.processo ?? '', 'placeholder="Ex: 12345/2026"')}${prefeituraSelect(p?.prefeituraId ?? '')}</div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
     p?.description ?? '',
   )}</textarea></label></div><div class="sec"><h3>Convênio</h3><div class="form-grid">${input('convOrgao', 'Origem do convênio', p?.convOrgao ?? '', 'placeholder="Ex: Caixa"')}${input(
     'convNumero',
@@ -88,6 +103,7 @@ function readDraft(form: HTMLFormElement): ProjectDraft {
     due: text('due'),
     description: text('description'),
     processo: text('processo'),
+    prefeituraId: text('prefeituraId'),
     convOrgao: text('convOrgao'),
     convNumero: text('convNumero'),
     convValor: text('convValor'),

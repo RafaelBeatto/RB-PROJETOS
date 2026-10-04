@@ -1,33 +1,68 @@
 import { pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
-import { avatarStack } from '../../components/avatar';
+import { avatar } from '../../components/avatar';
 import { icon } from '../../components/icons';
 import { progressRow } from '../../components/progress';
 import { db } from '../../services/db';
 import { can } from '../../services/permissionService';
-import { agreementName, lateTaskCount, projectProgress } from '../../services/projectService';
+import { prefeituraName } from '../../services/prefeituraService';
+import { agreementName, agreementTotal, hasAgreement, lateTaskCount, projectProgress } from '../../services/projectService';
+import { findUser } from '../../services/userService';
 import type { Project } from '../../types/project';
-import { formatDate } from '../../utils/date';
-import { esc } from '../../utils/dom';
-import { projectStatusClass } from '../../utils/format';
+import { daysUntil, formatDate } from '../../utils/date';
+import { esc, plural } from '../../utils/dom';
+import { currency, projectStatusClass } from '../../utils/format';
 import { matchesProjectFilters, projectFilterBar, projectFiltersActive, sortProjects } from './projectFilters';
+
+/** "Faltam 12 dias", "Vence hoje", "Atrasado há 3 dias"; vazio sem prazo ou se concluído. */
+function dueBadge(p: Project): string {
+  if (!p.due || p.status === 'Concluído') return '';
+  const d = daysUntil(p.due);
+  const [cls, label] =
+    d < 0
+      ? ['late', `Atrasado há ${plural(-d, 'dia', 'dias')}`]
+      : d === 0
+        ? ['soon', 'Vence hoje']
+        : [d <= 7 ? 'soon' : 'ok', `${d === 1 ? 'Falta' : 'Faltam'} ${plural(d, 'dia', 'dias')}`];
+  return `<span class="due-badge ${cls}">${label}</span>`;
+}
+
+const fact = (label: string, value: string, extra = ''): string =>
+  `<div class="pc-fact"><small>${label}</small><b>${value}</b>${extra}</div>`;
+
+/** Coordenadores com foto e nome ao lado (até três; o restante vira "+N"). */
+function coordinators(p: Project): string {
+  const users = p.coordinators.map(findUser).filter((u): u is NonNullable<typeof u> => !!u);
+  if (!users.length) return '<span class="pc-coord none">Sem coordenador</span>';
+  const extra = users.length > 3 ? `<span class="pc-coord more">+${users.length - 3}</span>` : '';
+  return `${users
+    .slice(0, 3)
+    .map((u) => `<span class="pc-coord">${avatar(u, true)}<span>${esc(u.name)}</span></span>`)
+    .join('')}${extra}`;
+}
 
 function projectCard(p: Project): string {
   const prog = projectProgress(p);
   const late = lateTaskCount(p);
   const agreement = agreementName(p);
+  const prefeitura = prefeituraName(p);
+  const facts = [
+    fact('Processo', esc(p.processo.trim() || '—')),
+    fact('Valor total', hasAgreement(p) ? currency(agreementTotal(p)) : '—'),
+    fact('Prefeitura', esc(prefeitura || '—')),
+    fact('Prazo', formatDate(p.due), dueBadge(p)),
+  ].join('');
   const meta = [
-    avatarStack(p.coordinators),
     `<span>${prog.total} tarefas</span>`,
     `<span>${prog.done} concluídas</span>`,
     late ? `<span class="late-txt">${late} atrasadas</span>` : '',
-    p.processo ? `<span>Processo ${esc(p.processo)}</span>` : '',
-    `<span>Prazo: ${formatDate(p.due)}</span>`,
     agreement ? `<span>${esc(agreement)}</span>` : '',
     p.convPolitico ? `<span>${esc(p.convPolitico)}</span>` : '',
   ].join('');
-  return `<article class="project-card" data-action="project-open" data-id="${p.id}" tabindex="0"><div><h2>${esc(p.name)}</h2><p>${esc(
-    p.description || 'Sem descrição',
-  )}</p>${progressRow(prog.pct)}<div class="meta">${meta}</div></div><span class="status ${projectStatusClass(p.status)}">${esc(p.status)}</span></article>`;
+  return `<article class="project-card" data-action="project-open" data-id="${p.id}" tabindex="0"><div><h2>${esc(p.name)}</h2><div class="pc-coords">${coordinators(
+    p,
+  )}</div><div class="pc-facts">${facts}</div><p>${esc(p.description || 'Sem descrição')}</p>${progressRow(prog.pct)}<div class="meta">${meta}</div></div><span class="status ${projectStatusClass(
+    p.status,
+  )}">${esc(p.status)}</span></article>`;
 }
 
 function renderList(archived: boolean): void {

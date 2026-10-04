@@ -41,6 +41,8 @@ export interface Project extends Agreement {
   due: string;
   archived: boolean;
   coordinators: string[];
+  /** Prefeitura cadastrada pelo administrador (vazio = nenhuma). */
+  prefeituraId: string;
   branches: Branch[];
   tasks: Task[];
   milestones: Milestone[];
@@ -50,4 +52,4 @@ export interface Project extends Agreement {
   view?: MapView;
 }
 
-export type ProjectDraft = Pick<Project, 'name' | 'owner' | 'status' | 'due' | 'description' | 'coordinators'> & Agreement;
+export type ProjectDraft = Pick<Project, 'name' | 'owner' | 'status' | 'due' | 'description' | 'coordinators' | 'prefeituraId'> & Agreement;

@@ -21,6 +21,7 @@ export const PERMISSION_MODULES = {
   list: { label: 'Lista', actions: ['view'], hint: '' },
   timeline: { label: 'Timeline', actions: ['view'], hint: '' },
   users: { label: 'Usuários', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui ativar e desativar.' },
+  prefeituras: { label: 'Prefeituras', actions: ['view', 'create', 'edit', 'delete'], hint: 'Cadastro das prefeituras escolhidas nos projetos.' },
   profiles: { label: 'Perfis', actions: ['view', 'create', 'edit', 'delete'], hint: 'Inclui alterar permissões.' },
   settings: { label: 'Configurações', actions: ['view'], hint: 'Acesso à área de Configurações.' },
 } as const satisfies Record<string, { label: string; actions: readonly PermissionAction[]; hint: string }>;

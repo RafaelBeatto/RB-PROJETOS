@@ -8,6 +8,7 @@ import { ensureLayout } from './branchService';
 import { migrateProjects, migrateUsers } from './migrations';
 import { SEED_PROJECTS } from './seed';
 import { STORAGE_KEYS, readJSON, readString, writeJSON, writeString } from './storage';
+import { loadPrefeituras } from './prefeituraService';
 import { adminProfileId, loadAccess } from './profileService';
 import { isAdminProfile, seedUsersFromNames, upgradeLegacyUser, userByName } from './userService';
 
@@ -50,6 +51,7 @@ export function loadDatabase(): void {
   db.projects = projects;
 
   loadAccess();
+  loadPrefeituras();
   const admin = adminProfileId();
   const storedUsers = migrateUsers(readJSON(STORAGE_KEYS.users));
   db.users = storedUsers ?? seedUsersFromNames(projects.flatMap((p) => [p.owner, ...p.tasks.map((t) => t.assignee)]), admin);
