@@ -24,7 +24,7 @@
   margin-top: 3px;
 }
 .empty {
-  border: 1px dashed #394253;
+  border: 1px dashed var(--k-394253);
   border-radius: var(--radius);
   padding: 45px 24px;
   text-align: center;
@@ -81,7 +81,7 @@
 }
 .hist-i:hover,
 .hist-i:focus-visible {
-  border-color: #45516a;
+  border-color: var(--k-45516a);
   outline: none;
 }
 .hist-body {
@@ -98,7 +98,7 @@
   margin-top: 6px;
 }
 .hist-tag {
-  color: #91bdfd;
+  color: var(--k-91bdfd);
 }
 .more-list {
   display: grid;

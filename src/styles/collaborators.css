@@ -15,7 +15,7 @@
   gap: 10px;
 }
 .collab-card:hover {
-  border-color: #45516a;
+  border-color: var(--k-45516a);
 }
 .collab-card.inactive {
   opacity: 0.6;
@@ -90,8 +90,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #5a4716;
-  background: #1f1a0d;
+  border: 1px solid var(--k-5a4716);
+  background: var(--k-1f1a0d);
   color: var(--yellow);
   border-radius: 10px;
   padding: 10px 12px;
@@ -155,7 +155,7 @@
   gap: 8px;
 }
 .ca:hover {
-  border-color: #45516a;
+  border-color: var(--k-45516a);
 }
 .ca.blocked {
   border-left-color: var(--yellow);
@@ -233,7 +233,7 @@
 .ca-block ul {
   margin: 4px 0 0;
   padding-left: 16px;
-  color: #d9c07a;
+  color: var(--k-d9c07a);
 }
 .legacy-assignee {
   margin-top: 8px;

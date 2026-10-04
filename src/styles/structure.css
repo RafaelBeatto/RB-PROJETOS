@@ -9,7 +9,7 @@
   user-select: none;
   -webkit-user-select: none;
   cursor: grab;
-  background-image: radial-gradient(#343b48 1px, transparent 1px);
+  background-image: radial-gradient(var(--k-343b48) 1px, transparent 1px);
   background-size: 18px 18px;
 }
 .branch-map.panning {
@@ -41,17 +41,17 @@
   font-size: 13px;
 }
 .map-lines path {
-  stroke: #50627e;
+  stroke: var(--k-50627e);
   stroke-width: 1.5;
   fill: none;
 }
 .map-node {
   position: absolute;
   width: 196px;
-  background: #171c25;
-  border: 1px solid #3a4558;
+  background: var(--k-171c25);
+  border: 1px solid var(--k-3a4558);
   border-radius: 11px;
-  box-shadow: 0 12px 24px #0003;
+  box-shadow: 0 12px 24px var(--k-00000033);
   z-index: 1;
   cursor: grab;
 }
@@ -71,8 +71,8 @@
   margin-left: 0;
 }
 .map-node.root {
-  background: #172539;
-  border-color: #3478d8;
+  background: var(--k-172539);
+  border-color: var(--k-3478d8);
   width: 220px;
 }
 .node-top {
@@ -95,7 +95,7 @@
   font-size: 12px;
 }
 .node-tasks {
-  border-top: 1px solid #2e3746;
+  border-top: 1px solid var(--k-2e3746);
   padding: 7px;
 }
 .map-task {
@@ -105,14 +105,14 @@
   padding: 6px;
   background: transparent;
   text-align: left;
-  color: #cbd4e2;
+  color: var(--k-cbd4e2);
   display: flex;
   gap: 7px;
   align-items: center;
   font-size: 12px;
 }
 .map-task:hover {
-  background: #242b37;
+  background: var(--k-242b37);
 }
 .map-task .check {
   width: 13px;
@@ -123,10 +123,10 @@
   display: block;
   width: calc(100% - 14px);
   margin: 0 7px 8px;
-  border: 1px dashed #465268;
+  border: 1px dashed var(--k-465268);
   border-radius: 6px;
   background: transparent;
-  color: #9aa9c0;
+  color: var(--k-9aa9c0);
   padding: 5px;
   font-size: 12px;
 }
@@ -137,7 +137,7 @@
   pointer-events: none;
   color: var(--muted);
   font-size: 12px;
-  background: #11151ccc;
+  background: var(--k-11151ccc);
   padding: 6px 9px;
   border-radius: 5px;
 }
@@ -155,8 +155,8 @@
   font-size: 13px;
 }
 .seg button.on {
-  background: #172435;
-  color: #91bdfd;
+  background: var(--k-172435);
+  color: var(--k-91bdfd);
 }
 .cards-head {
   display: flex;
@@ -198,7 +198,7 @@
   transition: 0.18s;
 }
 .bcard:hover {
-  border-color: #45516a;
+  border-color: var(--k-45516a);
 }
 .bcard-edit {
   position: absolute;
@@ -253,7 +253,7 @@
 }
 .bcard-info:hover {
   color: var(--text);
-  border-color: #45516a;
+  border-color: var(--k-45516a);
 }
 .bd-path {
   color: var(--muted);
@@ -314,7 +314,7 @@
   color: var(--text);
 }
 .bd-title:hover {
-  color: #91bdfd;
+  color: var(--k-91bdfd);
 }
 .bd-task-meta {
   display: flex;
@@ -343,7 +343,7 @@
   cursor: pointer;
 }
 .bd-ci:hover {
-  background: #1b2130;
+  background: var(--k-1b2130);
 }
 .bd-ci input {
   accent-color: var(--blue);
@@ -392,7 +392,7 @@
   align-items: center;
   gap: 7px;
   padding: 0 12px 8px;
-  color: #cbd4e2;
+  color: var(--k-cbd4e2);
   font-size: 12px;
 }
 .bcard .node-owner {
@@ -407,7 +407,7 @@
   margin: 0;
   pointer-events: none;
   opacity: 0.95;
-  box-shadow: 0 14px 34px #0008;
+  box-shadow: 0 14px 34px var(--k-00000088);
 }
 .node-top .ic {
   color: var(--blue);

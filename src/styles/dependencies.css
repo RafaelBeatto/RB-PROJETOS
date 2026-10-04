@@ -4,8 +4,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  background: #33280f;
-  color: #f8d274;
+  background: var(--k-33280f);
+  color: var(--k-f8d274);
   cursor: help;
   white-space: nowrap;
 }
@@ -27,8 +27,8 @@
 
 /* Painel "o que está bloqueando" */
 .blk {
-  border: 1px solid #5a4716;
-  background: #1f1a0d;
+  border: 1px solid var(--k-5a4716);
+  background: var(--k-1f1a0d);
   border-radius: 10px;
   padding: 12px 14px;
   margin-bottom: 14px;
@@ -190,7 +190,7 @@
 }
 .dep-x:hover {
   color: var(--red);
-  background: #2a1517;
+  background: var(--k-2a1517);
 }
 
 /* Explorador */
@@ -226,13 +226,13 @@
   border-radius: 8px;
 }
 .dt-row:hover {
-  background: #1a1f28;
+  background: var(--k-1a1f28);
 }
 .dt-row.sel {
-  background: #172435;
+  background: var(--k-172435);
 }
 .dt-row.hit .dt-name b {
-  color: #91bdfd;
+  color: var(--k-91bdfd);
 }
 .dt-tog,
 .dt-tog-sp {
@@ -330,7 +330,7 @@
   gap: 6px 14px;
 }
 .pc-secondary b {
-  color: #c4cbd7;
+  color: var(--k-c4cbd7);
   font-weight: 600;
 }
 .pc-fact .pc-city {

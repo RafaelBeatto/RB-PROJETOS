@@ -44,7 +44,7 @@
   border-bottom: 0;
 }
 .utable tbody tr:hover {
-  background: #121620;
+  background: var(--k-121620);
 }
 .utable tr.inactive .u-cell {
   opacity: 0.55;
@@ -68,7 +68,7 @@
   margin-top: 2px;
 }
 .u-cell .u-links {
-  color: #7d8799;
+  color: var(--k-7d8799);
 }
 .tag {
   display: inline-block;
@@ -77,8 +77,8 @@
   border-radius: 99px;
   font-size: 11px;
   font-weight: 600;
-  color: #91bdfd;
-  background: #172435;
+  color: var(--k-91bdfd);
+  background: var(--k-172435);
   vertical-align: 1px;
 }
 .icon-only {
@@ -118,13 +118,13 @@
   cursor: not-allowed;
 }
 .pm-na {
-  color: #3d4554;
+  color: var(--k-3d4554);
 }
 .pm-yes {
   color: var(--green);
 }
 .pm-no {
-  color: #4a5262;
+  color: var(--k-4a5262);
 }
 
 /* Perfis */
@@ -149,11 +149,11 @@
   gap: 3px;
 }
 .prof-item:hover {
-  border-color: #45516a;
+  border-color: var(--k-45516a);
 }
 .prof-item.on {
-  border-color: #2d5fb0;
-  background: #121b2b;
+  border-color: var(--k-2d5fb0);
+  background: var(--k-121b2b);
 }
 .prof-item small {
   color: var(--muted);
@@ -236,11 +236,11 @@ fieldset.plain {
   position: fixed;
   z-index: 60;
   min-width: 190px;
-  background: #171b23;
-  border: 1px solid #343b49;
+  background: var(--k-171b23);
+  border: 1px solid var(--k-343b49);
   border-radius: 10px;
   padding: 5px;
-  box-shadow: 0 14px 40px #0009;
+  box-shadow: 0 14px 40px var(--k-00000099);
   display: grid;
 }
 .popmenu button {
@@ -256,10 +256,10 @@ fieldset.plain {
 }
 .popmenu button:hover:not(:disabled),
 .popmenu button:focus-visible {
-  background: #222937;
+  background: var(--k-222937);
 }
 .popmenu button:disabled {
-  color: #5d6676;
+  color: var(--k-5d6676);
   cursor: not-allowed;
 }
 .popmenu .danger-item:not(:disabled) {
