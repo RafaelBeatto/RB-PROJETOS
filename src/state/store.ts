@@ -4,8 +4,9 @@
  */
 export type Page = 'home' | 'archive' | 'board' | 'today' | 'history' | 'collaborators' | 'settings';
 export type SettingsTab = 'users' | 'profiles' | 'contratantes';
-export type ProjectTab = 'overview' | 'info' | 'kanban' | 'structure' | 'chat';
-export type StructureMode = 'map' | 'cards';
+export type ProjectTab = 'overview' | 'info' | 'kanban' | 'chat';
+/** Modo de visualização da aba Etapas. */
+export type StructureMode = 'board' | 'map' | 'cards';
 export type QuickTaskFilter = 'all' | 'mine' | 'today' | 'late' | 'soon';
 
 export interface ProjectFilters {
@@ -60,7 +61,7 @@ export const ui = {
   page: 'home' as Page,
   projectId: null as string | null,
   tab: 'overview' as ProjectTab,
-  structureMode: 'map' as StructureMode,
+  structureMode: 'board' as StructureMode,
   /** Nível aberto na visão Cartões (null = raiz do projeto). */
   cardLevel: null as string | null,
   projectFilters: emptyProjectFilters(),

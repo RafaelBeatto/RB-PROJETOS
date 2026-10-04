@@ -10,15 +10,17 @@ A aplicação é 100% estática. Não há servidor, banco de dados nem API: os d
 
 - **Projetos**: status (Em espera, Em andamento, Em pausa, Concluído), coordenadores, prazo (atraso calculado pelo prazo), processo, contratante (nome e cidade), dados de convênio e arquivamento.
 - **Dependências**: qualquer projeto, ramificação ou tarefa pode depender de outro projeto, ramificação ou tarefa (inclusive de outros projetos), com a condição "Concluído" ou "Iniciado". Itens bloqueados mostram o motivo e não podem avançar; dependências circulares são impedidas.
-- **Estrutura**: ramificações em níveis ilimitados, vistas como
-  - **Mapa**: canvas com cartões arrastáveis, conexões, pan, zoom (botões, Ctrl+roda e pinça) e posições salvas;
+- **Etapas**: a aba inicial do projeto, com três modos de visualização:
+  - **Kanban**: as etapas em colunas por status (arrastar com mouse ou toque);
+  - **Mapa**: canvas com as conexões entre etapas, pan e zoom (botões, Ctrl+roda e pinça);
   - **Cartões**: navegação nível a nível, com caminho clicável.
-- **Etapas**: o projeto abre no Kanban de etapas (arrastar com mouse ou toque); as tarefas ficam dentro de cada etapa, com checklist, comentários e anexos. A Estrutura (mapa e cartões) é só visualização. Cada tarefa pode ter vários colaboradores (usuários cadastrados).
+
+  Etapas em níveis ilimitados. O projeto abre no Kanban. No Mapa e nos Cartões não dá para arrastar as etapas, mas clicar numa delas abre os detalhes para editar. As tarefas ficam dentro de cada etapa, com checklist, comentários e anexos. Cada tarefa pode ter vários colaboradores (usuários cadastrados).
 - **Chat do projeto**: cada projeto tem uma aba Chat. Digitar `@` abre a lista de todos os usuários cadastrados para marcar, e `@todos` marca todo mundo. As mensagens que marcam você ficam destacadas, e a aba mostra quantas você ainda não viu. O autor apaga as próprias mensagens; o administrador apaga qualquer uma. Quem pode ver o projeto pode usar o chat.
 - **Colaboradores**: acompanhamento administrativo do trabalho de cada colaborador — tarefas e etapas vinculadas, com o caminho no projeto (Projeto → Etapa → Tarefa), status, prazo, prioridade e o que está bloqueando.
 - **Visões gerais**: Kanban de projetos, Hoje (atrasos e próximos marcos) e Histórico com filtros.
 - **Configurações**: usuários, perfis e permissões por módulo e ação (ver abaixo).
-- **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`S`/`C` trocam para Etapas, Estrutura e Chat.
+- **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`C` trocam para Etapas e Chat.
 
 ## Tecnologias
 

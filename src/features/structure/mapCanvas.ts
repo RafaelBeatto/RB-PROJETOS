@@ -34,7 +34,7 @@ export function mountMap(p: Project, container: HTMLElement, onNodeClick: (branc
   const pointers = new Map<number, { x: number; y: number }>();
   let gesture: Gesture | null = null;
   let suppressClick = false;
-  // A Estrutura é só visualização: os cartões não se movem, o gesto vira pan.
+  // No Mapa as etapas não se movem (o status muda pelo Kanban): o gesto vira pan.
   const canMoveNodes = false;
 
   /** Mantém o gesto mesmo se o dedo/mouse sair do mapa; alguns navegadores recusam e seguimos sem captura. */

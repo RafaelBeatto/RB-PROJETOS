@@ -16,7 +16,6 @@ const TABS: { tab: ProjectTab; label: string }[] = [
   { tab: 'kanban', label: 'Etapas' },
   { tab: 'overview', label: 'Visão geral' },
   { tab: 'info', label: 'Informações' },
-  { tab: 'structure', label: 'Estrutura' },
   { tab: 'chat', label: 'Chat' },
 ];
 

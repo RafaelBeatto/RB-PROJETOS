@@ -136,7 +136,7 @@ function bind(p: Project, id: string): void {
   modalField('#bdDelete').addEventListener('click', () => void confirmDeleteEtapa(id));
   modalField('#bdCards').addEventListener('click', () => {
     closeModal();
-    ui.tab = 'structure';
+    ui.tab = 'kanban';
     ui.structureMode = 'cards';
     ui.cardLevel = id;
     refreshProject();
