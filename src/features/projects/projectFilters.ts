@@ -1,26 +1,22 @@
 import { refreshPage, resetFilterBar } from '../../app/navigation';
-import { clearButton, filterSearch, filterSelect, filterToggle, registerFilterGroup } from '../../components/filterBar';
+import { clearButton, filterSearch, filterSelect, registerFilterGroup } from '../../components/filterBar';
 import { db } from '../../services/db';
-import { contratanteCidade, contratanteCidades, contratanteName, sortedContratantes } from '../../services/contratanteService';
-import { agreementName, isProjectOverdue, lateTaskCount, projectProgress } from '../../services/projectService';
+import { contratanteCidade, contratanteName, sortedContratantes } from '../../services/contratanteService';
+import { agreementName, projectProgress } from '../../services/projectService';
 import { emptyProjectFilters, ui } from '../../state/store';
-import { PROJECT_STATUSES, type Project } from '../../types/project';
+import type { Project } from '../../types/project';
 
 export function projectFiltersActive(): boolean {
   const f = ui.projectFilters;
-  return !!(f.q || f.status || f.coordinator || f.contratante || f.cidade || f.late || f.overdue);
+  return !!(f.q.trim() || f.coordinator || f.contratante || f.sort);
 }
 
 export function matchesProjectFilters(p: Project): boolean {
   const f = ui.projectFilters;
   const q = f.q.trim().toLowerCase();
-  if (q && ![p.name, p.description, p.processo, p.owner, agreementName(p), p.convPolitico, contratanteName(p), contratanteCidade(p)].join(' ').toLowerCase().includes(q)) return false;
-  if (f.status && p.status !== f.status) return false;
+  if (q && ![p.name, p.description, p.processo, agreementName(p), p.convPolitico, contratanteName(p), contratanteCidade(p)].join(' ').toLowerCase().includes(q)) return false;
   if (f.coordinator && !p.coordinators.includes(f.coordinator)) return false;
   if (f.contratante && p.contratanteId !== f.contratante) return false;
-  if (f.cidade && contratanteCidade(p).trim().toLowerCase() !== f.cidade.toLowerCase()) return false;
-  if (f.late && !lateTaskCount(p)) return false;
-  if (f.overdue && !isProjectOverdue(p)) return false;
   return true;
 }
 
@@ -39,13 +35,7 @@ export function sortProjects(list: Project[]): Project[] {
 
 export function projectFilterBar(): string {
   const f = ui.projectFilters;
-  return `<div class="fbar">${filterSearch('projects.q', 'Buscar projeto, processo, convênio, contratante ou cidade', f.q)}<div class="fchips">${filterSelect(
-    'projects.status',
-    'Status',
-    PROJECT_STATUSES.map((s) => [s, s] as const),
-    f.status,
-    'Todos',
-  )}${filterSelect(
+  return `<div class="fbar">${filterSearch('projects.q', 'Buscar projeto, processo, convênio ou contratante', f.q)}<div class="fchips">${filterSelect(
     'projects.coordinator',
     'Coordenador',
     db.users.map((u) => [u.id, u.name] as const),
@@ -58,12 +48,6 @@ export function projectFilterBar(): string {
     f.contratante,
     'Todas',
   )}${filterSelect(
-    'projects.cidade',
-    'Cidade',
-    contratanteCidades().map((c) => [c, c] as const),
-    f.cidade,
-    'Todas',
-  )}${filterToggle('projects.overdue', 'Prazo vencido', f.overdue)}${filterToggle('projects.late', 'Tarefas atrasadas', f.late)}${filterSelect(
     'projects.sort',
     'Ordenar',
     [

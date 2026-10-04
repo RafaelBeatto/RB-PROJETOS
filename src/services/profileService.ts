@@ -19,7 +19,7 @@ export function fullPermissions(): PermissionSet {
 }
 
 function defaultProfiles(): Profile[] {
-  const work: PermissionModule[] = ['projects', 'kanban', 'tasks', 'structure', 'map', 'list', 'timeline'];
+  const work: PermissionModule[] = ['projects', 'kanban', 'tasks', 'structure', 'map'];
   return [
     { id: ADMIN_PROFILE_ID, name: 'Administrador', description: 'Acesso completo, incluindo usuários e perfis.', admin: true, permissions: fullPermissions() },
     {
@@ -40,8 +40,6 @@ function defaultProfiles(): Profile[] {
         tasks: ['view', 'create', 'edit'],
         structure: ['view', 'create', 'edit'],
         map: ['view', 'edit'],
-        list: ['view'],
-        timeline: ['view'],
       },
     },
     {

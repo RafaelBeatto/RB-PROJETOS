@@ -13,7 +13,8 @@ A aplicação é 100% estática. Não há servidor, banco de dados nem API: os d
 - **Estrutura**: ramificações em níveis ilimitados, vistas como
   - **Mapa**: canvas com cartões arrastáveis, conexões, pan, zoom (botões, Ctrl+roda e pinça) e posições salvas;
   - **Cartões**: navegação nível a nível, com caminho clicável.
-- **Etapas**: o projeto abre no Kanban de etapas (arrastar com mouse ou toque); as tarefas ficam dentro de cada etapa, com checklist, comentários e anexos. A Estrutura (mapa e cartões) é só visualização.
+- **Etapas**: o projeto abre no Kanban de etapas (arrastar com mouse ou toque); as tarefas ficam dentro de cada etapa, com checklist, comentários e anexos. A Estrutura (mapa e cartões) é só visualização. Cada tarefa pode ter vários colaboradores (usuários cadastrados).
+- **Colaboradores**: acompanhamento administrativo do trabalho de cada colaborador — tarefas e etapas vinculadas, com o caminho no projeto (Projeto → Etapa → Tarefa), status, prazo, prioridade e o que está bloqueando.
 - **Visões gerais**: Kanban de projetos, Hoje (atrasos e próximos marcos) e Histórico com filtros.
 - **Configurações**: usuários, perfis e permissões por módulo e ação (ver abaixo).
 - **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`L`/`S` trocam de aba.
@@ -65,7 +66,7 @@ src/
 │   └── *Service.ts      projetos, tarefas, ramificações, usuários, atividade, login
 ├── state/store.ts       estado da interface (o que está aberto e filtros)
 ├── components/          modal, diálogos, toast, ícones, avatar, filtros, arrastar
-├── features/            telas: auth, projects, tasks, structure, timeline,
+├── features/            telas: auth, projects, tasks, structure, collaborators,
 │                        today, history, search, settings (usuários e perfis)
 ├── utils/               DOM, datas, formatação, ids, delegação de eventos
 └── styles/              variáveis, base, componentes, telas e responsivo
@@ -97,7 +98,7 @@ Os dados ficam no navegador de cada aparelho; não há sincronização entre dis
 Fluxo de acesso: **Usuário → Perfil → Permissões → Módulos e ações**.
 
 - Cada usuário tem um perfil. Perfis iniciais: **Administrador** (acesso total, não pode ser excluído nem ter permissões reduzidas), **Gerente**, **Colaborador** e **Visualizador**. Todos podem ser editados em *Configurações → Perfis e permissões*, e novos perfis podem ser criados.
-- Permissões por módulo: Projetos, Kanban, Tarefas, Estrutura, Mapa, Lista, Timeline, Usuários, Perfis e Configurações, com as ações **Visualizar, Criar, Editar e Excluir** quando fazem sentido para o módulo.
+- Permissões por módulo: Projetos, Kanban/Etapas, Tarefas, Etapas e Estrutura, Mapa, Contratantes, Colaboradores, Usuários, Perfis e Configurações, com as ações **Visualizar, Criar, Editar e Excluir** quando fazem sentido para o módulo.
 - A interface esconde o que o perfil não permite, e toda operação que grava dados passa por `authorize(módulo, ação)` em `services/permissionService.ts`.
 - Sempre existe ao menos um administrador ativo: o último não pode ser excluído, desativado nem perder o perfil.
 - Usuários desativados não conseguem entrar.

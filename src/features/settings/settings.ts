@@ -79,10 +79,13 @@ function openMore(): void {
   const settings = canOpenPage('settings')
     ? `<button class="ghost" data-action="nav" data-page="settings">${icon('settings')}Configurações</button>`
     : '';
+  const collaborators = canOpenPage('collaborators')
+    ? `<button class="ghost" data-action="nav" data-page="collaborators">${icon('collaborators')}Colaboradores</button>`
+    : '';
   const archive = canOpenPage('archive') ? `<button class="ghost" data-action="nav" data-page="archive">${icon('archive')}Arquivados</button>` : '';
   openModal(
     'Mais',
-    `<div class="more-list">${archive}${settings}<button class="ghost" data-action="account">${icon('users')}Minha conta</button><button class="ghost" data-action="logout">${icon(
+    `<div class="more-list">${collaborators}${archive}${settings}<button class="ghost" data-action="account">${icon('users')}Minha conta</button><button class="ghost" data-action="logout">${icon(
       'logout',
     )}Sair</button></div>`,
   );

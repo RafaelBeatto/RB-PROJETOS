@@ -13,7 +13,7 @@ import { db } from '../../services/db';
 import { branchRef, taskRef } from '../../services/dependencyService';
 import { findTask, isLate, setSubtaskDone } from '../../services/taskService';
 import { blockedBadge, blockersPanel, dependentsLine } from '../dependencies/dependencyView';
-import { findUser, personByName } from '../../services/userService';
+import { findUser, taskPeople } from '../../services/userService';
 import { ui } from '../../state/store';
 import type { Project } from '../../types/project';
 import type { Task } from '../../types/task';
@@ -26,7 +26,9 @@ import { openEditBranchModal, openNewBranchModal } from './branchModals';
 function taskBlock(t: Task, p: Project): string {
   const items = t.subtasks;
   const done = items.filter((s) => s.done).length;
-  const who = t.assignee ? `<span class="bd-who">${avatar(personByName(t.assignee), true)} ${esc(t.assignee)}</span>` : '';
+  const who = taskPeople(t)
+    .map((x) => `<span class="bd-who">${avatar(x, true)} ${esc(x.name)}</span>`)
+    .join('');
   const checklist = items.length
     ? `${progressBar(pct(done, items.length), true)}<div class="bd-check">${items
         .map(

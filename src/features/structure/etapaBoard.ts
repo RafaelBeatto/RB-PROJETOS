@@ -2,7 +2,9 @@
  * Aba "Etapas": Kanban das etapas (etapas) do projeto. É a tela inicial do projeto.
  * Mostra só as etapas; as tarefas ficam dentro de cada etapa (janela de detalhes).
  */
-import { refreshProject } from '../../app/navigation';
+import { currentProject, refreshProject } from '../../app/navigation';
+import { openModal } from '../../components/modal';
+import { taskStatusClass } from '../../utils/format';
 import { avatar } from '../../components/avatar';
 import { icon } from '../../components/icons';
 import { showToast } from '../../components/toast';
@@ -12,7 +14,6 @@ import { DependencyError, blockedSnapshot, branchRef, releasedSince } from '../.
 import { can } from '../../services/permissionService';
 import { isLate } from '../../services/taskService';
 import { findUser } from '../../services/userService';
-import { emptyTaskFilters, ui } from '../../state/store';
 import type { Branch } from '../../types/branch';
 import type { Project } from '../../types/project';
 import { TASK_STATUSES, type TaskStatus } from '../../types/task';
@@ -42,7 +43,7 @@ function etapaCard(p: Project, b: Branch): string {
 function looseNotice(p: Project): string {
   const loose = p.tasks.filter((t) => !findBranch(p, t.branch)).length;
   if (!loose) return '';
-  return `<div class="loose-note">${icon('info')}<span>${plural(loose, 'tarefa está', 'tarefas estão')} sem etapa.</span><button class="ghost" data-action="loose-tasks">Ver na Lista</button></div>`;
+  return `<div class="loose-note">${icon('info')}<span>${plural(loose, 'tarefa está', 'tarefas estão')} sem etapa.</span><button class="ghost" data-action="loose-tasks">Escolher etapa</button></div>`;
 }
 
 function renderBoard(p: Project): string {
@@ -86,15 +87,23 @@ function mountBoard(p: Project, container: HTMLElement): void {
   $$('.column', container).forEach((column) => enableMouseDrop(column, '.ecard', move));
 }
 
+/** Tarefas antigas sem etapa: lista para abrir cada uma e escolher a etapa. */
+function openLooseTasks(p: Project): void {
+  const loose = p.tasks.filter((t) => !findBranch(p, t.branch));
+  if (!loose.length) return;
+  openModal(
+    'Tarefas sem etapa',
+    `<p class="sub flat">Abra cada tarefa e escolha a etapa em que ela deve ficar.</p><div class="next-list">${loose
+      .map((t) => `<div class="next-task" data-action="task-open" data-id="${t.id}" tabindex="0">${esc(t.title)}<span class="status ${taskStatusClass(t.status)}">${esc(t.status)}</span></div>`)
+      .join('')}</div>`,
+  );
+}
+
 export function initEtapaBoard(): void {
   registerTab('kanban', { render: renderBoard, mount: mountBoard });
   onClick('etapa-new', (el) => {
     const status = el.dataset.status as TaskStatus | undefined;
     openNewBranchModal(null, status && TASK_STATUSES.includes(status) ? status : 'A fazer');
   });
-  onClick('loose-tasks', () => {
-    ui.taskFilters = { ...emptyTaskFilters(), branch: 'none' };
-    ui.tab = 'list';
-    refreshProject();
-  });
+  onClick('loose-tasks', () => openLooseTasks(currentProject()));
 }

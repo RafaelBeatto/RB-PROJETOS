@@ -66,6 +66,15 @@ export function loadDatabase(): void {
   }
 
   for (const p of projects) {
+    // Responsável antigo (texto) vira vínculo com o usuário de mesmo nome; sem cadastro, o nome fica guardado.
+    for (const t of p.tasks) {
+      const user = !t.assignees.length ? userByName(t.assignee) : undefined;
+      if (user) {
+        t.assignees = [user.id];
+        t.assignee = '';
+      }
+      t.assignees = t.assignees.filter((id, i, all) => db.users.some((u) => u.id === id) && all.indexOf(id) === i);
+    }
     if (withoutCoordinators.has(p.id)) {
       const owner = userByName(p.owner);
       p.coordinators = owner ? [owner.id] : [];

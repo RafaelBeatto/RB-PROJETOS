@@ -1,6 +1,6 @@
 /**
  * Atalhos de teclado: Ctrl+K ou / pesquisa; N novo (projeto ou tarefa); T tarefa; R etapa;
- * K, L e S trocam para Kanban, Lista e Estrutura. Ignorados enquanto se digita ou com login aberto.
+ * K e S trocam para Etapas e Estrutura. Ignorados enquanto se digita ou com login aberto.
  */
 import { closeModal, isModalOpen } from '../components/modal';
 import { isLoginVisible } from '../features/auth/login';
@@ -13,7 +13,7 @@ import { can } from '../services/permissionService';
 import { canOpenTab } from './access';
 import { isProjectOpen, refreshProject } from './navigation';
 
-const TAB_KEYS: Record<string, ProjectTab> = { k: 'kanban', l: 'list', s: 'structure' };
+const TAB_KEYS: Record<string, ProjectTab> = { k: 'kanban', s: 'structure' };
 
 export function installShortcuts(): void {
   document.addEventListener('keydown', (e) => {

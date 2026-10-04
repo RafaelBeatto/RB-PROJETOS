@@ -30,6 +30,8 @@ export function installAppActions(): void {
     const page = el.dataset.page as Page | undefined;
     if (!page || !PAGE_ORDER.includes(page)) return;
     closeModal();
+    // O menu Colaboradores sempre abre a lista (não o último painel aberto).
+    if (page === 'collaborators') ui.collaboratorId = null;
     goTo(page);
   });
   onClick('back', () => goTo('home'));

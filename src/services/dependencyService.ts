@@ -369,7 +369,7 @@ function simulate(owner: OwnerDraft): Project[] {
   }
   let t = p.tasks.find((x) => x.id === ref.id);
   if (!t) {
-    t = { id: ref.id, title: 'Nova tarefa', status: 'A fazer', priority: 'Média', assignee: '', due: '', branch: '', description: '', tags: '', dependencies: [], subtasks: [], comments: [], links: [] };
+    t = { id: ref.id, title: 'Nova tarefa', status: 'A fazer', priority: 'Média', assignees: [], assignee: '', due: '', branch: '', description: '', tags: '', dependencies: [], subtasks: [], comments: [], links: [] };
     p.tasks.push(t);
   }
   if (owner.parent !== undefined) t.branch = owner.parent ?? '';

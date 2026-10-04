@@ -3,7 +3,6 @@ import { filterSelect, registerFilterGroup } from '../../components/filterBar';
 import { icon, type IconName } from '../../components/icons';
 import { db } from '../../services/db';
 import { isLate } from '../../services/taskService';
-import { knownPeople } from '../../services/userService';
 import { ui } from '../../state/store';
 import type { Project } from '../../types/project';
 import { onClick } from '../../utils/actions';
@@ -40,8 +39,8 @@ function filterBar(): string {
     'Todos',
   )}${filterSelect(
     'today.person',
-    'Pessoa',
-    knownPeople().map((n) => [n, n] as const),
+    'Colaborador',
+    db.users.map((u) => [u.id, u.name] as const),
     f.person,
     'Todas',
   )}</div></div>`;
@@ -58,7 +57,7 @@ function renderToday(): void {
   for (const project of db.projects) {
     if (project.archived || (f.project && project.id !== f.project)) continue;
     for (const t of project.tasks) {
-      if (f.person && t.assignee.trim() !== f.person) continue;
+      if (f.person && !t.assignees.includes(f.person)) continue;
       const item = { project, title: t.title, due: t.due, taskId: t.id };
       if (isLate(t)) late.push(item);
       else if (t.status !== 'Concluído' && t.due === today()) due.push(item);

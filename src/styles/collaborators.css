@@ -1,0 +1,247 @@
+/* Módulo Colaboradores */
+
+.collab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.collab-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+}
+.collab-card:hover {
+  border-color: #45516a;
+}
+.collab-card.inactive {
+  opacity: 0.6;
+}
+.collab-who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.collab-who > div {
+  flex: 1;
+  min-width: 0;
+}
+.collab-who b {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.collab-who small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.collab-who .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.collab-who .status svg {
+  width: 12px;
+  height: 12px;
+}
+.collab-linked {
+  color: var(--muted);
+  font-size: 13px;
+}
+.cstats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.cstats.big {
+  grid-template-columns: repeat(6, 1fr);
+  margin: 16px 0;
+}
+.cstat {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.cstat b {
+  display: block;
+  font-size: 18px;
+}
+.cstat span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.cstat.ok b {
+  color: var(--green);
+}
+.cstat.warn b {
+  color: var(--yellow);
+}
+.cstat.bad b {
+  color: var(--red);
+}
+
+.ca-attention {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #5a4716;
+  background: #1f1a0d;
+  color: var(--yellow);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.ca-group {
+  margin-bottom: 14px;
+}
+.ca-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 700;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ca-group > summary::-webkit-details-marker {
+  display: none;
+}
+.ca-group > summary::before {
+  content: '▸';
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+.ca-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+.ca-count {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  padding: 1px 9px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.g-waiting > summary span:first-child {
+  color: var(--yellow);
+}
+.ca-list {
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+}
+.ca-empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 4px 2px;
+}
+.ca {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+}
+.ca:hover {
+  border-color: #45516a;
+}
+.ca.blocked {
+  border-left-color: var(--yellow);
+}
+.ca.late {
+  border-left-color: var(--red);
+}
+.ca-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ca-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.ca-kind svg {
+  width: 13px;
+  height: 13px;
+}
+.ca-name {
+  flex: 1;
+  min-width: 160px;
+}
+.ca-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px 8px;
+  background: var(--panel2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.ca-step small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.ca-step:last-child {
+  font-weight: 700;
+}
+.ca-arrow {
+  font-style: normal;
+  color: var(--muted);
+  padding-bottom: 1px;
+}
+.ca-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.ca-block {
+  display: flex;
+  gap: 8px;
+  color: var(--yellow);
+  font-size: 12px;
+}
+.ca-block svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 1px;
+}
+.ca-block ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  color: #d9c07a;
+}
+.legacy-assignee {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .cstats.big {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

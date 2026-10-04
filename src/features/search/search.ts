@@ -2,6 +2,7 @@ import { openProject } from '../../app/navigation';
 import { closeModal, modalField, openModal } from '../../components/modal';
 import { db } from '../../services/db';
 import { agreementName, hasAgreement } from '../../services/projectService';
+import { taskPeopleNames } from '../../services/userService';
 import { onClick } from '../../utils/actions';
 import { esc } from '../../utils/dom';
 
@@ -22,7 +23,7 @@ function search(query: string): Result[] {
       results.push({ projectId: p.id, kind: 'Convênio', label: `${[agreementName(p), p.convPolitico].filter(Boolean).join(' · ')} — ${p.name}` });
     }
     for (const b of p.branches) if (b.name.toLowerCase().includes(q)) results.push({ projectId: p.id, kind: 'Etapa', label: b.name });
-    for (const t of p.tasks) if (`${t.title}${t.assignee}`.toLowerCase().includes(q)) results.push({ projectId: p.id, kind: 'Tarefa', label: t.title });
+    for (const t of p.tasks) if (`${t.title} ${taskPeopleNames(t)}`.toLowerCase().includes(q)) results.push({ projectId: p.id, kind: 'Tarefa', label: t.title });
   }
   return results;
 }
