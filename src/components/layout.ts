@@ -17,6 +17,7 @@ const TABS: { tab: ProjectTab; label: string }[] = [
   { tab: 'overview', label: 'Visão geral' },
   { tab: 'info', label: 'Informações' },
   { tab: 'structure', label: 'Estrutura' },
+  { tab: 'chat', label: 'Chat' },
 ];
 
 const navItem = (n: (typeof NAV)[number]): string =>
@@ -62,7 +63,7 @@ export function appShell(): string {
         </div>
       </div>
       <nav class="tabs" aria-label="Seções do projeto">
-        ${TABS.map((t) => `<button class="tab" data-action="tab" data-tab="${t.tab}">${t.label}</button>`).join('')}
+        ${TABS.map((t) => `<button class="tab" data-action="tab" data-tab="${t.tab}">${t.label}<span class="tab-badge" hidden></span></button>`).join('')}
       </nav>
       <div id="viewContent"></div>
     </section>

@@ -4,7 +4,7 @@
  */
 export type Page = 'home' | 'archive' | 'board' | 'today' | 'history' | 'collaborators' | 'settings';
 export type SettingsTab = 'users' | 'profiles' | 'contratantes';
-export type ProjectTab = 'overview' | 'info' | 'kanban' | 'structure';
+export type ProjectTab = 'overview' | 'info' | 'kanban' | 'structure' | 'chat';
 export type StructureMode = 'map' | 'cards';
 export type QuickTaskFilter = 'all' | 'mine' | 'today' | 'late' | 'soon';
 

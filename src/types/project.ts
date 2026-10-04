@@ -1,5 +1,6 @@
 import type { Activity } from './activity';
 import type { Branch, Point } from './branch';
+import type { ChatMessage } from './chat';
 import type { Dependency } from './dependency';
 import type { Task } from './task';
 
@@ -56,6 +57,8 @@ export interface Project extends Agreement {
   tasks: Task[];
   milestones: Milestone[];
   activity: Activity[];
+  /** Chat do projeto, da mensagem mais antiga para a mais nova. */
+  chat: ChatMessage[];
   /** Posição do cartão do projeto no mapa. */
   root?: Point;
   view?: MapView;

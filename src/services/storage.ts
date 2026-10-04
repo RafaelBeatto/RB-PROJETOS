@@ -13,6 +13,8 @@ export const STORAGE_KEYS = {
   contratantes: 'rb-contratantes-v1',
   /** Nome antigo do cadastro de contratantes; lido uma vez para migrar. */
   legacyPrefeituras: 'rb-prefeituras-v1',
+  /** Até quando cada usuário já leu o chat de cada projeto (para avisar marcações novas). */
+  chatSeen: 'rb-chat-seen-v1',
   /** Cópia de segurança de um conteúdo de projetos ilegível, guardada antes de usar os dados de exemplo. */
   projectsBackup: 'rb-projects-v1-backup',
 } as const;

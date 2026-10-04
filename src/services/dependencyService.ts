@@ -348,7 +348,7 @@ function simulate(owner: OwnerDraft): Project[] {
       p = {
         id: ref.projectId, name: 'Novo projeto', description: '', status: 'Em espera', owner: '', due: '', archived: false, coordinators: [], contratanteId: '',
         processo: '', convOrgao: '', convNumero: '', convValor: '', convContra: '', convPolitico: '',
-        dependencies: [], branches: [], tasks: [], milestones: [], activity: [],
+        dependencies: [], branches: [], tasks: [], milestones: [], activity: [], chat: [],
       };
       world.push(p);
     }

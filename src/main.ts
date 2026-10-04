@@ -6,6 +6,7 @@ import { installFilters } from './components/filterBar';
 import { appShell } from './components/layout';
 import { installModal } from './components/modal';
 import { initLogin } from './features/auth/login';
+import { initChat } from './features/chat/projectChat';
 import { initCollaborators } from './features/collaborators/collaborators';
 import { initHistory } from './features/history/history';
 import { initHome } from './features/projects/home';
@@ -64,6 +65,7 @@ function start(): void {
   initTaskActions();
   initStructure();
   initEtapaBoard();
+  initChat();
   initSearch();
   initSettings();
 

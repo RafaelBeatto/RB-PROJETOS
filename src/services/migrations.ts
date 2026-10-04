@@ -5,6 +5,7 @@
  */
 import { ACTIVITY_KINDS, type Activity, type ActivityKind } from '../types/activity';
 import type { Branch } from '../types/branch';
+import type { ChatMessage } from '../types/chat';
 import { DEP_CONDITIONS, DEP_KINDS, type DepCondition, type DepKind, type Dependency } from '../types/dependency';
 import { MILESTONE_STATUSES, PROJECT_STATUSES, type Milestone, type MilestoneStatus, type Project, type ProjectStatus } from '../types/project';
 import { PRIORITIES, TASK_STATUSES, type Priority, type Subtask, type Task, type TaskComment, type TaskLink, type TaskStatus } from '../types/task';
@@ -27,6 +28,18 @@ function migrateSubtask(r: Raw): Subtask {
 
 function migrateComment(r: Raw): TaskComment {
   return { id: str(r.id) || uid('c'), who: str(r.who), text: str(r.text), at: str(r.at) };
+}
+
+function migrateChatMessage(r: Raw): ChatMessage {
+  return {
+    id: str(r.id) || uid('m'),
+    userId: str(r.userId),
+    who: str(r.who),
+    text: str(r.text),
+    at: str(r.at),
+    mentions: list(r.mentions).map((m) => str(m)).filter(Boolean),
+    everyone: r.everyone === true,
+  };
 }
 
 function migrateLink(r: Raw): TaskLink {
@@ -147,6 +160,7 @@ function migrateProject(r: Raw): Project {
     tasks: objs(r.tasks).map((t) => migrateTask(t, id)),
     milestones: objs(r.milestones).map(migrateMilestone),
     activity: objs(r.activity).map(migrateActivity),
+    chat: objs(r.chat).map(migrateChatMessage),
   };
   // Etapas antigas (etapas sem status) começam na coluna que as tarefas indicam.
   const rawBranches = objs(r.branches);

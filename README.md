@@ -14,10 +14,11 @@ A aplicação é 100% estática. Não há servidor, banco de dados nem API: os d
   - **Mapa**: canvas com cartões arrastáveis, conexões, pan, zoom (botões, Ctrl+roda e pinça) e posições salvas;
   - **Cartões**: navegação nível a nível, com caminho clicável.
 - **Etapas**: o projeto abre no Kanban de etapas (arrastar com mouse ou toque); as tarefas ficam dentro de cada etapa, com checklist, comentários e anexos. A Estrutura (mapa e cartões) é só visualização. Cada tarefa pode ter vários colaboradores (usuários cadastrados).
+- **Chat do projeto**: cada projeto tem uma aba Chat. Digitar `@` abre a lista de todos os usuários cadastrados para marcar, e `@todos` marca todo mundo. As mensagens que marcam você ficam destacadas, e a aba mostra quantas você ainda não viu. O autor apaga as próprias mensagens; o administrador apaga qualquer uma. Quem pode ver o projeto pode usar o chat.
 - **Colaboradores**: acompanhamento administrativo do trabalho de cada colaborador — tarefas e etapas vinculadas, com o caminho no projeto (Projeto → Etapa → Tarefa), status, prazo, prioridade e o que está bloqueando.
 - **Visões gerais**: Kanban de projetos, Hoje (atrasos e próximos marcos) e Histórico com filtros.
 - **Configurações**: usuários, perfis e permissões por módulo e ação (ver abaixo).
-- **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`L`/`S` trocam de aba.
+- **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`S`/`C` trocam para Etapas, Estrutura e Chat.
 
 ## Tecnologias
 
@@ -84,14 +85,15 @@ As chaves do navegador são as mesmas das versões anteriores:
 
 | Chave | Conteúdo |
 | --- | --- |
-| `rb-projects-v1` | projetos, ramificações, tarefas, marcos e atividade |
+| `rb-projects-v1` | projetos, ramificações, tarefas, marcos, atividade e chat |
 | `rb-users-v1` | usuários (com perfil, status, data de criação e senha em hash) |
 | `rb-access-v1` | perfis e permissões |
+| `rb-chat-seen-v1` | até onde cada usuário já leu o chat de cada projeto |
 | `rb-projects-auth` | sessão: id do usuário logado |
 
 Ao abrir, `migrations.ts` completa campos ausentes de dados antigos sem apagar nada. Se o conteúdo salvo estiver ilegível, uma cópia é guardada em `rb-projects-v1-backup` antes de usar o projeto de exemplo.
 
-Os dados ficam no navegador de cada aparelho; não há sincronização entre dispositivos.
+Os dados ficam no navegador de cada aparelho; não há sincronização entre dispositivos. Isso vale também para o chat: as mensagens só aparecem para quem usa o mesmo navegador.
 
 ## Usuários, perfis e permissões
 
