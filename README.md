@@ -8,11 +8,12 @@ A aplicação é 100% estática. Não há servidor, banco de dados nem API: os d
 
 ## Funcionalidades
 
-- **Projetos**: status, responsável, coordenadores, prazo, processo, dados de convênio, progresso automático e arquivamento.
+- **Projetos**: status (Em espera, Em andamento, Em pausa, Concluído), coordenadores, prazo (atraso calculado pelo prazo), processo, contratante (nome e cidade), dados de convênio e arquivamento.
+- **Dependências**: qualquer projeto, ramificação ou tarefa pode depender de outro projeto, ramificação ou tarefa (inclusive de outros projetos), com a condição "Concluído" ou "Iniciado". Itens bloqueados mostram o motivo e não podem avançar; dependências circulares são impedidas.
 - **Estrutura**: ramificações em níveis ilimitados, vistas como
   - **Mapa**: canvas com cartões arrastáveis, conexões, pan, zoom (botões, Ctrl+roda e pinça) e posições salvas;
   - **Cartões**: navegação nível a nível, com caminho clicável.
-- **Tarefas**: Kanban (arrastar com mouse ou toque), lista, timeline, checklist, dependências, comentários e anexos.
+- **Tarefas**: Kanban (arrastar com mouse ou toque), lista, timeline, checklist, comentários e anexos.
 - **Visões gerais**: Kanban de projetos, Hoje (atrasos e próximos marcos) e Histórico com filtros.
 - **Configurações**: usuários, perfis e permissões por módulo e ação (ver abaixo).
 - **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`L`/`S` trocam de aba.

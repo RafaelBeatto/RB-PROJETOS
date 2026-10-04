@@ -10,9 +10,8 @@ export function currency(value: string | number | undefined): string {
 export function projectStatusClass(status: ProjectStatus): string {
   const map: Partial<Record<ProjectStatus, string>> = {
     Concluído: 'done',
-    Atrasado: 'late',
     'Em pausa': 'review',
-    Planejamento: 'todo',
+    'Em espera': 'todo',
   };
   return map[status] ?? '';
 }

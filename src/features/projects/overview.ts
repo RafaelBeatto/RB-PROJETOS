@@ -3,7 +3,10 @@ import { icon } from '../../components/icons';
 import { progressRow } from '../../components/progress';
 import { can } from '../../services/permissionService';
 import { projectProgress, sortedMilestones } from '../../services/projectService';
-import { isBlocked, isLate } from '../../services/taskService';
+import { contratanteCidade, contratanteName } from '../../services/contratanteService';
+import { projectRef, taskRef } from '../../services/dependencyService';
+import { isLate } from '../../services/taskService';
+import { blockedBadge, blockersPanel, dependentsLine } from '../dependencies/dependencyView';
 import { findUser } from '../../services/userService';
 import type { Project } from '../../types/project';
 import { dayLabel, formatDate, formatShortDate, today } from '../../utils/date';
@@ -43,7 +46,7 @@ function nextTasks(p: Project): string {
     .map(
       (t) =>
         `<div class="next-task" data-action="task-open" data-id="${t.id}" tabindex="0"><span class="check"></span>${esc(t.title)}${
-          isBlocked(t, p) ? '<span class="status todo">Bloqueada</span>' : ''
+          blockedBadge(taskRef(p, t))
         }${isLate(t) ? '<span class="status late">Atrasada</span>' : ''}</div>`,
     )
     .join('');
@@ -78,9 +81,10 @@ function recentActivity(p: Project): string {
 
 function renderOverview(p: Project): string {
   const prog = projectProgress(p);
-  return `<div class="overview"><div class="facts"><div class="fact"><label>Status</label><span class="status ${projectStatusClass(p.status)}">${esc(
+  const blocked = `${blockersPanel(projectRef(p), 'Projeto bloqueado — tarefas não podem ser iniciadas')}${dependentsLine(projectRef(p))}`;
+  return `<div class="overview">${blocked}<div class="facts"><div class="fact"><label>Status</label><span class="status ${projectStatusClass(p.status)}">${esc(
     p.status,
-  )}</span></div><div class="fact"><label>Responsável</label>${esc(p.owner || '—')}</div><div class="fact"><label>Prazo</label>${formatDate(
+  )}</span></div><div class="fact"><label>Contratante</label>${esc([contratanteName(p), contratanteCidade(p)].filter(Boolean).join(' · ') || '—')}</div><div class="fact"><label>Prazo</label>${formatDate(
     p.due,
   )}</div><div class="fact"><label>Progresso</label>${prog.done} de ${prog.total} concluídas</div></div>${progressRow(prog.pct)}${coordination(
     p,

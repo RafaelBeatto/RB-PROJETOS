@@ -4,13 +4,15 @@ import { icon } from '../../components/icons';
 import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
 import { db } from '../../services/db';
+import { DependencyError, NEW_ID, blockedSnapshot, releasedSince } from '../../services/dependencyService';
 import { can } from '../../services/permissionService';
-import { findPrefeitura, sortedPrefeituras } from '../../services/prefeituraService';
+import { findContratante, sortedContratantes } from '../../services/contratanteService';
 import { createProject, toggleArchived, updateProject } from '../../services/projectService';
 import { ui } from '../../state/store';
 import { PROJECT_STATUSES, type Project, type ProjectDraft, type ProjectStatus } from '../../types/project';
 import type { User } from '../../types/user';
-import { $$, esc } from '../../utils/dom';
+import { $$, esc, plural } from '../../utils/dom';
+import { dependencySection, mountDependencyEditor, type DependencyEditor } from '../dependencies/dependencyEditor';
 import { promptNewUser } from '../settings/usersAdmin';
 
 function pickButton(u: User, selected: boolean): string {
@@ -18,7 +20,7 @@ function pickButton(u: User, selected: boolean): string {
 }
 
 function coordinatorPicker(selected: string[]): string {
-  return `<div class="form-full"><div class="lbl">Coordenadores</div><div class="pick" id="coordPick">${db.users
+  return `<div class="form-full coord-field"><div class="lbl">Quem coordena o projeto</div><div class="pick" id="coordPick">${db.users
     .map((u) => pickButton(u, selected.includes(u.id)))
     .join('')}${
     can('users', 'create') ? `<button type="button" class="pick-add" id="coordAdd">${icon('plus')}Novo usuário</button>` : ''
@@ -51,19 +53,22 @@ function bindPicker(): void {
 const input = (name: string, label: string, value: string, extra = ''): string =>
   `<label>${label}<input class="field" name="${name}" value="${esc(value)}" ${extra}></label>`;
 
-/** Só lista prefeituras cadastradas pelo administrador; não aceita texto livre. */
-function prefeituraSelect(selected: string): string {
-  const list = sortedPrefeituras();
+/** Só lista contratantes cadastradas pelo administrador; não aceita texto livre. */
+function contratanteSelect(selected: string): string {
+  const list = sortedContratantes();
   // Mantém a atual visível mesmo se ela tiver sido removida da lista.
-  const missing = selected && !findPrefeitura(selected) ? `<option value="${esc(selected)}" selected>(prefeitura removida)</option>` : '';
-  const opts = list.map((x) => `<option value="${esc(x.id)}" ${x.id === selected ? 'selected' : ''}>${esc(x.uf ? `${x.name} — ${x.uf}` : x.name)}</option>`).join('');
+  const missing = selected && !findContratante(selected) ? `<option value="${esc(selected)}" selected>(contratante removida)</option>` : '';
+  const opts = list.map((x) => `<option value="${esc(x.id)}" ${x.id === selected ? 'selected' : ''}>${esc(x.cidade ? `${x.name} — ${x.cidade}` : x.name)}</option>`).join('');
   const hint = list.length
     ? ''
-    : `<small class="field-hint">Nenhuma prefeitura cadastrada. ${
-        can('prefeituras', 'create') ? 'Cadastre em Configurações → Prefeituras.' : 'Peça ao administrador para cadastrar.'
+    : `<small class="field-hint">Nenhuma contratante cadastrada. ${
+        can('contratantes', 'create') ? 'Cadastre em Configurações → Contratantes.' : 'Peça ao administrador para cadastrar.'
       }</small>`;
-  return `<label>Prefeitura<select class="field" name="prefeituraId"><option value="">Sem prefeitura</option>${missing}${opts}</select>${hint}</label>`;
+  return `<label>Contratante<select class="field" name="contratanteId"><option value="">Sem contratante</option>${missing}${opts}</select>${hint}</label>`;
 }
+
+const PROJECT_INTRO =
+  'O que precisa acontecer antes deste projeto avançar. Enquanto houver condição pendente, o projeto não pode ir para “Em andamento” ou “Concluído” e todas as suas tarefas ficam bloqueadas.';
 
 function formHtml(p: Project | undefined): string {
   const statusOptions = PROJECT_STATUSES.map((s) => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('');
@@ -72,14 +77,23 @@ function formHtml(p: Project | undefined): string {
     : p.archived
       ? '<button class="ghost" type="button" id="archiveProject">Desarquivar</button>'
       : `<button class="danger" type="button" id="archiveProject">${icon('archive')}Arquivar</button>`;
-  return `<form id="projectForm"><div class="form-grid">${input('name', 'Nome', p?.name ?? '', 'required')}${input('owner', 'Responsável', p?.owner ?? '', 'list="usersList"')}<label>Status<select class="field" name="status">${statusOptions}</select></label>${input(
+  // A descrição saiu do formulário; só aparece para quem já tinha uma, para poder editar ou apagar.
+  const legacyDescription = p?.description.trim()
+    ? `<div class="form-full"><label>Descrição (campo antigo — apague o texto para removê-lo)<textarea class="field" name="description">${esc(p.description)}</textarea></label></div>`
+    : '';
+  return `<form id="projectForm" class="pform"><div class="sec first"><h3>Identificação</h3><div class="form-full">${input('name', 'Nome do projeto', p?.name ?? '', 'required')}</div><div class="form-full form-grid">${input(
+    'processo',
+    'Processo',
+    p?.processo ?? '',
+    'placeholder="Ex: 12345/2026"',
+  )}${contratanteSelect(p?.contratanteId ?? '')}</div>${legacyDescription}</div><div class="sec"><h3>Andamento</h3><div class="form-grid"><label>Status<select class="field" name="status">${statusOptions}</select></label>${input(
     'due',
     'Prazo',
     p?.due ?? '',
     'type="date"',
-  )}</div>${coordinatorPicker(p?.coordinators ?? [])}<div class="form-full form-grid">${input('processo', 'Processo', p?.processo ?? '', 'placeholder="Ex: 12345/2026"')}${prefeituraSelect(p?.prefeituraId ?? '')}</div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
-    p?.description ?? '',
-  )}</textarea></label></div><div class="sec"><h3>Convênio</h3><div class="form-grid">${input('convOrgao', 'Origem do convênio', p?.convOrgao ?? '', 'placeholder="Ex: Caixa"')}${input(
+  )}</div><small class="field-hint">O atraso é indicado pelo prazo, independente do status.</small></div><div class="sec"><h3>Coordenação</h3>${coordinatorPicker(
+    p?.coordinators ?? [],
+  )}</div><div class="sec"><h3>Convênio</h3><div class="form-grid">${input('convOrgao', 'Origem do convênio', p?.convOrgao ?? '', 'placeholder="Ex: Caixa"')}${input(
     'convNumero',
     'Número do convênio',
     p?.convNumero ?? '',
@@ -89,44 +103,64 @@ function formHtml(p: Project | undefined): string {
     'Contrapartida (R$)',
     p?.convContra ?? '',
     'type="number" min="0" step="0.01" placeholder="0,00"',
-  )}</div><div class="form-full">${input('convPolitico', 'Origem do recurso (político / emenda)', p?.convPolitico ?? '', 'placeholder="Ex: Emenda do Dep. Fulano de Tal"')}</div></div><div class="modal-actions">${archive}<button class="primary">Salvar</button></div></form>`;
+  )}</div><div class="form-full">${input('convPolitico', 'Origem do recurso (político / emenda)', p?.convPolitico ?? '', 'placeholder="Ex: Emenda do Dep. Fulano de Tal"')}</div></div>${dependencySection()}<p class="form-error" id="projectErr" role="alert"></p><div class="modal-actions">${archive}<button class="primary">${
+    p ? 'Salvar' : 'Criar projeto'
+  }</button></div></form>`;
 }
 
-function readDraft(form: HTMLFormElement): ProjectDraft {
+function readDraft(form: HTMLFormElement, project: Project | undefined, deps: DependencyEditor): ProjectDraft {
   const data = new FormData(form);
   const text = (name: string): string => String(data.get(name) ?? '').trim();
   const status = text('status') as ProjectStatus;
   return {
     name: text('name'),
-    owner: text('owner'),
-    status: PROJECT_STATUSES.includes(status) ? status : 'Planejamento',
+    status: PROJECT_STATUSES.includes(status) ? status : 'Em espera',
     due: text('due'),
-    description: text('description'),
+    // Sem o campo na tela, a descrição antiga é mantida como está.
+    description: data.has('description') ? text('description') : (project?.description ?? ''),
     processo: text('processo'),
-    prefeituraId: text('prefeituraId'),
+    contratanteId: text('contratanteId'),
     convOrgao: text('convOrgao'),
     convNumero: text('convNumero'),
     convValor: text('convValor'),
     convContra: text('convContra'),
     convPolitico: text('convPolitico'),
     coordinators: $$('#coordPick .pick-u.on').map((b) => b.dataset.user ?? '').filter(Boolean),
+    dependencies: deps.value(),
   };
 }
 
 export function openProjectModal(project?: Project): void {
   openModal(project ? 'Editar projeto' : 'Novo projeto', formHtml(project));
   bindPicker();
-  modalField<HTMLFormElement>('#projectForm').addEventListener('submit', (e) => {
+  const form = modalField<HTMLFormElement>('#projectForm');
+  const deps = mountDependencyEditor(
+    modalField('#depEditor'),
+    () => ({ ref: project ? { kind: 'project', projectId: project.id, id: project.id } : { kind: 'project', projectId: NEW_ID, id: NEW_ID } }),
+    project?.dependencies ?? [],
+    true,
+    PROJECT_INTRO,
+  );
+  form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const draft = readDraft(e.currentTarget as HTMLFormElement);
+    const draft = readDraft(form, project, deps);
+    const before = blockedSnapshot();
+    try {
+      if (project) updateProject(project, draft);
+      else createProject(draft);
+    } catch (error) {
+      if (!(error instanceof DependencyError)) throw error;
+      modalField('#projectErr').textContent = error.message;
+      return;
+    }
     closeModal();
+    const released = releasedSince(before);
+    const extra = released ? ` · ${plural(released, 'item liberado', 'itens liberados')}` : '';
     if (project) {
-      updateProject(project, draft);
       if (isProjectOpen() && ui.projectId === project.id) refreshProject();
       else goTo(ui.page);
-      showToast('Projeto salvo');
+      showToast(`Projeto salvo${extra}`);
     } else {
-      createProject(draft);
       goTo('home');
       showToast('Projeto criado');
     }

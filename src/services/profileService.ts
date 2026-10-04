@@ -61,7 +61,9 @@ export function normalizePermissions(raw: unknown): PermissionSet {
   const set: PermissionSet = {};
   if (typeof raw !== 'object' || raw === null) return set;
   for (const m of MODULE_KEYS) {
-    const value = (raw as Record<string, unknown>)[m];
+    const record = raw as Record<string, unknown>;
+    // O módulo "Contratantes" se chamava "prefeituras".
+    const value = record[m] ?? (m === 'contratantes' ? record.prefeituras : undefined);
     if (!Array.isArray(value)) continue;
     const allowed = PERMISSION_MODULES[m].actions as readonly PermissionAction[];
     const actions = allowed.filter((a) => value.includes(a));

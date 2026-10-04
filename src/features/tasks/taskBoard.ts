@@ -3,11 +3,13 @@ import { icon } from '../../components/icons';
 import { showToast } from '../../components/toast';
 import { enableMouseDrag, enableMouseDrop, enableTouchDrag } from '../../components/touchDrag';
 import { can } from '../../services/permissionService';
-import { findTask, isBlocked, isLate, moveTask } from '../../services/taskService';
+import { DependencyError, blockedSnapshot, releasedSince, taskRef } from '../../services/dependencyService';
+import { findTask, isLate, moveTask } from '../../services/taskService';
+import { blockedBadge } from '../dependencies/dependencyView';
 import type { Project } from '../../types/project';
 import { TASK_STATUSES, type Task, type TaskStatus } from '../../types/task';
 import { formatShortDate } from '../../utils/date';
-import { $$, esc } from '../../utils/dom';
+import { $$, esc, plural } from '../../utils/dom';
 import { priorityClass } from '../../utils/format';
 import { registerTab } from '../projects/projectView';
 import { filterTasks, taskFilterChips } from './taskFilters';
@@ -16,8 +18,9 @@ import { filterTasks, taskFilterChips } from './taskFilters';
 const canMove = (p: Project): boolean => can('kanban', 'edit', p.id) && can('tasks', 'edit', p.id);
 
 export function taskCard(t: Task, p: Project): string {
-  const blocked = isBlocked(t, p) ? ' · <small class="status todo">Bloqueada</small>' : '';
-  return `<article class="task-card" draggable="${canMove(p)}" data-action="task-open" data-id="${t.id}"><h3>${esc(t.title)}</h3><div class="task-card-footer"><span><i class="priority ${priorityClass(
+  const badge = t.status === 'Concluído' ? '' : blockedBadge(taskRef(p, t));
+  const blocked = badge ? ` · ${badge}` : '';
+  return `<article class="task-card${badge ? ' is-blocked' : ''}" draggable="${canMove(p)}" data-action="task-open" data-id="${t.id}"><h3>${esc(t.title)}</h3><div class="task-card-footer"><span><i class="priority ${priorityClass(
     t.priority,
   )}"></i> ${esc(t.assignee || 'Sem responsável')}${blocked}</span><span class="${isLate(t) ? 'late-txt' : ''}">${formatShortDate(t.due)}</span></div></article>`;
 }
@@ -40,9 +43,18 @@ function mountBoard(p: Project, container: HTMLElement): void {
     const task = findTask(p, id);
     const status = column.dataset.status as TaskStatus | undefined;
     if (!task || !status || !TASK_STATUSES.includes(status)) return;
-    moveTask(p, task, status);
+    const before = blockedSnapshot();
+    try {
+      moveTask(p, task, status);
+    } catch (error) {
+      if (!(error instanceof DependencyError)) throw error;
+      refreshProject();
+      showToast(error.message);
+      return;
+    }
     refreshProject();
-    showToast('Tarefa movida');
+    const released = releasedSince(before);
+    showToast(`Tarefa movida${released ? ` · ${plural(released, 'item liberado', 'itens liberados')}` : ''}`);
   };
   $$('.task-card', container).forEach((card) => {
     enableMouseDrag(card);

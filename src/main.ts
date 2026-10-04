@@ -23,15 +23,16 @@ import { initTaskList } from './features/tasks/taskList';
 import { initTimeline } from './features/timeline/timeline';
 import { initToday } from './features/today/today';
 import { loadDatabase } from './services/db';
+import { DependencyError } from './services/dependencyService';
 import { PermissionDeniedError } from './services/permissionService';
 import { showToast } from './components/toast';
 import { installActions } from './utils/actions';
 import { $ } from './utils/dom';
 
-/** Ações bloqueadas pela camada de permissão viram um aviso, sem quebrar a tela. */
+/** Ações bloqueadas pelas regras (permissão ou dependências) viram um aviso, sem quebrar a tela. */
 function installPermissionErrors(): void {
   const handle = (error: unknown, prevent: () => void): void => {
-    if (error instanceof PermissionDeniedError) {
+    if (error instanceof PermissionDeniedError || error instanceof DependencyError) {
       prevent();
       showToast(error.message);
     }

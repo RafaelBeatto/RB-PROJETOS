@@ -1,4 +1,8 @@
+import type { Dependency } from './dependency';
+
 export const TASK_STATUSES = ['A fazer', 'Em andamento', 'Em revisão', 'Concluído'] as const;
+/** Único status permitido enquanto a tarefa está bloqueada por dependências. */
+export const TASK_NOT_STARTED = 'A fazer';
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 export const PRIORITIES = ['Alta', 'Média', 'Baixa'] as const;
@@ -34,7 +38,8 @@ export interface Task {
   branch: string;
   description: string;
   tags: string;
-  dependencies: string[];
+  /** O que precisa acontecer antes de a tarefa poder ser iniciada. */
+  dependencies: Dependency[];
   subtasks: Subtask[];
   comments: TaskComment[];
   links: TaskLink[];

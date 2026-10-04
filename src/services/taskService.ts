@@ -1,9 +1,20 @@
 import type { Project } from '../types/project';
-import type { Task, TaskDraft, TaskStatus } from '../types/task';
+import { TASK_NOT_STARTED, type Task, type TaskDraft, type TaskStatus } from '../types/task';
 import { today } from '../utils/date';
 import { uid } from '../utils/ids';
 import { logActivity, logTaskStatus } from './activityService';
 import { persistProjects } from './db';
+import {
+  DependencyError,
+  NEW_ID,
+  blockedMessage,
+  blockersOf,
+  draftBlockers,
+  dropDependenciesOn,
+  sameDependencies,
+  taskRef,
+  validateDependencies,
+} from './dependencyService';
 import { authorize } from './permissionService';
 import { currentActor } from './userService';
 
@@ -15,22 +26,21 @@ export function isLate(t: Task): boolean {
   return t.status !== 'Concluído' && !!t.due && t.due < today();
 }
 
-/** Bloqueada quando alguma dependência ainda não foi concluída. */
+/** Bloqueada quando alguma dependência (própria, da ramificação ou do projeto) não foi atendida. */
 export function isBlocked(t: Task, p: Project): boolean {
-  return t.dependencies.some((id) => findTask(p, id)?.status !== 'Concluído');
+  return blockersOf(taskRef(p, t)).length > 0;
 }
 
-export function dependenciesOf(t: Task, p: Project): Task[] {
-  return t.dependencies.map((id) => findTask(p, id)).filter((x): x is Task => !!x);
-}
-
-export function dependentsOf(t: Task, p: Project): Task[] {
-  return p.tasks.filter((x) => x.dependencies.includes(t.id));
+/** Tarefa bloqueada só pode ficar em "A fazer". */
+function assertCanEnter(status: TaskStatus, previous: TaskStatus | undefined, blockers: ReturnType<typeof blockersOf>): void {
+  if (status === TASK_NOT_STARTED || status === previous || !blockers.length) return;
+  throw new DependencyError(blockedMessage('A tarefa está bloqueada e só pode ficar em “A fazer”', blockers));
 }
 
 export function moveTask(p: Project, t: Task, status: TaskStatus): void {
   authorize('kanban', 'edit', p.id);
   authorize('tasks', 'edit', p.id);
+  assertCanEnter(status, t.status, blockersOf(taskRef(p, t)));
   if (t.status !== status) {
     t.status = status;
     logTaskStatus(p, t);
@@ -41,6 +51,10 @@ export function moveTask(p: Project, t: Task, status: TaskStatus): void {
 /** Cria ou atualiza; registra mudança de status e itens de checklist concluídos. */
 export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): Task {
   authorize('tasks', task ? 'edit' : 'create', p.id);
+  const owner = { ref: { kind: 'task' as const, projectId: p.id, id: task?.id ?? NEW_ID }, parent: draft.branch, dependencies: draft.dependencies };
+  const dependencies = validateDependencies(owner);
+  assertCanEnter(draft.status, task?.status, draftBlockers({ ...owner, dependencies }));
+  draft = { ...draft, dependencies };
   if (!task) {
     const created: Task = { id: uid('t'), tags: '', comments: [], links: [], ...draft };
     p.tasks.push(created);
@@ -49,6 +63,7 @@ export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): 
     return created;
   }
   const oldStatus = task.status;
+  if (!sameDependencies(task.dependencies, dependencies)) logActivity(p, `alterou as dependências de "${task.title}"`, { kind: 'task', task: task.id, branch: draft.branch });
   const doneBefore = new Set(task.subtasks.filter((s) => s.done).map((s) => s.id));
   Object.assign(task, draft);
   if (oldStatus !== task.status) logTaskStatus(p, task);
@@ -65,7 +80,9 @@ export function deleteTask(p: Project, task: Task): void {
   authorize('tasks', 'delete', p.id);
   logActivity(p, `excluiu a tarefa "${task.title}"`, { kind: 'task', branch: task.branch });
   p.tasks = p.tasks.filter((x) => x.id !== task.id);
-  for (const x of p.tasks) x.dependencies = x.dependencies.filter((d) => d !== task.id);
+  for (const other of dropDependenciesOn(taskRef(p, task))) {
+    logActivity(other, `excluiu a tarefa "${task.title}" (${p.name}); ela foi retirada das dependências deste projeto`, { kind: 'task' });
+  }
   persistProjects();
 }
 

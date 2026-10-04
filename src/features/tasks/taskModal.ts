@@ -3,36 +3,21 @@ import { askFields } from '../../components/dialog';
 import { icon } from '../../components/icons';
 import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
-import {
-  addComment,
-  addLink,
-  deleteTask,
-  dependenciesOf,
-  dependentsOf,
-  findTask,
-  isBlocked,
-  removeLink,
-  saveTask,
-} from '../../services/taskService';
+import { DependencyError, NEW_ID, blockedSnapshot, releasedSince, taskRef } from '../../services/dependencyService';
+import { addComment, addLink, deleteTask, findTask, removeLink, saveTask } from '../../services/taskService';
+import { dependencySection, mountDependencyEditor, type DependencyEditor } from '../dependencies/dependencyEditor';
+import { blockersPanel, dependentsLine } from '../dependencies/dependencyView';
 import type { Project } from '../../types/project';
 import { PRIORITIES, TASK_STATUSES, type Priority, type Subtask, type Task, type TaskDraft, type TaskStatus } from '../../types/task';
 import { NO_ACCESS } from '../../app/access';
 import { can } from '../../services/permissionService';
-import { $$, esc } from '../../utils/dom';
+import { $$, esc, plural } from '../../utils/dom';
 import { uid } from '../../utils/ids';
 
-function dependencyFlow(t: Task, p: Project): string {
-  const before = dependenciesOf(t, p);
-  const after = dependentsOf(t, p);
-  if (!before.length && !after.length) return '';
-  const item = (x: Task): string => {
-    const done = x.status === 'Concluído';
-    return `<span class="flow-item ${done ? 'ok' : ''}">${done ? icon('check') : icon('milestone')} ${esc(x.title)}</span>`;
-  };
-  const warn = isBlocked(t, p) ? `<div class="flow-warn">${icon('lock')} Bloqueada — aguardando dependências</div>` : '';
-  return `<div class="flow">${warn}${before.map((x) => `${item(x)}<i>↓</i>`).join('')}<span class="flow-item cur">${esc(t.title)}</span>${after
-    .map((x) => `<i>↓</i>${item(x)}`)
-    .join('')}</div>`;
+/** Situação da tarefa: o que a bloqueia (inclusive regras herdadas) e o que ela libera. */
+function dependencyStatus(t: Task, p: Project): string {
+  const ref = taskRef(p, t);
+  return `${blockersPanel(ref, 'Tarefa bloqueada — só pode ficar em “A fazer”')}${dependentsLine(ref)}`;
 }
 
 function checklistRow(s: Subtask): string {
@@ -77,11 +62,7 @@ function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: s
   const statusOpts = TASK_STATUSES.map((s) => `<option ${sel((t?.status ?? status) === s)}>${s}</option>`).join('');
   const prioOpts = PRIORITIES.map((x) => `<option ${sel(t?.priority === x)}>${x}</option>`).join('');
   const branchOpts = p.branches.map((b) => `<option value="${b.id}" ${sel(selectedBranch === b.id)}>${esc(b.name)}</option>`).join('');
-  const depOpts = p.tasks
-    .filter((x) => x.id !== t?.id)
-    .map((x) => `<option value="${x.id}" ${sel(!!t?.dependencies.includes(x.id))}>${esc(x.title)}${x.status !== 'Concluído' ? ' (pendente)' : ''}</option>`)
-    .join('');
-  return `${t ? dependencyFlow(t, p) : ''}<form id="taskForm"><fieldset class="plain" ${access.editable ? '' : 'disabled'}><div class="form-grid"><label>Título<input class="field" name="title" required value="${esc(
+  return `${t ? dependencyStatus(t, p) : ''}<form id="taskForm"><fieldset class="plain" ${access.editable ? '' : 'disabled'}><div class="form-grid"><label>Título<input class="field" name="title" required value="${esc(
     t?.title ?? '',
   )}"></label><label>Status<select class="field" name="status">${statusOpts}</select></label><label>Responsável<input class="field" name="assignee" list="usersList" value="${esc(
     t?.assignee ?? '',
@@ -89,11 +70,11 @@ function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: s
     t?.due ?? '',
   )}"></label><label>Prioridade<select class="field" name="priority">${prioOpts}</select></label><label>Ramificação<select class="field" name="branch"><option value="">Sem ramificação</option>${branchOpts}</select></label></div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
     t?.description ?? '',
-  )}</textarea></label></div><div class="form-full"><label>Dependências<select class="field" name="dependencies" multiple size="3">${depOpts}</select></label></div><div class="form-full"><label>Checklist <span id="subProg"></span></label><div class="pbar" style="margin:8px 0"><i id="subBar"></i></div><div id="subs">${(
+  )}</textarea></label></div>${dependencySection()}<div class="form-full"><label>Checklist <span id="subProg"></span></label><div class="pbar" style="margin:8px 0"><i id="subBar"></i></div><div id="subs">${(
     t?.subtasks ?? []
   )
     .map(checklistRow)
-    .join('')}</div>${access.editable ? `<button class="ghost" type="button" id="newSub">${icon('plus')}Item</button>` : ''}</div></fieldset><div class="modal-actions">${
+    .join('')}</div>${access.editable ? `<button class="ghost" type="button" id="newSub">${icon('plus')}Item</button>` : ''}</div></fieldset><p class="form-error" id="taskErr" role="alert"></p><div class="modal-actions">${
     t && access.canDelete ? `<button type="button" class="danger" id="deleteTask">${icon('trash')}Excluir</button>` : '<span></span>'
   }${access.editable ? '<button class="primary">Salvar</button>' : ''}</div></form>${t ? extrasHtml(t, access.editable) : ''}`;
 }
@@ -173,7 +154,7 @@ function bindExtras(p: Project, t: Task): void {
   });
 }
 
-function readDraft(form: HTMLFormElement): TaskDraft {
+function readDraft(form: HTMLFormElement, deps: DependencyEditor): TaskDraft {
   const data = new FormData(form);
   const text = (name: string): string => String(data.get(name) ?? '').trim();
   const status = text('status') as TaskStatus;
@@ -186,7 +167,7 @@ function readDraft(form: HTMLFormElement): TaskDraft {
     due: text('due'),
     branch: text('branch'),
     description: text('description'),
-    dependencies: data.getAll('dependencies').map(String),
+    dependencies: deps.value(),
     subtasks: readChecklist(),
   };
 }
@@ -202,13 +183,29 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
   openModal(task ? (access.editable ? 'Editar tarefa' : 'Tarefa') : 'Nova tarefa', formHtml(p, task, status, branch, access));
   bindChecklist(access.editable);
   if (task && access.editable) bindExtras(p, task);
+  const form = modalField<HTMLFormElement>('#taskForm');
+  const deps = mountDependencyEditor(
+    modalField('#depEditor'),
+    () => ({ ref: { kind: 'task', projectId: p.id, id: task?.id ?? NEW_ID }, parent: String(new FormData(form).get('branch') ?? '') }),
+    task?.dependencies ?? [],
+    access.editable,
+    'O que precisa acontecer antes desta tarefa começar. Enquanto houver condição pendente, ela fica bloqueada em “A fazer”.',
+  );
 
-  modalField<HTMLFormElement>('#taskForm').addEventListener('submit', (e) => {
+  form.addEventListener('submit', (e) => {
     e.preventDefault();
-    saveTask(p, task, readDraft(e.currentTarget as HTMLFormElement));
+    const before = blockedSnapshot();
+    try {
+      saveTask(p, task, readDraft(form, deps));
+    } catch (error) {
+      if (!(error instanceof DependencyError)) throw error;
+      modalField('#taskErr').textContent = error.message;
+      return;
+    }
     closeModal();
     refreshProject();
-    showToast(task ? 'Tarefa salva' : 'Tarefa criada');
+    const released = releasedSince(before);
+    showToast(`${task ? 'Tarefa salva' : 'Tarefa criada'}${released ? ` · ${plural(released, 'item liberado', 'itens liberados')}` : ''}`);
   });
   if (task && access.canDelete) {
     modalField('#deleteTask').addEventListener('click', () => {
