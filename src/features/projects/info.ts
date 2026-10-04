@@ -1,5 +1,6 @@
 import { icon } from '../../components/icons';
 import { can } from '../../services/permissionService';
+import { prefeituraName } from '../../services/prefeituraService';
 import { agreementName, agreementTotal, hasAgreement, projectProgress } from '../../services/projectService';
 import type { Project } from '../../types/project';
 import { formatDate } from '../../utils/date';
@@ -17,7 +18,7 @@ function renderInfo(p: Project): string {
   }</div><div class="info">${row(
     'Nome',
     text(p.name),
-  )}${row('Processo', text(p.processo))}${row('Descrição', text(p.description))}</div><div class="sec-head"><h3>Andamento</h3></div><div class="info">${row(
+  )}${row('Processo', text(p.processo))}${row('Prefeitura', text(prefeituraName(p)))}${row('Descrição', text(p.description))}</div><div class="sec-head"><h3>Andamento</h3></div><div class="info">${row(
     'Status',
     `<span class="status ${projectStatusClass(p.status)}">${esc(p.status)}</span>`,
   )}${row('Responsável', text(p.owner))}${row('Prazo', formatDate(p.due))}${row(

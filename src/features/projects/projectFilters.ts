@@ -1,21 +1,23 @@
 import { refreshPage, resetFilterBar } from '../../app/navigation';
 import { clearButton, filterSearch, filterSelect, filterToggle, registerFilterGroup } from '../../components/filterBar';
 import { db } from '../../services/db';
+import { prefeituraName, sortedPrefeituras } from '../../services/prefeituraService';
 import { agreementName, lateTaskCount, projectProgress } from '../../services/projectService';
 import { emptyProjectFilters, ui } from '../../state/store';
 import { PROJECT_STATUSES, type Project } from '../../types/project';
 
 export function projectFiltersActive(): boolean {
   const f = ui.projectFilters;
-  return !!(f.q || f.status || f.coordinator || f.late);
+  return !!(f.q || f.status || f.coordinator || f.prefeitura || f.late);
 }
 
 export function matchesProjectFilters(p: Project): boolean {
   const f = ui.projectFilters;
   const q = f.q.trim().toLowerCase();
-  if (q && ![p.name, p.description, p.processo, p.owner, agreementName(p), p.convPolitico].join(' ').toLowerCase().includes(q)) return false;
+  if (q && ![p.name, p.description, p.processo, p.owner, agreementName(p), p.convPolitico, prefeituraName(p)].join(' ').toLowerCase().includes(q)) return false;
   if (f.status && p.status !== f.status) return false;
   if (f.coordinator && !p.coordinators.includes(f.coordinator)) return false;
+  if (f.prefeitura && p.prefeituraId !== f.prefeitura) return false;
   if (f.late && !lateTaskCount(p)) return false;
   return true;
 }
@@ -35,7 +37,7 @@ export function sortProjects(list: Project[]): Project[] {
 
 export function projectFilterBar(): string {
   const f = ui.projectFilters;
-  return `<div class="fbar">${filterSearch('projects.q', 'Buscar projeto, processo ou convênio', f.q)}<div class="fchips">${filterSelect(
+  return `<div class="fbar">${filterSearch('projects.q', 'Buscar projeto, processo, convênio ou prefeitura', f.q)}<div class="fchips">${filterSelect(
     'projects.status',
     'Status',
     PROJECT_STATUSES.map((s) => [s, s] as const),
@@ -47,6 +49,12 @@ export function projectFilterBar(): string {
     db.users.map((u) => [u.id, u.name] as const),
     f.coordinator,
     'Todos',
+  )}${filterSelect(
+    'projects.prefeitura',
+    'Prefeitura',
+    sortedPrefeituras().map((x) => [x.id, x.name] as const),
+    f.prefeitura,
+    'Todas',
   )}${filterToggle('projects.late', 'Com atraso', f.late)}${filterSelect(
     'projects.sort',
     'Ordenar',

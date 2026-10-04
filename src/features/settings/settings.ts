@@ -1,4 +1,4 @@
-/** Página Configurações (Usuários | Perfis e permissões), Minha conta e menu "Mais" do celular. */
+/** Página Configurações (Usuários | Perfis e permissões | Prefeituras), Minha conta e menu "Mais" do celular. */
 import { canOpenPage } from '../../app/access';
 import { pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
 import { avatar } from '../../components/avatar';
@@ -12,16 +12,18 @@ import { MIN_PASSWORD, changeOwnPassword } from '../../services/userService';
 import { ui, type SettingsTab } from '../../state/store';
 import { onClick } from '../../utils/actions';
 import { esc } from '../../utils/dom';
+import { initPrefeiturasAdmin, renderPrefeiturasTab } from './prefeiturasAdmin';
 import { initProfilesAdmin, mountProfilesTab, renderProfilesTab } from './profilesAdmin';
 import { initUsersAdmin, renderUsersTab, usersFilterBar } from './usersAdmin';
 
-const TABS: { tab: SettingsTab; label: string; module: 'users' | 'profiles' }[] = [
+const TABS: { tab: SettingsTab; label: string; module: 'users' | 'profiles' | 'prefeituras' }[] = [
   { tab: 'users', label: 'Usuários', module: 'users' },
   { tab: 'profiles', label: 'Perfis e permissões', module: 'profiles' },
+  { tab: 'prefeituras', label: 'Prefeituras', module: 'prefeituras' },
 ];
 
 function renderSettings(): void {
-  setPageHeader('Configurações', 'Usuários, perfis e permissões de acesso.', false);
+  setPageHeader('Configurações', 'Usuários, perfis, permissões de acesso e prefeituras.', false);
   const allowed = TABS.filter((t) => can(t.module, 'view'));
   if (!allowed.some((t) => t.tab === ui.settingsTab) && allowed[0]) ui.settingsTab = allowed[0].tab;
   const tabs = `<nav class="tabs settings-tabs" aria-label="Configurações">${allowed
@@ -29,12 +31,15 @@ function renderSettings(): void {
     .join('')}</nav>`;
   if (!allowed.length) {
     setFilterBar('settings-empty', () => '');
-    pageContent().innerHTML = '<div class="empty">Seu perfil não tem acesso a usuários nem a perfis.</div>';
+    pageContent().innerHTML = '<div class="empty">Seu perfil não tem acesso a usuários, perfis nem prefeituras.</div>';
     return;
   }
   if (ui.settingsTab === 'users') {
     setFilterBar('users', () => tabs + usersFilterBar());
     pageContent().innerHTML = renderUsersTab();
+  } else if (ui.settingsTab === 'prefeituras') {
+    setFilterBar('prefeituras', () => tabs);
+    pageContent().innerHTML = renderPrefeiturasTab();
   } else {
     setFilterBar('profiles', () => tabs);
     pageContent().innerHTML = renderProfilesTab();
@@ -86,9 +91,11 @@ function openMore(): void {
 export function initSettings(): void {
   initUsersAdmin();
   initProfilesAdmin();
+  initPrefeiturasAdmin();
   registerPage('settings', renderSettings);
   onClick('settings-tab', (el) => {
-    ui.settingsTab = el.dataset.tab === 'profiles' ? 'profiles' : 'users';
+    const tab = el.dataset.tab;
+    ui.settingsTab = tab === 'profiles' || tab === 'prefeituras' ? tab : 'users';
     renderSettings();
   });
   onClick('account', openAccount);

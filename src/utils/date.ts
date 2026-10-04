@@ -35,3 +35,9 @@ export function dayLabel(iso: string): string {
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
+
+/** Dias corridos de hoje até `value` (AAAA-MM-DD); negativo se já passou. */
+export function daysUntil(value: string): number {
+  const ms = new Date(`${value}T12:00`).getTime() - new Date(`${today()}T12:00`).getTime();
+  return Math.round(ms / 86_400_000);
+}

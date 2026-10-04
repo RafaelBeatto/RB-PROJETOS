@@ -239,3 +239,76 @@
   width: 16px;
   height: 16px;
 }
+
+/* Cartão do projeto: coordenação e dados principais antes de abrir */
+.pc-coords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 2px 0 12px;
+}
+.pc-coord {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.pc-coord.none,
+.pc-coord.more {
+  color: var(--muted);
+}
+.pc-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.pc-fact {
+  min-width: 0;
+}
+.pc-fact small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.pc-fact b {
+  display: block;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.due-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--green) 15%, transparent);
+  color: var(--green);
+}
+.due-badge.soon {
+  background: color-mix(in srgb, var(--yellow) 15%, transparent);
+  color: var(--yellow);
+}
+.due-badge.late {
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+  color: var(--red);
+}
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.utable td small {
+  display: block;
+  color: var(--muted);
+}

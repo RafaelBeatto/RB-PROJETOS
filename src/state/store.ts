@@ -5,7 +5,7 @@
 import type { Priority } from '../types/task';
 
 export type Page = 'home' | 'archive' | 'board' | 'today' | 'history' | 'settings';
-export type SettingsTab = 'users' | 'profiles';
+export type SettingsTab = 'users' | 'profiles' | 'prefeituras';
 export type ProjectTab = 'overview' | 'info' | 'kanban' | 'structure' | 'list' | 'timeline';
 export type StructureMode = 'map' | 'cards';
 export type QuickTaskFilter = 'all' | 'mine' | 'today' | 'late' | 'soon';
@@ -22,6 +22,7 @@ export interface ProjectFilters {
   q: string;
   status: string;
   coordinator: string;
+  prefeitura: string;
   late: boolean;
   sort: '' | 'name' | 'due' | 'prog';
 }
@@ -54,7 +55,7 @@ export interface HistoryFilters {
 }
 
 export const emptyTaskFilters = (): TaskFilters => ({ quick: 'all', priority: '', assignee: '', branch: '' });
-export const emptyProjectFilters = (): ProjectFilters => ({ q: '', status: '', coordinator: '', late: false, sort: '' });
+export const emptyProjectFilters = (): ProjectFilters => ({ q: '', status: '', coordinator: '', prefeitura: '', late: false, sort: '' });
 export const emptyBranchFilters = (): BranchFilters => ({ q: '', designer: '', state: '' });
 export const emptyUserFilters = (): UserFilters => ({ q: '', role: '', profile: '', status: '' });
 export const emptyHistoryFilters = (): HistoryFilters => ({ q: '', project: '', person: '', kind: '', period: '', limit: 100 });

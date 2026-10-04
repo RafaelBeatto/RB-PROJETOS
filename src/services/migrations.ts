@@ -101,6 +101,7 @@ function migrateProject(r: Raw): Project {
     convContra: str(r.convContra),
     convPolitico: str(r.convPolitico),
     coordinators: list(r.coordinators).map((c) => str(c)).filter(Boolean),
+    prefeituraId: str(r.prefeituraId),
     branches: objs(r.branches).map(migrateBranch),
     tasks: objs(r.tasks).map(migrateTask),
     milestones: objs(r.milestones).map(migrateMilestone),

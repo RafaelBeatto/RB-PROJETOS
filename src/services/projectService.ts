@@ -42,6 +42,7 @@ export function createProject(draft: ProjectDraft): Project {
 export function updateProject(p: Project, draft: ProjectDraft): void {
   authorize('projects', 'edit', p.id);
   if (String(p.coordinators) !== String(draft.coordinators)) logActivity(p, 'alterou a coordenação do projeto', { kind: 'project' });
+  if (p.prefeituraId !== draft.prefeituraId) logActivity(p, 'alterou a prefeitura do projeto', { kind: 'project' });
   Object.assign(p, draft);
   persistProjects();
 }
