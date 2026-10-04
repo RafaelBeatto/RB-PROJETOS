@@ -3,6 +3,7 @@ import { TASK_NOT_STARTED, type Task, type TaskDraft, type TaskStatus } from '..
 import { today } from '../utils/date';
 import { uid } from '../utils/ids';
 import { logActivity, logTaskStatus } from './activityService';
+import { ancestorsOf, findBranch } from './branchService';
 import { persistProjects } from './db';
 import {
   DependencyError,
@@ -26,7 +27,7 @@ export function isLate(t: Task): boolean {
   return t.status !== 'Concluído' && !!t.due && t.due < today();
 }
 
-/** Bloqueada quando alguma dependência (própria, da ramificação ou do projeto) não foi atendida. */
+/** Bloqueada quando alguma dependência (própria, da etapa ou do projeto) não foi atendida. */
 export function isBlocked(t: Task, p: Project): boolean {
   return blockersOf(taskRef(p, t)).length > 0;
 }
@@ -37,6 +38,22 @@ function assertCanEnter(status: TaskStatus, previous: TaskStatus | undefined, bl
   throw new DependencyError(blockedMessage('A tarefa está bloqueada e só pode ficar em “A fazer”', blockers));
 }
 
+/**
+ * A etapa acompanha as tarefas de dentro: tarefa iniciada tira a etapa de "A fazer",
+ * e tarefa aberta numa etapa concluída a reabre ("Em andamento").
+ */
+function syncEtapas(p: Project, t: Task): void {
+  const b = findBranch(p, t.branch);
+  if (!b) return;
+  for (const etapa of [b, ...ancestorsOf(p, b)]) {
+    const reopen = etapa.status === 'Concluído' && t.status !== 'Concluído';
+    const start = etapa.status === TASK_NOT_STARTED && t.status !== TASK_NOT_STARTED;
+    if (!reopen && !start) continue;
+    etapa.status = 'Em andamento';
+    logActivity(p, `moveu a etapa "${etapa.name}" para Em andamento (acompanhando "${t.title}")`, { kind: 'branch', branch: etapa.id });
+  }
+}
+
 export function moveTask(p: Project, t: Task, status: TaskStatus): void {
   authorize('kanban', 'edit', p.id);
   authorize('tasks', 'edit', p.id);
@@ -44,6 +61,7 @@ export function moveTask(p: Project, t: Task, status: TaskStatus): void {
   if (t.status !== status) {
     t.status = status;
     logTaskStatus(p, t);
+    syncEtapas(p, t);
   }
   persistProjects();
 }
@@ -51,6 +69,8 @@ export function moveTask(p: Project, t: Task, status: TaskStatus): void {
 /** Cria ou atualiza; registra mudança de status e itens de checklist concluídos. */
 export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): Task {
   authorize('tasks', task ? 'edit' : 'create', p.id);
+  // Tarefas vivem dentro das etapas: uma tarefa nova precisa de etapa.
+  if (!task && !p.branches.some((b) => b.id === draft.branch)) throw new DependencyError('Escolha a etapa da tarefa: as tarefas ficam dentro das etapas.');
   const owner = { ref: { kind: 'task' as const, projectId: p.id, id: task?.id ?? NEW_ID }, parent: draft.branch, dependencies: draft.dependencies };
   const dependencies = validateDependencies(owner);
   assertCanEnter(draft.status, task?.status, draftBlockers({ ...owner, dependencies }));
@@ -59,6 +79,7 @@ export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): 
     const created: Task = { id: uid('t'), tags: '', comments: [], links: [], ...draft };
     p.tasks.push(created);
     logActivity(p, `criou "${created.title}"`, { kind: 'task', task: created.id, branch: created.branch });
+    syncEtapas(p, created);
     persistProjects();
     return created;
   }
@@ -67,6 +88,7 @@ export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): 
   const doneBefore = new Set(task.subtasks.filter((s) => s.done).map((s) => s.id));
   Object.assign(task, draft);
   if (oldStatus !== task.status) logTaskStatus(p, task);
+  syncEtapas(p, task);
   for (const s of task.subtasks) {
     if (s.done && !doneBefore.has(s.id)) {
       logActivity(p, `concluiu o item "${s.title}" em "${task.title}"`, { kind: 'checklist', task: task.id, branch: task.branch });

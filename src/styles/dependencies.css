@@ -365,3 +365,42 @@
     justify-content: center;
   }
 }
+
+/* Etapas */
+.ecard .pc-sub {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin: -2px 0 8px;
+}
+.ecard > .status.blocked {
+  margin: 0 0 8px;
+  width: fit-content;
+}
+.ecard .task-card-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.loose-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.node-status {
+  display: inline-block;
+  margin: 2px 0 6px;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+.struct-note {
+  font-size: 12px;
+}

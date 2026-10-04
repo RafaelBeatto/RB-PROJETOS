@@ -1,5 +1,5 @@
 /**
- * Janela principal (formulários de projeto, tarefa, ramificação…).
+ * Janela principal (formulários de projeto, tarefa, etapa…).
  * Só existe uma aberta por vez; abrir outra substitui o conteúdo.
  */
 import { $, $maybe } from '../utils/dom';

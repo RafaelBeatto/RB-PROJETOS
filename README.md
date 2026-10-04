@@ -13,7 +13,7 @@ A aplicação é 100% estática. Não há servidor, banco de dados nem API: os d
 - **Estrutura**: ramificações em níveis ilimitados, vistas como
   - **Mapa**: canvas com cartões arrastáveis, conexões, pan, zoom (botões, Ctrl+roda e pinça) e posições salvas;
   - **Cartões**: navegação nível a nível, com caminho clicável.
-- **Tarefas**: Kanban (arrastar com mouse ou toque), lista, timeline, checklist, comentários e anexos.
+- **Etapas**: o projeto abre no Kanban de etapas (arrastar com mouse ou toque); as tarefas ficam dentro de cada etapa, com checklist, comentários e anexos. A Estrutura (mapa e cartões) é só visualização.
 - **Visões gerais**: Kanban de projetos, Hoje (atrasos e próximos marcos) e Histórico com filtros.
 - **Configurações**: usuários, perfis e permissões por módulo e ação (ver abaixo).
 - **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`L`/`S` trocam de aba.

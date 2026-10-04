@@ -3,7 +3,6 @@
  * Ctrl+roda e pinça, e redesenho das conexões. Posições e vista ficam salvas no projeto.
  */
 import { persistProjects, persistProjectsSoon } from '../../services/db';
-import { can } from '../../services/permissionService';
 import type { Point } from '../../types/branch';
 import type { MapView, Project } from '../../types/project';
 import { $, $$, $maybe } from '../../utils/dom';
@@ -35,7 +34,8 @@ export function mountMap(p: Project, container: HTMLElement, onNodeClick: (branc
   const pointers = new Map<number, { x: number; y: number }>();
   let gesture: Gesture | null = null;
   let suppressClick = false;
-  const canMoveNodes = can('map', 'edit', p.id);
+  // A Estrutura é só visualização: os cartões não se movem, o gesto vira pan.
+  const canMoveNodes = false;
 
   /** Mantém o gesto mesmo se o dedo/mouse sair do mapa; alguns navegadores recusam e seguimos sem captura. */
   const capture = (pointerId: number): void => {

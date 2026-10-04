@@ -34,7 +34,7 @@ export interface Task {
   priority: Priority;
   assignee: string;
   due: string;
-  /** Id da ramificação; string vazia quando a tarefa não pertence a nenhuma. */
+  /** Id da etapa; string vazia quando a tarefa não pertence a nenhuma. */
   branch: string;
   description: string;
   tags: string;

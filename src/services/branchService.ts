@@ -1,11 +1,11 @@
 import type { Branch } from '../types/branch';
 import type { Project } from '../types/project';
-import type { Task } from '../types/task';
+import { TASK_NOT_STARTED, TASK_STATUSES, type Task, type TaskStatus } from '../types/task';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
 import type { Dependency } from '../types/dependency';
 import { persistProjects } from './db';
-import { NEW_ID, branchRef, dropDependenciesOn, sameDependencies, validateDependencies } from './dependencyService';
+import { DependencyError, NEW_ID, blockedMessage, blockersOf, draftBlockers, branchRef, dropDependenciesOn, sameDependencies, validateDependencies } from './dependencyService';
 import { authorize } from './permissionService';
 import { findUser } from './userService';
 
@@ -26,7 +26,7 @@ function depth(p: Project, b: Branch): number {
   return n;
 }
 
-/** Dá posição no mapa ao projeto e às ramificações que ainda não têm. Devolve true se mudou algo. */
+/** Dá posição no mapa ao projeto e às etapas que ainda não têm. Devolve true se mudou algo. */
 export function ensureLayout(p: Project): boolean {
   let changed = false;
   if (!p.root) {
@@ -47,12 +47,12 @@ export function ensureLayout(p: Project): boolean {
   return changed;
 }
 
-/** Filhas diretas; na raiz inclui ramificações cujo pai não existe mais. */
+/** Filhas diretas; na raiz inclui etapas cujo pai não existe mais. */
 export function childrenOf(p: Project, parentId: string | null): Branch[] {
   return p.branches.filter((b) => (parentId ? b.parent === parentId : !b.parent || !findBranch(p, b.parent)));
 }
 
-/** A própria ramificação e todas as descendentes. */
+/** A própria etapa e todas as descendentes. */
 export function descendantIds(p: Project, id: string): string[] {
   const ids = [id];
   for (let i = 0; i < ids.length; i++) {
@@ -86,7 +86,7 @@ export function tasksIn(p: Project, branchId: string, includeDescendants = false
   return p.tasks.filter((t) => ids.has(t.branch));
 }
 
-/** Coloca a nova ramificação à direita do pai, no primeiro espaço livre. */
+/** Coloca a nova etapa à direita do pai, no primeiro espaço livre. */
 function freeSpotNear(p: Project, parent: Branch | undefined): { x: number; y: number } {
   ensureLayout(p);
   const base = parent ?? p.root ?? { x: 40, y: 40 };
@@ -96,13 +96,21 @@ function freeSpotNear(p: Project, parent: Branch | undefined): { x: number; y: n
   return { x, y };
 }
 
-export function createBranch(p: Project, name: string, parentId: string | null, designer: string | null, deps: Dependency[] = []): Branch {
+export function createBranch(p: Project, name: string, parentId: string | null, designer: string | null, deps: Dependency[] = [], status: TaskStatus = TASK_NOT_STARTED): Branch {
   authorize('structure', 'create', p.id);
   const parent = findBranch(p, parentId);
-  const dependencies = validateDependencies({ ref: { kind: 'branch', projectId: p.id, id: NEW_ID }, parent: parent?.id ?? null, dependencies: deps });
-  const branch: Branch = { id: uid('b'), name, parent: parent ? parent.id : null, designer, dependencies, ...freeSpotNear(p, parent) };
+  const owner = { ref: { kind: 'branch' as const, projectId: p.id, id: NEW_ID }, parent: parent?.id ?? null, dependencies: deps };
+  const dependencies = validateDependencies(owner);
+  if (status !== TASK_NOT_STARTED) {
+    authorize('kanban', 'edit', p.id);
+    const blockers = draftBlockers({ ...owner, dependencies });
+    if (blockers.length) throw new DependencyError(blockedMessage('A etapa está bloqueada e só pode ficar em “A fazer”', blockers));
+    // Etapa nova não tem tarefas; não pode nascer concluída.
+    if (status === 'Concluído') throw new DependencyError('Uma etapa nova ainda não tem tarefas; crie-a em outra coluna e conclua depois.');
+  }
+  const branch: Branch = { id: uid('b'), name, parent: parent ? parent.id : null, designer, status, dependencies, ...freeSpotNear(p, parent) };
   p.branches.push(branch);
-  logActivity(p, `criou a ramificação "${branch.name}"`, { kind: 'branch', branch: branch.id });
+  logActivity(p, `criou a etapa "${branch.name}"`, { kind: 'branch', branch: branch.id });
   persistProjects();
   return branch;
 }
@@ -124,11 +132,36 @@ export function updateBranch(p: Project, b: Branch, draft: BranchDraft): void {
   const dependencies = validateDependencies({ ref: branchRef(p, b), parent: draft.parent, dependencies: draft.dependencies });
   const old = { name: b.name, parent: b.parent, designer: b.designer, dependencies: b.dependencies };
   Object.assign(b, draft, { dependencies });
-  if (!sameDependencies(old.dependencies, dependencies)) logActivity(p, `alterou as dependências da ramificação "${b.name}"`, { kind: 'branch', branch: b.id });
-  if (old.name !== b.name) logActivity(p, `renomeou a ramificação "${old.name}" para "${b.name}"`, { kind: 'branch', branch: b.id });
-  if (old.parent !== b.parent) logActivity(p, `moveu a ramificação "${b.name}"`, { kind: 'branch', branch: b.id });
+  if (!sameDependencies(old.dependencies, dependencies)) logActivity(p, `alterou as dependências da etapa "${b.name}"`, { kind: 'branch', branch: b.id });
+  if (old.name !== b.name) logActivity(p, `renomeou a etapa "${old.name}" para "${b.name}"`, { kind: 'branch', branch: b.id });
+  if (old.parent !== b.parent) logActivity(p, `moveu a etapa "${b.name}"`, { kind: 'branch', branch: b.id });
   if (old.designer !== b.designer) logDesigner(p, b);
   persistProjects();
+}
+
+/** Tarefas ainda abertas dentro da etapa (e das subetapas). */
+export function openTasksIn(p: Project, b: Branch): Task[] {
+  return tasksIn(p, b.id, true).filter((t) => t.status !== 'Concluído');
+}
+
+/**
+ * Move a etapa no Kanban "Etapas".
+ * Bloqueada por dependências, só fica em "A fazer"; só conclui com todas as tarefas concluídas.
+ */
+export function setBranchStatus(p: Project, b: Branch, status: TaskStatus): boolean {
+  authorize('kanban', 'edit', p.id);
+  authorize('structure', 'edit', p.id);
+  if (!TASK_STATUSES.includes(status) || b.status === status) return false;
+  const blockers = blockersOf(branchRef(p, b));
+  if (status !== TASK_NOT_STARTED && blockers.length) throw new DependencyError(blockedMessage('A etapa está bloqueada e só pode ficar em “A fazer”', blockers));
+  const open = openTasksIn(p, b);
+  if (status === 'Concluído' && open.length) {
+    throw new DependencyError(`A etapa ainda tem ${open.length === 1 ? '1 tarefa aberta' : `${open.length} tarefas abertas`}: conclua as tarefas antes de concluir a etapa.`);
+  }
+  b.status = status;
+  logActivity(p, `moveu a etapa "${b.name}" para ${status}`, { kind: 'branch', branch: b.id });
+  persistProjects();
+  return true;
 }
 
 export function setDesigner(p: Project, b: Branch, designer: string | null): void {
@@ -138,20 +171,20 @@ export function setDesigner(p: Project, b: Branch, designer: string | null): voi
   persistProjects();
 }
 
-/** Filhas sobem um nível; tarefas ficam sem ramificação. */
+/** Filhas sobem um nível; tarefas ficam sem etapa. */
 export function deleteBranch(p: Project, b: Branch): void {
   authorize('structure', 'delete', p.id);
   for (const x of p.branches) if (x.parent === b.id) x.parent = b.parent;
   for (const t of p.tasks) if (t.branch === b.id) t.branch = '';
   p.branches = p.branches.filter((x) => x.id !== b.id);
-  logActivity(p, `excluiu a ramificação "${b.name}"`, { kind: 'branch' });
+  logActivity(p, `excluiu a etapa "${b.name}"`, { kind: 'branch' });
   for (const other of dropDependenciesOn(branchRef(p, b))) {
-    logActivity(other, `excluiu a ramificação "${b.name}" (${p.name}); ela foi retirada das dependências deste projeto`, { kind: 'branch' });
+    logActivity(other, `excluiu a etapa "${b.name}" (${p.name}); ela foi retirada das dependências deste projeto`, { kind: 'branch' });
   }
   persistProjects();
 }
 
-/** Ramificações que podem ser pai de `b` (todas menos ela e suas descendentes). */
+/** Etapas que podem ser pai de `b` (todas menos ela e suas descendentes). */
 export function possibleParents(p: Project, b: Branch): Branch[] {
   const blocked = new Set(descendantIds(p, b.id));
   return p.branches.filter((x) => !blocked.has(x.id));

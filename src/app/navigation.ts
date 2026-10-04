@@ -79,7 +79,8 @@ export function openProject(id: string): void {
     return;
   }
   ui.projectId = id;
-  ui.tab = 'overview';
+  // O projeto abre nas Etapas; sem acesso ao Kanban, refreshProject cai na primeira aba permitida.
+  ui.tab = 'kanban';
   ui.cardLevel = null;
   ui.taskFilters = emptyTaskFilters();
   ui.branchFilters = emptyBranchFilters();

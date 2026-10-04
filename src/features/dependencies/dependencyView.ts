@@ -22,7 +22,7 @@ export function blockersPanel(ref: ItemRef, title = 'Bloqueada', blockers: Block
         `<li><span class="blk-ico">${icon(KIND_ICONS[b.target.ref.kind])}</span><div>${KIND_LABELS[b.target.ref.kind]} <b>${esc(b.target.name)}</b> precisa estar <b class="blk-cond">${conditionWord(
           b.target.ref.kind,
           b.dep.condition,
-        )}</b><small>${esc(b.detail)}${b.inherited ? ` · regra definida ${b.source.ref.kind === 'project' ? 'no projeto' : 'na ramificação'} “${esc(b.source.name)}”` : ''}</small></div></li>`,
+        )}</b><small>${esc(b.detail)}${b.inherited ? ` · regra definida ${b.source.ref.kind === 'project' ? 'no projeto' : 'na etapa'} “${esc(b.source.name)}”` : ''}</small></div></li>`,
     )
     .join('');
   return `<div class="blk" role="status"><div class="blk-head">${icon('lock')}<span>${esc(title)} — ${plural(

@@ -1,6 +1,6 @@
 /**
- * Dependências entre projetos, ramificações e tarefas.
- * Um item (projeto, ramificação ou tarefa) pode depender de qualquer outro item,
+ * Dependências entre projetos, etapas e tarefas.
+ * Um item (projeto, etapa ou tarefa) pode depender de qualquer outro item,
  * inclusive de outro projeto, com uma condição a cumprir.
  */
 export const DEP_KINDS = ['project', 'branch', 'task'] as const;
@@ -16,7 +16,7 @@ export const CONDITION_LABELS: Record<DepCondition, string> = {
 
 export const KIND_LABELS: Record<DepKind, string> = {
   project: 'Projeto',
-  branch: 'Ramificação',
+  branch: 'Etapa',
   task: 'Tarefa',
 };
 

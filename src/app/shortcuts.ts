@@ -1,5 +1,5 @@
 /**
- * Atalhos de teclado: Ctrl+K ou / pesquisa; N novo (projeto ou tarefa); T tarefa; R ramificação;
+ * Atalhos de teclado: Ctrl+K ou / pesquisa; N novo (projeto ou tarefa); T tarefa; R etapa;
  * K, L e S trocam para Kanban, Lista e Estrutura. Ignorados enquanto se digita ou com login aberto.
  */
 import { closeModal, isModalOpen } from '../components/modal';

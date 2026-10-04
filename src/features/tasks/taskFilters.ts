@@ -60,7 +60,7 @@ export function taskFilterChips(p: Project): string {
     knownPeople().map((n) => [n, n] as const),
     f.assignee,
     'Todos',
-  )}${filterSelect('tasks.branch', 'Ramificação', [['none', 'Sem ramificação'] as const, ...branches], f.branch, 'Todas')}</div>`;
+  )}${filterSelect('tasks.branch', 'Etapa', [['none', 'Sem etapa'] as const, ...branches], f.branch, 'Todas')}</div>`;
 }
 
 export function initTaskFilters(): void {

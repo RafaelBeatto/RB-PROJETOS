@@ -14,7 +14,7 @@ export interface TaskFilters {
   quick: QuickTaskFilter;
   priority: Priority | '';
   assignee: string;
-  /** Id da ramificação, 'none' para sem ramificação, '' para todas. */
+  /** Id da etapa, 'none' para sem etapa, '' para todas. */
   branch: string;
 }
 

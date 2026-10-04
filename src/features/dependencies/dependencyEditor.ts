@@ -1,6 +1,6 @@
 /**
- * Seção "Dependências" dos formulários (tarefa, ramificação e projeto) e o explorador
- * para escolher os itens: projetos → ramificações → tarefas, com busca e expandir/recolher.
+ * Seção "Dependências" dos formulários (tarefa, etapa e projeto) e o explorador
+ * para escolher os itens: projetos → etapas → tarefas, com busca e expandir/recolher.
  * As escolhas ficam no formulário até salvar; as regras (ciclos, bloqueio) são
  * conferidas de novo pelos serviços na gravação.
  */
@@ -166,9 +166,9 @@ export function openDependencyPicker(owner: Omit<OwnerDraft, 'dependencies'>, cu
     wrap.className = 'modal-wrap ask-wrap';
     wrap.innerHTML = `<div class="modal dep-picker" role="dialog" aria-modal="true" aria-label="Escolher dependências"><div class="modal-head"><h2>Escolher dependências</h2><button class="close" data-pick-cancel aria-label="Fechar">${icon(
       'close',
-    )}</button></div><p class="sub flat">Navegue pelos projetos, ramificações e tarefas e marque o que precisa acontecer antes. Projeto e ramificação contam com todas as tarefas dentro deles.</p><div class="fsearch dt-search">${icon(
+    )}</button></div><p class="sub flat">Navegue pelos projetos, etapas e tarefas e marque o que precisa acontecer antes. Projeto e etapa contam com todas as tarefas dentro deles.</p><div class="fsearch dt-search">${icon(
       'search',
-    )}<input type="search" placeholder="Buscar projeto, ramificação ou tarefa" aria-label="Buscar" autocomplete="off"></div><div class="dtree" role="tree"></div><div class="modal-actions dt-foot"><span class="sub flat" data-pick-count></span><div class="dt-buttons"><button type="button" class="ghost" data-pick-cancel>Cancelar</button><button type="button" class="primary" data-pick-ok>Aplicar</button></div></div></div>`;
+    )}<input type="search" placeholder="Buscar projeto, etapa ou tarefa" aria-label="Buscar" autocomplete="off"></div><div class="dtree" role="tree"></div><div class="modal-actions dt-foot"><span class="sub flat" data-pick-count></span><div class="dt-buttons"><button type="button" class="ghost" data-pick-cancel>Cancelar</button><button type="button" class="primary" data-pick-ok>Aplicar</button></div></div></div>`;
     document.body.appendChild(wrap);
     const treeEl = wrap.querySelector<HTMLElement>('.dtree')!;
     const search = wrap.querySelector<HTMLInputElement>('input')!;

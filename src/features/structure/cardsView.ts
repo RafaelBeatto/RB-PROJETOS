@@ -9,7 +9,7 @@ import type { Branch } from '../../types/branch';
 import type { Project } from '../../types/project';
 import type { Task } from '../../types/task';
 import { esc, plural } from '../../utils/dom';
-import { pct, priorityClass } from '../../utils/format';
+import { pct, priorityClass, taskStatusClass } from '../../utils/format';
 import { branchFiltersActive, matchesBranchFilters } from './branchFilters';
 import { designerLine } from './mapView';
 
@@ -18,11 +18,11 @@ function branchCard(p: Project, b: Branch, showPath: boolean): string {
   const tasks = tasksIn(p, b.id, true);
   const done = tasks.filter((t) => t.status === 'Concluído').length;
   const path = showPath ? pathLabel(p, b) : '';
-  return `<article class="bcard" data-action="cards-enter" data-id="${b.id}" tabindex="0"><button class="bcard-edit" data-perm="structure.edit|structure.delete" data-action="branch-edit" data-id="${
-    b.id
-  }" aria-label="Opções da ramificação">${icon('moreVertical')}</button><div class="bcard-name">${icon('branch')} ${esc(b.name)}</div>${blockedBadge(branchRef(p, b))}${
+  return `<article class="bcard" data-action="cards-enter" data-id="${b.id}" tabindex="0"><div class="bcard-name">${icon('branch')} ${esc(b.name)}</div><span class="status ${taskStatusClass(
+    b.status,
+  )} node-status">${esc(b.status)}</span>${b.status === 'Concluído' ? '' : blockedBadge(branchRef(p, b))}${
     path ? `<div class="node-meta bcard-path">${esc(path)}</div>` : ''
-  }${designerLine(b)}<div class="node-meta bcard-stats">${kids ? `${plural(kids, 'ramificação', 'ramificações')}<br>` : ''}${plural(tasks.length, 'tarefa', 'tarefas')}<br>${plural(
+  }${designerLine(b)}<div class="node-meta bcard-stats">${kids ? `${plural(kids, 'etapa', 'etapas')}<br>` : ''}${plural(tasks.length, 'tarefa', 'tarefas')}<br>${plural(
     done,
     'concluída',
     'concluídas',
@@ -54,12 +54,9 @@ export function renderCards(p: Project): string {
     level ? `<button class="ghost" data-action="branch-detail" data-id="${level.id}">${icon('info')}Detalhes</button>` : ''
   }</div>`;
   const empty = filtering
-    ? 'Nenhuma ramificação encontrada com esses filtros.'
-    : `Nenhuma ramificação dentro de ${esc(level ? level.name : p.name)}.`;
+    ? 'Nenhuma etapa encontrada com esses filtros.'
+    : `Nenhuma etapa dentro de ${esc(level ? level.name : p.name)}.`;
   const grid = branches.length ? `<div class="cards">${branches.map((b) => branchCard(p, b, filtering)).join('')}</div>` : `<p class="sub">${empty}</p>`;
-  const actions = `<div class="toolbar"><button class="ghost" data-perm="structure.create" data-action="branch-new" data-parent="${level?.id ?? ''}">${icon(
-    'plus',
-  )}Nova ramificação</button><button class="ghost" data-perm="tasks.create" data-action="task-new" data-branch="${level?.id ?? ''}">${icon('plus')}Nova tarefa</button></div>`;
   const tasks = ownTasks.length ? `<h3>Tarefas</h3><div class="cards">${ownTasks.map((t) => taskCard(p, t)).join('')}</div>` : '';
-  return `<div class="cards-wrap">${head}${grid}${actions}${tasks}</div>`;
+  return `<div class="cards-wrap">${head}${grid}${tasks}</div>`;
 }

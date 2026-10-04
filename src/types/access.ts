@@ -14,9 +14,9 @@ export const ACTION_LABELS: Record<PermissionAction, string> = {
 
 export const PERMISSION_MODULES = {
   projects: { label: 'Projetos', actions: ['view', 'create', 'edit', 'delete'], hint: 'Excluir = arquivar e desarquivar projetos; Editar inclui marcos.' },
-  kanban: { label: 'Kanban', actions: ['view', 'edit'], hint: 'Editar = mover cartões entre colunas (tarefas e projetos).' },
+  kanban: { label: 'Kanban / Etapas', actions: ['view', 'edit'], hint: 'Editar = mover cartões entre colunas (etapas e projetos).' },
   tasks: { label: 'Tarefas', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui checklist, comentários e anexos.' },
-  structure: { label: 'Estrutura', actions: ['view', 'create', 'edit', 'delete'], hint: 'Ramificações, visão Cartões e janela de detalhe.' },
+  structure: { label: 'Etapas e Estrutura', actions: ['view', 'create', 'edit', 'delete'], hint: 'Criar, editar e excluir etapas; a aba Estrutura é só visualização.' },
   map: { label: 'Mapa', actions: ['view', 'edit'], hint: 'Editar = mover cartões no mapa.' },
   list: { label: 'Lista', actions: ['view'], hint: '' },
   timeline: { label: 'Timeline', actions: ['view'], hint: '' },

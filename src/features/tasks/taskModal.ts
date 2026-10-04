@@ -68,7 +68,10 @@ function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: s
     t?.assignee ?? '',
   )}"></label><label>Prazo<input class="field" type="date" name="due" value="${esc(
     t?.due ?? '',
-  )}"></label><label>Prioridade<select class="field" name="priority">${prioOpts}</select></label><label>Ramificação<select class="field" name="branch"><option value="">Sem ramificação</option>${branchOpts}</select></label></div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
+  )}"></label><label>Prioridade<select class="field" name="priority">${prioOpts}</select></label><label>Etapa<select class="field" name="branch" ${t ? "" : "required"}>${
+    // Tarefa nova sempre nasce dentro de uma etapa; "Sem etapa" só aparece para tarefas antigas que já estão assim.
+    t && !p.branches.some((b) => b.id === t.branch) ? '<option value="" selected>Sem etapa</option>' : t ? '' : '<option value="">Escolha a etapa</option>'
+  }${branchOpts}</select></label></div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
     t?.description ?? '',
   )}</textarea></label></div>${dependencySection()}<div class="form-full"><label>Checklist <span id="subProg"></span></label><div class="pbar" style="margin:8px 0"><i id="subBar"></i></div><div id="subs">${(
     t?.subtasks ?? []
@@ -177,6 +180,10 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
   const task = findTask(p, id);
   if (!task && !can('tasks', 'create', p.id)) {
     showToast(NO_ACCESS);
+    return;
+  }
+  if (!task && !p.branches.length) {
+    showToast('Crie uma etapa primeiro: as tarefas ficam dentro das etapas.');
     return;
   }
   const access = { editable: can('tasks', task ? 'edit' : 'create', p.id), canDelete: can('tasks', 'delete', p.id) };
