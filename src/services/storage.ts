@@ -7,7 +7,8 @@ export const STORAGE_KEYS = {
   projects: 'rb-projects-v1',
   users: 'rb-users-v1',
   auth: 'rb-projects-auth',
-  myName: 'rb-me',
+  /** Perfis e permissões (controle de acesso). */
+  access: 'rb-access-v1',
   /** Cópia de segurança de um conteúdo de projetos ilegível, guardada antes de usar os dados de exemplo. */
   projectsBackup: 'rb-projects-v1-backup',
 } as const;

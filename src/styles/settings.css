@@ -1,0 +1,330 @@
+/* Configurações: usuários, perfis e permissões. */
+.settings-tabs {
+  margin: 0 0 18px;
+}
+.settings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.settings-bar .sub {
+  margin: 0;
+}
+.table-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.utable,
+.pmatrix {
+  width: 100%;
+  border-collapse: collapse;
+}
+.utable th,
+.pmatrix thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--panel);
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.utable td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.utable tr:last-child td,
+.pmatrix tr:last-child > * {
+  border-bottom: 0;
+}
+.utable tbody tr:hover {
+  background: #121620;
+}
+.utable tr.inactive .u-cell {
+  opacity: 0.55;
+}
+.ta-r {
+  text-align: right !important;
+}
+.u-cell {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.u-cell b {
+  font-weight: 650;
+}
+.u-cell small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.u-cell .u-links {
+  color: #7d8799;
+}
+.tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #91bdfd;
+  background: #172435;
+  vertical-align: 1px;
+}
+.icon-only {
+  padding: 7px 9px;
+}
+
+/* Matriz de permissões */
+.pmatrix thead th:not(:first-child),
+.pmatrix td {
+  text-align: center;
+  width: 92px;
+}
+.pmatrix tbody th {
+  text-align: left;
+  font-weight: 600;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.pmatrix tbody th small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 11.5px;
+  margin-top: 2px;
+}
+.pmatrix td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px;
+}
+.pm-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+.pm-check:disabled {
+  cursor: not-allowed;
+}
+.pm-na {
+  color: #3d4554;
+}
+.pm-yes {
+  color: var(--green);
+}
+.pm-no {
+  color: #4a5262;
+}
+
+/* Perfis */
+.prof-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.prof-list {
+  display: grid;
+  gap: 8px;
+}
+.prof-item {
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  display: grid;
+  gap: 3px;
+}
+.prof-item:hover {
+  border-color: #45516a;
+}
+.prof-item.on {
+  border-color: #2d5fb0;
+  background: #121b2b;
+}
+.prof-item small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.prof-editor .form-grid {
+  margin-bottom: 4px;
+}
+.prof-editor .sub.small {
+  margin: 10px 0 12px;
+}
+
+/* Formulários */
+fieldset.plain {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 16px;
+  color: var(--muted);
+}
+.check-row input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--blue);
+}
+.form-error {
+  color: var(--red);
+  font-size: 13px;
+  min-height: 18px;
+  margin: 10px 0 0;
+}
+.ms.readonly {
+  cursor: default;
+}
+
+/* Conta */
+.account-chip {
+  width: 100%;
+  margin-bottom: 4px;
+}
+.account-chip span {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+.account-chip b {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.account-chip small {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.account-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.account-head .av {
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
+}
+.account-head small {
+  display: block;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Menu suspenso (⋮) */
+.popmenu {
+  position: fixed;
+  z-index: 60;
+  min-width: 190px;
+  background: #171b23;
+  border: 1px solid #343b49;
+  border-radius: 10px;
+  padding: 5px;
+  box-shadow: 0 14px 40px #0009;
+  display: grid;
+}
+.popmenu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  padding: 9px 11px;
+  text-align: left;
+  color: var(--text);
+}
+.popmenu button:hover:not(:disabled),
+.popmenu button:focus-visible {
+  background: #222937;
+}
+.popmenu button:disabled {
+  color: #5d6676;
+  cursor: not-allowed;
+}
+.popmenu .danger-item:not(:disabled) {
+  color: var(--red);
+}
+
+@media (max-width: 720px) {
+  .prof-layout {
+    grid-template-columns: 1fr;
+  }
+  .prof-list {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(200px, 72%);
+    overflow-x: auto;
+    margin: 0 -16px;
+    padding: 0 16px 4px;
+    scrollbar-width: none;
+  }
+  /* Tabela de usuários vira cartões no celular */
+  .utable thead {
+    display: none;
+  }
+  .utable,
+  .utable tbody,
+  .utable tr,
+  .utable td {
+    display: block;
+    width: 100%;
+  }
+  .utable tr {
+    position: relative;
+    border-bottom: 1px solid var(--line);
+    padding: 12px 14px;
+  }
+  .utable tr:last-child {
+    border-bottom: 0;
+  }
+  .utable td {
+    border: 0;
+    padding: 3px 0;
+  }
+  .utable td[data-label='Perfil'],
+  .utable td[data-label='Status'],
+  .utable td[data-label='Criado em'] {
+    display: inline-block;
+    width: auto;
+    margin-right: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .utable td.ta-r {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: auto;
+    padding: 0;
+  }
+  .u-cell {
+    padding-right: 44px;
+  }
+  .pmatrix thead th:not(:first-child),
+  .pmatrix td {
+    width: 64px;
+  }
+  .pmatrix tbody th small {
+    display: none;
+  }
+}

@@ -1,6 +1,6 @@
 import './styles/index.css';
 import { installAppActions } from './app/appActions';
-import { goTo } from './app/navigation';
+import { goTo, homePage } from './app/navigation';
 import { installShortcuts } from './app/shortcuts';
 import { installFilters } from './components/filterBar';
 import { appShell } from './components/layout';
@@ -22,12 +22,26 @@ import { initTaskBoard } from './features/tasks/taskBoard';
 import { initTaskList } from './features/tasks/taskList';
 import { initTimeline } from './features/timeline/timeline';
 import { initToday } from './features/today/today';
-import { initUsers } from './features/users/users';
 import { loadDatabase } from './services/db';
+import { PermissionDeniedError } from './services/permissionService';
+import { showToast } from './components/toast';
 import { installActions } from './utils/actions';
 import { $ } from './utils/dom';
 
+/** Ações bloqueadas pela camada de permissão viram um aviso, sem quebrar a tela. */
+function installPermissionErrors(): void {
+  const handle = (error: unknown, prevent: () => void): void => {
+    if (error instanceof PermissionDeniedError) {
+      prevent();
+      showToast(error.message);
+    }
+  };
+  window.addEventListener('error', (e) => handle(e.error, () => e.preventDefault()));
+  window.addEventListener('unhandledrejection', (e) => handle(e.reason, () => e.preventDefault()));
+}
+
 function start(): void {
+  installPermissionErrors();
   loadDatabase();
   $('#app').innerHTML = appShell();
 
@@ -41,7 +55,6 @@ function start(): void {
   initHome();
   initProjectBoard();
   initToday();
-  initUsers();
   initHistory();
   initProjectView();
   initOverview();
@@ -55,8 +68,7 @@ function start(): void {
   initSearch();
   initSettings();
 
-  goTo('home');
-  initLogin();
+  initLogin(() => goTo(homePage() ?? 'home', true));
 }
 
 start();

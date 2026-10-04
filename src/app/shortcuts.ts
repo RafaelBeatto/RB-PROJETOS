@@ -9,6 +9,8 @@ import { openSearch } from '../features/search/search';
 import { openNewBranchModal } from '../features/structure/branchModals';
 import { openTaskModal } from '../features/tasks/taskModal';
 import { ui, type ProjectTab } from '../state/store';
+import { can } from '../services/permissionService';
+import { canOpenTab } from './access';
 import { isProjectOpen, refreshProject } from './navigation';
 
 const TAB_KEYS: Record<string, ProjectTab> = { k: 'kanban', l: 'list', s: 'structure' };
@@ -29,12 +31,13 @@ export function installShortcuts(): void {
     if (!plain || isModalOpen()) return;
 
     const inProject = isProjectOpen();
+    const projectId = ui.projectId ?? undefined;
     if (key === 'n') {
       if (inProject) openTaskModal();
-      else openProjectModal();
+      else if (can('projects', 'create')) openProjectModal();
     } else if (inProject && key === 't') openTaskModal();
     else if (inProject && key === 'r') openNewBranchModal(null);
-    else if (inProject && TAB_KEYS[key]) {
+    else if (inProject && TAB_KEYS[key] && canOpenTab(TAB_KEYS[key], projectId)) {
       ui.tab = TAB_KEYS[key];
       refreshProject();
     }

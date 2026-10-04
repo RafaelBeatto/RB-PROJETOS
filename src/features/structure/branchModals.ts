@@ -5,6 +5,8 @@ import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
 import { createBranch, deleteBranch, findBranch, possibleParents, updateBranch } from '../../services/branchService';
 import { db } from '../../services/db';
+import { NO_ACCESS } from '../../app/access';
+import { can } from '../../services/permissionService';
 import { esc } from '../../utils/dom';
 
 function designerField(selected: string | null): string {
@@ -16,6 +18,10 @@ function designerField(selected: string | null): string {
 }
 
 export function openNewBranchModal(parentId: string | null): void {
+  if (!can('structure', 'create', currentProject().id)) {
+    showToast(NO_ACCESS);
+    return;
+  }
   openModal(
     'Nova ramificação',
     `<form id="branchForm"><div class="form-full"><label>Nome<input class="field" name="name" required autofocus></label></div>${designerField(
@@ -38,13 +44,18 @@ export function openEditBranchModal(id: string): void {
   const b = findBranch(p, id);
   if (!b) return;
   const parents = possibleParents(p, b).map((x) => [x.id, x.name] as const);
+  const editable = can('structure', 'edit', p.id);
+  const removable = can('structure', 'delete', p.id);
+  if (!editable && !removable) return;
   openModal(
-    'Editar ramificação',
-    `<form id="branchEditForm"><div class="form-full"><label>Nome<input class="field" name="name" required value="${esc(
+    editable ? 'Editar ramificação' : 'Ramificação',
+    `<form id="branchEditForm"><fieldset class="plain" ${editable ? '' : 'disabled'}><div class="form-full"><label>Nome<input class="field" name="name" required value="${esc(
       b.name,
     )}"></label></div><div class="form-full"><label>Ramificação pai<select class="field" name="parent">${options(parents, b.parent ?? '', 'Projeto (raiz)')}</select></label></div>${designerField(
       b.designer,
-    )}<div class="modal-actions"><button class="danger" type="button" id="deleteBranch">Excluir</button><button class="primary">Salvar</button></div></form>`,
+    )}</fieldset><div class="modal-actions">${removable ? '<button class="danger" type="button" id="deleteBranch">Excluir</button>' : '<span></span>'}${
+      editable ? '<button class="primary">Salvar</button>' : ''
+    }</div></form>`,
   );
   modalField<HTMLFormElement>('#branchEditForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -58,6 +69,7 @@ export function openEditBranchModal(id: string): void {
     refreshProject();
     showToast('Ramificação salva');
   });
+  if (!removable) return;
   modalField('#deleteBranch').addEventListener('click', async () => {
     const ok = await confirmDanger('Excluir ramificação?', 'Subramificações sobem um nível e as tarefas ficam sem ramificação.');
     if (!ok) return;

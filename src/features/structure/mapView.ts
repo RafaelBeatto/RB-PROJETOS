@@ -17,11 +17,11 @@ function node(p: Project, b: Branch, dim: boolean): string {
   const done = tasks.filter((t) => t.status === 'Concluído').length;
   return `<article class="map-node${dim ? ' dim' : ''}" data-node="${b.id}" style="left:${b.x}px;top:${b.y}px"><div class="node-top">${icon(
     'branch',
-  )}<span class="node-name">${esc(b.name)}</span><button data-action="branch-new" data-parent="${b.id}" title="Nova sub-ramificação" aria-label="Nova sub-ramificação">${icon(
+  )}<span class="node-name">${esc(b.name)}</span><button data-perm="structure.create" data-action="branch-new" data-parent="${b.id}" title="Nova sub-ramificação" aria-label="Nova sub-ramificação">${icon(
     'plus',
-  )}</button><button data-action="branch-edit" data-id="${b.id}" title="Opções" aria-label="Opções da ramificação">${icon('moreVertical')}</button></div>${designerLine(
+  )}</button><button data-perm="structure.edit|structure.delete" data-action="branch-edit" data-id="${b.id}" title="Opções" aria-label="Opções da ramificação">${icon('moreVertical')}</button></div>${designerLine(
     b,
-  )}<div class="node-meta">${plural(tasks.length, 'tarefa', 'tarefas')}<br>${plural(done, 'concluída', 'concluídas')}</div><button class="node-add" data-action="task-new" data-branch="${
+  )}<div class="node-meta">${plural(tasks.length, 'tarefa', 'tarefas')}<br>${plural(done, 'concluída', 'concluídas')}</div><button class="node-add" data-perm="tasks.create" data-action="task-new" data-branch="${
     b.id
   }">${icon('plus')}adicionar tarefa</button></article>`;
 }
@@ -40,7 +40,7 @@ export function renderMap(p: Project): string {
     .map((b) => `<path data-line="${b.id}"/>`)
     .join('')}</svg><article class="map-node root" data-node="root" style="left:${root.x}px;top:${root.y}px"><div class="node-top">${icon(
     'projects',
-  )}<span class="node-name">${esc(p.name)}</span></div><div class="node-meta">${p.tasks.length} tarefas · ${p.branches.length} ramificações</div><button class="node-add" data-action="branch-new">${icon(
+  )}<span class="node-name">${esc(p.name)}</span></div><div class="node-meta">${p.tasks.length} tarefas · ${p.branches.length} ramificações</div><button class="node-add" data-perm="structure.create" data-action="branch-new">${icon(
     'plus',
   )}adicionar ramificação</button></article>${p.branches
     .map((b) => node(p, b, filtering && !matchesBranchFilters(p, b)))

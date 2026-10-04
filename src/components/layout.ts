@@ -3,13 +3,12 @@ import type { Page, ProjectTab } from '../state/store';
 import { icon, type IconName } from './icons';
 import { modalShell } from './modal';
 
-const NAV: { page: Page; label: string; icon: IconName; mobile: boolean }[] = [
-  { page: 'home', label: 'Projetos', icon: 'projects', mobile: true },
-  { page: 'board', label: 'Kanban', icon: 'board', mobile: true },
-  { page: 'today', label: 'Hoje', icon: 'today', mobile: true },
-  { page: 'archive', label: 'Arquivados', icon: 'archive', mobile: false },
-  { page: 'users', label: 'Usuários', icon: 'users', mobile: false },
-  { page: 'history', label: 'Histórico', icon: 'activity', mobile: true },
+const NAV: { page: Page; label: string; icon: IconName; mobile: boolean; perm: string }[] = [
+  { page: 'home', label: 'Projetos', icon: 'projects', mobile: true, perm: 'projects.view' },
+  { page: 'board', label: 'Kanban', icon: 'board', mobile: true, perm: 'kanban.view' },
+  { page: 'today', label: 'Hoje', icon: 'today', mobile: true, perm: 'projects.view' },
+  { page: 'archive', label: 'Arquivados', icon: 'archive', mobile: false, perm: 'projects.view' },
+  { page: 'history', label: 'Histórico', icon: 'activity', mobile: true, perm: 'projects.view' },
 ];
 
 const TABS: { tab: ProjectTab; label: string }[] = [
@@ -22,7 +21,7 @@ const TABS: { tab: ProjectTab; label: string }[] = [
 ];
 
 const navItem = (n: (typeof NAV)[number]): string =>
-  `<button class="nav-item${n.mobile ? '' : ' desktop-only'}" data-action="nav" data-page="${n.page}">${icon(n.icon)}<span>${n.label}</span></button>`;
+  `<button class="nav-item${n.mobile ? '' : ' desktop-only'}" data-action="nav" data-page="${n.page}" data-perm="${n.perm}">${icon(n.icon)}<span>${n.label}</span></button>`;
 
 export function appShell(): string {
   return `
@@ -31,16 +30,17 @@ export function appShell(): string {
   <header class="topbar">
     <div class="brand">RB <i>PROJECTS</i></div>
     <div class="top-actions">
-      <button class="ghost settings-top" data-action="settings" aria-label="Configurações">${icon('settings')}</button>
+      <button class="ghost settings-top" data-action="nav" data-page="settings" data-perm="settings.view" aria-label="Configurações">${icon('settings')}</button>
       <button class="ghost" data-action="search" aria-label="Pesquisar">${icon('search')}<span class="hide-sm">Pesquisar</span><kbd class="hide-sm">Ctrl K</kbd></button>
-      <button class="primary" data-action="project-new">${icon('plus')}<span>Projeto</span></button>
+      <button class="primary" data-action="project-new" data-perm="projects.create">${icon('plus')}<span>Projeto</span></button>
     </div>
   </header>
   <aside class="sidebar" aria-label="Navegação">
     ${NAV.map(navItem).join('')}
     <button class="nav-item mobile-only" data-action="more">${icon('more')}<span>Mais</span></button>
     <div class="nav-bottom">
-      <button class="nav-item" data-action="settings">${icon('settings')}<span>Configurações</span></button>
+      <div id="accountSlot"></div>
+      <button class="nav-item" data-action="nav" data-page="settings" data-perm="settings.view">${icon('settings')}<span>Configurações</span></button>
       <button class="nav-item" data-action="logout">${icon('logout')}<span>Sair</span></button>
     </div>
   </aside>
@@ -58,8 +58,8 @@ export function appShell(): string {
       <div class="project-title">
         <div><h1 id="pName"></h1><p class="sub" id="pDescription"></p></div>
         <div class="top-actions">
-          <button class="ghost" data-action="project-edit">${icon('edit')}<span>Editar</span></button>
-          <button class="primary" data-action="add-menu">${icon('plus')}<span>Adicionar</span></button>
+          <button class="ghost" data-action="project-edit" data-perm="projects.edit">${icon('edit')}<span>Editar</span></button>
+          <button class="primary" data-action="add-menu" data-perm="tasks.create|structure.create|projects.edit">${icon('plus')}<span>Adicionar</span></button>
         </div>
       </div>
       <nav class="tabs" aria-label="Seções do projeto">

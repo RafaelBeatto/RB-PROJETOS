@@ -1,3 +1,4 @@
+import { applyPerms } from '../../app/access';
 import { currentProject, registerProjectView } from '../../app/navigation';
 import { ui, type ProjectTab } from '../../state/store';
 import type { Project } from '../../types/project';
@@ -28,6 +29,7 @@ function renderProjectView(): void {
   const container = $('#viewContent');
   container.innerHTML = view ? view.render(p) : '';
   view?.mount?.(p, container);
+  applyPerms(container, p.id);
 }
 
 export function initProjectView(): void {

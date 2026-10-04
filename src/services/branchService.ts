@@ -4,6 +4,7 @@ import type { Task } from '../types/task';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
 import { persistProjects } from './db';
+import { authorize } from './permissionService';
 import { findUser } from './userService';
 
 const COLUMN_GAP = 270;
@@ -94,6 +95,7 @@ function freeSpotNear(p: Project, parent: Branch | undefined): { x: number; y: n
 }
 
 export function createBranch(p: Project, name: string, parentId: string | null, designer: string | null): Branch {
+  authorize('structure', 'create', p.id);
   const parent = findBranch(p, parentId);
   const branch: Branch = { id: uid('b'), name, parent: parent ? parent.id : null, designer, ...freeSpotNear(p, parent) };
   p.branches.push(branch);
@@ -114,6 +116,7 @@ export interface BranchDraft {
 }
 
 export function updateBranch(p: Project, b: Branch, draft: BranchDraft): void {
+  authorize('structure', 'edit', p.id);
   const old = { name: b.name, parent: b.parent, designer: b.designer };
   Object.assign(b, draft);
   if (old.name !== b.name) logActivity(p, `renomeou a ramificação "${old.name}" para "${b.name}"`, { kind: 'branch', branch: b.id });
@@ -123,6 +126,7 @@ export function updateBranch(p: Project, b: Branch, draft: BranchDraft): void {
 }
 
 export function setDesigner(p: Project, b: Branch, designer: string | null): void {
+  authorize('structure', 'edit', p.id);
   b.designer = designer;
   logDesigner(p, b);
   persistProjects();
@@ -130,6 +134,7 @@ export function setDesigner(p: Project, b: Branch, designer: string | null): voi
 
 /** Filhas sobem um nível; tarefas ficam sem ramificação. */
 export function deleteBranch(p: Project, b: Branch): void {
+  authorize('structure', 'delete', p.id);
   for (const x of p.branches) if (x.parent === b.id) x.parent = b.parent;
   for (const t of p.tasks) if (t.branch === b.id) t.branch = '';
   p.branches = p.branches.filter((x) => x.id !== b.id);

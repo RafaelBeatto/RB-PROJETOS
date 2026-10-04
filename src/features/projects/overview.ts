@@ -1,6 +1,7 @@
 import { avatar } from '../../components/avatar';
 import { icon } from '../../components/icons';
 import { progressRow } from '../../components/progress';
+import { can } from '../../services/permissionService';
 import { projectProgress, sortedMilestones } from '../../services/projectService';
 import { isBlocked, isLate } from '../../services/taskService';
 import { findUser } from '../../services/userService';
@@ -19,6 +20,7 @@ function coordination(p: Project): string {
 }
 
 function milestones(p: Project): string {
+  const editable = can('projects', 'edit', p.id);
   const list = sortedMilestones(p);
   const next = list.find((m) => m.status !== 'Concluído');
   const rows = list
@@ -26,7 +28,7 @@ function milestones(p: Project): string {
       const done = m.status === 'Concluído';
       const late = !done && !!m.due && m.due < today();
       const mark = done ? icon('done') : m === next ? icon('arrowRight') : icon('milestone');
-      return `<div class="ms ${done ? 'done' : m === next ? 'next' : ''} ${late ? 'late' : ''}" data-action="milestone-edit" data-id="${m.id}" tabindex="0"><span class="ms-s">${mark}</span>${esc(
+      return `<div class="ms ${done ? 'done' : m === next ? 'next' : ''} ${late ? 'late' : ''} ${editable ? '' : 'readonly'}" ${editable ? `data-action="milestone-edit" data-id="${m.id}" tabindex="0"` : ''}><span class="ms-s">${mark}</span>${esc(
         m.name,
       )}<span class="ms-d">${formatShortDate(m.due)}</span></div>`;
     })
@@ -82,7 +84,7 @@ function renderOverview(p: Project): string {
     p.due,
   )}</div><div class="fact"><label>Progresso</label>${prog.done} de ${prog.total} concluídas</div></div>${progressRow(prog.pct)}${coordination(
     p,
-  )}<div class="sec-head"><h3>Marcos</h3><button class="ghost" data-action="milestone-new">${icon('plus')}Marco</button></div>${milestones(
+  )}<div class="sec-head"><h3>Marcos</h3>${can('projects', 'edit', p.id) ? `<button class="ghost" data-action="milestone-new">${icon('plus')}Marco</button>` : ''}</div>${milestones(
     p,
   )}<h3 class="sec-title">Próximas tarefas</h3><div class="next-list">${nextTasks(p)}</div>${workload(p)}${recentActivity(p)}</div>`;
 }

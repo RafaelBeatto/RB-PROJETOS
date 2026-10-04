@@ -1,5 +1,7 @@
 /** Janela larga com tudo sobre uma ramificação: tarefas, checklist, projetista, filhas e histórico. */
+import { applyPerms } from '../../app/access';
 import { currentProject, refreshProject } from '../../app/navigation';
+import { can } from '../../services/permissionService';
 import { avatar } from '../../components/avatar';
 import { options } from '../../components/filterBar';
 import { icon } from '../../components/icons';
@@ -27,7 +29,7 @@ function taskBlock(t: Task, p: Project): string {
     ? `${progressBar(pct(done, items.length), true)}<div class="bd-check">${items
         .map(
           (s) =>
-            `<label class="bd-ci ${s.done ? 'done' : ''}"><input type="checkbox" data-check="${t.id}|${s.id}" ${s.done ? 'checked' : ''}><span>${esc(s.title)}</span></label>`,
+            `<label class="bd-ci ${s.done ? 'done' : ''}"><input type="checkbox" data-check="${t.id}|${s.id}" ${s.done ? 'checked' : ''} ${can('tasks', 'edit', p.id) ? '' : 'disabled'}><span>${esc(s.title)}</span></label>`,
         )
         .join('')}</div>`
     : '';
@@ -56,21 +58,21 @@ function render(p: Project, id: string): void {
   const stats = `<div class="bd-stats"><div><b>${all.length}</b><span>tarefas</span></div><div><b>${done}</b><span>concluídas</span></div><div><b class="${
     late ? 'late-txt' : ''
   }">${late}</b><span>atrasadas</span></div><div><b>${itemsDone}/${items.length}</b><span>itens de checklist</span></div></div>`;
-  const tasksSection = `<section><div class="sec-head" style="margin-top:0"><h3>Tarefas e checklist</h3><button class="ghost" id="bdNewTask">${icon('plus')}Nova tarefa</button></div>${
+  const tasksSection = `<section><div class="sec-head" style="margin-top:0"><h3>Tarefas e checklist</h3><button class="ghost" id="bdNewTask" data-perm="tasks.create">${icon('plus')}Nova tarefa</button></div>${
     own.length ? own.map((t) => taskBlock(t, p)).join('') : '<p class="sub">Nenhuma tarefa nesta ramificação.</p>'
   }${all.length > own.length ? `<p class="sub small">Mais ${plural(all.length - own.length, 'tarefa', 'tarefas')} nas sub-ramificações.</p>` : ''}</section>`;
   const designerBox = `<div class="bd-box"><div class="lbl">Projetista</div><div class="bd-owner">${
     designer
       ? `${avatar(designer)}<div><b>${esc(designer.name)}</b>${designer.role || designer.email ? `<small>${esc([designer.role, designer.email].filter(Boolean).join(' · '))}</small>` : ''}</div>`
       : '<span class="sub flat">Sem projetista</span>'
-  }</div><select class="field" id="bdDesigner" aria-label="Trocar projetista">${options(
+  }</div><select class="field" id="bdDesigner" aria-label="Trocar projetista" ${can('structure', 'edit', p.id) ? '' : 'disabled'}>${options(
     db.users.map((u) => [u.id, u.name] as const),
     b.designer ?? '',
     'Sem projetista',
   )}</select></div>`;
   const kidsBox = `<div class="bd-box"><div class="lbl">Sub-ramificações</div><div class="bd-kids">${
     kids.map((k) => `<button class="chip" data-detail="${k.id}">${icon('branch')} ${esc(k.name)}</button>`).join('') || '<span class="sub flat">Nenhuma</span>'
-  }</div><button class="ghost" id="bdNewKid">${icon('plus')}Sub-ramificação</button>${
+  }</div><button class="ghost" id="bdNewKid" data-perm="structure.create">${icon('plus')}Sub-ramificação</button>${
     parent ? `<div class="lbl" style="margin-top:14px">Dentro de</div><button class="chip" data-detail="${parent.id}">${icon('branch')} ${esc(parent.name)}</button>` : ''
   }</div>`;
   const historyBox = `<div class="bd-box"><div class="lbl">Histórico</div>${
@@ -85,9 +87,10 @@ function render(p: Project, id: string): void {
       pct(done, all.length),
     )}</div><div class="bd-grid">${tasksSection}<aside>${designerBox}${kidsBox}${historyBox}</aside></div><div class="modal-actions"><button class="ghost" id="bdCards">${icon(
       'cards',
-    )}Abrir em Cartões</button><button class="primary" id="bdEdit">${icon('edit')}Editar ramificação</button></div></div>`,
+    )}Abrir em Cartões</button><button class="primary" id="bdEdit" data-perm="structure.edit|structure.delete">${icon('edit')}Editar ramificação</button></div></div>`,
     { wide: true },
   );
+  applyPerms($('#modal'), p.id);
   bind(p, id);
 }
 

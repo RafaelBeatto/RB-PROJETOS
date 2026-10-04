@@ -16,7 +16,7 @@ function branchCard(p: Project, b: Branch, showPath: boolean): string {
   const tasks = tasksIn(p, b.id, true);
   const done = tasks.filter((t) => t.status === 'Concluído').length;
   const path = showPath ? pathLabel(p, b) : '';
-  return `<article class="bcard" data-action="cards-enter" data-id="${b.id}" tabindex="0"><button class="bcard-edit" data-action="branch-edit" data-id="${
+  return `<article class="bcard" data-action="cards-enter" data-id="${b.id}" tabindex="0"><button class="bcard-edit" data-perm="structure.edit|structure.delete" data-action="branch-edit" data-id="${
     b.id
   }" aria-label="Opções da ramificação">${icon('moreVertical')}</button><div class="bcard-name">${icon('branch')} ${esc(b.name)}</div>${
     path ? `<div class="node-meta bcard-path">${esc(path)}</div>` : ''
@@ -53,9 +53,9 @@ export function renderCards(p: Project): string {
     ? 'Nenhuma ramificação encontrada com esses filtros.'
     : `Nenhuma ramificação dentro de ${esc(level ? level.name : p.name)}.`;
   const grid = branches.length ? `<div class="cards">${branches.map((b) => branchCard(p, b, filtering)).join('')}</div>` : `<p class="sub">${empty}</p>`;
-  const actions = `<div class="toolbar"><button class="ghost" data-action="branch-new" data-parent="${level?.id ?? ''}">${icon(
+  const actions = `<div class="toolbar"><button class="ghost" data-perm="structure.create" data-action="branch-new" data-parent="${level?.id ?? ''}">${icon(
     'plus',
-  )}Nova ramificação</button><button class="ghost" data-action="task-new" data-branch="${level?.id ?? ''}">${icon('plus')}Nova tarefa</button></div>`;
+  )}Nova ramificação</button><button class="ghost" data-perm="tasks.create" data-action="task-new" data-branch="${level?.id ?? ''}">${icon('plus')}Nova tarefa</button></div>`;
   const tasks = ownTasks.length ? `<h3>Tarefas</h3><div class="cards">${ownTasks.map(taskCard).join('')}</div>` : '';
   return `<div class="cards-wrap">${head}${grid}${actions}${tasks}</div>`;
 }

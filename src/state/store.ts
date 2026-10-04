@@ -4,7 +4,8 @@
  */
 import type { Priority } from '../types/task';
 
-export type Page = 'home' | 'archive' | 'board' | 'today' | 'users' | 'history';
+export type Page = 'home' | 'archive' | 'board' | 'today' | 'history' | 'settings';
+export type SettingsTab = 'users' | 'profiles';
 export type ProjectTab = 'overview' | 'info' | 'kanban' | 'structure' | 'list' | 'timeline';
 export type StructureMode = 'map' | 'cards';
 export type QuickTaskFilter = 'all' | 'mine' | 'today' | 'late' | 'soon';
@@ -39,6 +40,8 @@ export interface TodayFilters {
 export interface UserFilters {
   q: string;
   role: '' | 'coord' | 'designer' | 'none';
+  profile: string;
+  status: '' | 'active' | 'inactive';
 }
 
 export interface HistoryFilters {
@@ -53,6 +56,7 @@ export interface HistoryFilters {
 export const emptyTaskFilters = (): TaskFilters => ({ quick: 'all', priority: '', assignee: '', branch: '' });
 export const emptyProjectFilters = (): ProjectFilters => ({ q: '', status: '', coordinator: '', late: false, sort: '' });
 export const emptyBranchFilters = (): BranchFilters => ({ q: '', designer: '', state: '' });
+export const emptyUserFilters = (): UserFilters => ({ q: '', role: '', profile: '', status: '' });
 export const emptyHistoryFilters = (): HistoryFilters => ({ q: '', project: '', person: '', kind: '', period: '', limit: 100 });
 
 export const ui = {
@@ -66,6 +70,9 @@ export const ui = {
   projectFilters: emptyProjectFilters(),
   branchFilters: emptyBranchFilters(),
   todayFilters: { project: '', person: '' } as TodayFilters,
-  userFilters: { q: '', role: '' } as UserFilters,
+  userFilters: emptyUserFilters(),
+  settingsTab: 'users' as SettingsTab,
+  /** Perfil aberto no editor de permissões. */
+  profileId: null as string | null,
   historyFilters: { ...emptyHistoryFilters(), period: '30' } as HistoryFilters,
 };

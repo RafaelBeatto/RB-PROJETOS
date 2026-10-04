@@ -4,6 +4,7 @@ import { today } from '../utils/date';
 import { uid } from '../utils/ids';
 import { logActivity, logTaskStatus } from './activityService';
 import { persistProjects } from './db';
+import { authorize } from './permissionService';
 import { currentActor } from './userService';
 
 export function findTask(p: Project, id: string | null | undefined): Task | undefined {
@@ -28,6 +29,8 @@ export function dependentsOf(t: Task, p: Project): Task[] {
 }
 
 export function moveTask(p: Project, t: Task, status: TaskStatus): void {
+  authorize('kanban', 'edit', p.id);
+  authorize('tasks', 'edit', p.id);
   if (t.status !== status) {
     t.status = status;
     logTaskStatus(p, t);
@@ -37,6 +40,7 @@ export function moveTask(p: Project, t: Task, status: TaskStatus): void {
 
 /** Cria ou atualiza; registra mudança de status e itens de checklist concluídos. */
 export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): Task {
+  authorize('tasks', task ? 'edit' : 'create', p.id);
   if (!task) {
     const created: Task = { id: uid('t'), tags: '', comments: [], links: [], ...draft };
     p.tasks.push(created);
@@ -58,6 +62,7 @@ export function saveTask(p: Project, task: Task | undefined, draft: TaskDraft): 
 }
 
 export function deleteTask(p: Project, task: Task): void {
+  authorize('tasks', 'delete', p.id);
   logActivity(p, `excluiu a tarefa "${task.title}"`, { kind: 'task', branch: task.branch });
   p.tasks = p.tasks.filter((x) => x.id !== task.id);
   for (const x of p.tasks) x.dependencies = x.dependencies.filter((d) => d !== task.id);
@@ -65,6 +70,7 @@ export function deleteTask(p: Project, task: Task): void {
 }
 
 export function setSubtaskDone(p: Project, task: Task, subtaskId: string, done: boolean): void {
+  authorize('tasks', 'edit', p.id);
   const s = task.subtasks.find((x) => x.id === subtaskId);
   if (!s) return;
   s.done = done;
@@ -73,17 +79,20 @@ export function setSubtaskDone(p: Project, task: Task, subtaskId: string, done: 
 }
 
 export function addComment(p: Project, task: Task, text: string): void {
+  authorize('tasks', 'edit', p.id);
   task.comments.push({ id: uid('c'), who: currentActor(p.owner), text, at: new Date().toISOString() });
   logActivity(p, `comentou em "${task.title}"`, { kind: 'comment', task: task.id, branch: task.branch });
   persistProjects();
 }
 
-export function addLink(task: Task, url: string, label: string): void {
+export function addLink(p: Project, task: Task, url: string, label: string): void {
+  authorize('tasks', 'edit', p.id);
   task.links.push({ id: uid('l'), url, label });
   persistProjects();
 }
 
-export function removeLink(task: Task, linkId: string): void {
+export function removeLink(p: Project, task: Task, linkId: string): void {
+  authorize('tasks', 'edit', p.id);
   task.links = task.links.filter((l) => l.id !== linkId);
   persistProjects();
 }

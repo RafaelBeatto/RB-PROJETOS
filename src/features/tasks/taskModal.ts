@@ -16,6 +16,8 @@ import {
 } from '../../services/taskService';
 import type { Project } from '../../types/project';
 import { PRIORITIES, TASK_STATUSES, type Priority, type Subtask, type Task, type TaskDraft, type TaskStatus } from '../../types/task';
+import { NO_ACCESS } from '../../app/access';
+import { can } from '../../services/permissionService';
 import { $$, esc } from '../../utils/dom';
 import { uid } from '../../utils/ids';
 
@@ -43,26 +45,33 @@ function commentsHtml(t: Task): string {
   return t.comments.map((c) => `<div class="cmt"><b>${esc(c.who)}</b>${esc(c.text)}</div>`).join('') || '<div class="cmt"><b>Nenhum comentário.</b></div>';
 }
 
-function linksHtml(t: Task): string {
+function linksHtml(t: Task, editable = true): string {
   return t.links
     .map((l) => {
       const isUrl = /^https?:\/\//i.test(l.url);
       const label = esc(l.label || l.url);
       const content = isUrl ? `${icon('link')} <a href="${esc(l.url)}" target="_blank" rel="noopener">${label}</a>` : `${icon('paperclip')} ${label}`;
-      return `<div class="lnk"><span>${content}</span><button type="button" data-del-link="${l.id}" aria-label="Remover">${icon('close')}</button></div>`;
+      return `<div class="lnk"><span>${content}</span>${editable ? `<button type="button" data-del-link="${l.id}" aria-label="Remover">${icon('close')}</button>` : ''}</div>`;
     })
     .join('');
 }
 
-function extrasHtml(t: Task): string {
-  return `<div class="sec"><h3>Comentários</h3><div id="cmts">${commentsHtml(
-    t,
-  )}</div><div class="cmt-add"><input class="field" id="cmtText" placeholder="Escrever comentário" aria-label="Comentário"><button class="ghost" type="button" id="cmtBtn">Enviar</button></div></div><div class="sec"><h3>Anexos</h3><div id="lnks">${linksHtml(
-    t,
-  )}</div><button class="ghost" type="button" id="lnkBtn">${icon('plus')}Link ou arquivo</button></div>`;
+function extrasHtml(t: Task, editable: boolean): string {
+  const addComment = editable
+    ? '<div class="cmt-add"><input class="field" id="cmtText" placeholder="Escrever comentário" aria-label="Comentário"><button class="ghost" type="button" id="cmtBtn">Enviar</button></div>'
+    : '';
+  const addLink = editable ? `<button class="ghost" type="button" id="lnkBtn">${icon('plus')}Link ou arquivo</button>` : '';
+  return `<div class="sec"><h3>Comentários</h3><div id="cmts">${commentsHtml(t)}</div>${addComment}</div><div class="sec"><h3>Anexos</h3><div id="lnks">${
+    linksHtml(t, editable) || (editable ? '' : '<span class="sub flat">Nenhum anexo.</span>')
+  }</div>${addLink}</div>`;
 }
 
-function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: string): string {
+interface Access {
+  editable: boolean;
+  canDelete: boolean;
+}
+
+function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: string, access: Access): string {
   const selectedBranch = t ? t.branch : branch;
   const sel = (on: boolean): string => (on ? 'selected' : '');
   const statusOpts = TASK_STATUSES.map((s) => `<option ${sel((t?.status ?? status) === s)}>${s}</option>`).join('');
@@ -72,7 +81,7 @@ function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: s
     .filter((x) => x.id !== t?.id)
     .map((x) => `<option value="${x.id}" ${sel(!!t?.dependencies.includes(x.id))}>${esc(x.title)}${x.status !== 'Concluído' ? ' (pendente)' : ''}</option>`)
     .join('');
-  return `${t ? dependencyFlow(t, p) : ''}<form id="taskForm"><div class="form-grid"><label>Título<input class="field" name="title" required value="${esc(
+  return `${t ? dependencyFlow(t, p) : ''}<form id="taskForm"><fieldset class="plain" ${access.editable ? '' : 'disabled'}><div class="form-grid"><label>Título<input class="field" name="title" required value="${esc(
     t?.title ?? '',
   )}"></label><label>Status<select class="field" name="status">${statusOpts}</select></label><label>Responsável<input class="field" name="assignee" list="usersList" value="${esc(
     t?.assignee ?? '',
@@ -84,9 +93,9 @@ function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: s
     t?.subtasks ?? []
   )
     .map(checklistRow)
-    .join('')}</div><button class="ghost" type="button" id="newSub">${icon('plus')}Item</button></div><div class="modal-actions">${
-    t ? `<button type="button" class="danger" id="deleteTask">${icon('trash')}Excluir</button>` : '<span></span>'
-  }<button class="primary">Salvar</button></div></form>${t ? extrasHtml(t) : ''}`;
+    .join('')}</div>${access.editable ? `<button class="ghost" type="button" id="newSub">${icon('plus')}Item</button>` : ''}</div></fieldset><div class="modal-actions">${
+    t && access.canDelete ? `<button type="button" class="danger" id="deleteTask">${icon('trash')}Excluir</button>` : '<span></span>'
+  }${access.editable ? '<button class="primary">Salvar</button>' : ''}</div></form>${t ? extrasHtml(t, access.editable) : ''}`;
 }
 
 function readChecklist(): Subtask[] {
@@ -104,9 +113,13 @@ function updateChecklistProgress(): void {
   modalField('#subBar').style.width = `${items.length ? (done / items.length) * 100 : 0}%`;
 }
 
-function bindChecklist(): void {
+function bindChecklist(editable: boolean): void {
   const list = modalField<HTMLElement>('#subs');
-  modalField('#newSub').addEventListener('click', async () => {
+  if (!editable) {
+    updateChecklistProgress();
+    return;
+  }
+  document.getElementById('newSub')?.addEventListener('click', async () => {
     const r = await askFields('Novo item', [{ label: 'Nome do item', required: true }]);
     if (!r?.[0]) return;
     list.insertAdjacentHTML('beforeend', checklistRow({ id: uid('s'), title: r[0], done: false }));
@@ -149,13 +162,13 @@ function bindExtras(p: Project, t: Task): void {
   modalField('#lnkBtn').addEventListener('click', async () => {
     const r = await askFields('Adicionar anexo', [{ label: 'Link (https://…) ou nome do arquivo', required: true }, { label: 'Nome de exibição (opcional)' }]);
     if (!r?.[0]) return;
-    addLink(t, r[0], r[1] ?? '');
+    addLink(p, t, r[0], r[1] ?? '');
     links.innerHTML = linksHtml(t);
   });
   links.addEventListener('click', (e) => {
     const button = (e.target as Element).closest<HTMLElement>('[data-del-link]');
     if (!button?.dataset.delLink) return;
-    removeLink(t, button.dataset.delLink);
+    removeLink(p, t, button.dataset.delLink);
     links.innerHTML = linksHtml(t);
   });
 }
@@ -181,9 +194,14 @@ function readDraft(form: HTMLFormElement): TaskDraft {
 export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branch = ''): void {
   const p = currentProject();
   const task = findTask(p, id);
-  openModal(task ? 'Editar tarefa' : 'Nova tarefa', formHtml(p, task, status, branch));
-  bindChecklist();
-  if (task) bindExtras(p, task);
+  if (!task && !can('tasks', 'create', p.id)) {
+    showToast(NO_ACCESS);
+    return;
+  }
+  const access = { editable: can('tasks', task ? 'edit' : 'create', p.id), canDelete: can('tasks', 'delete', p.id) };
+  openModal(task ? (access.editable ? 'Editar tarefa' : 'Tarefa') : 'Nova tarefa', formHtml(p, task, status, branch, access));
+  bindChecklist(access.editable);
+  if (task && access.editable) bindExtras(p, task);
 
   modalField<HTMLFormElement>('#taskForm').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -192,7 +210,7 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
     refreshProject();
     showToast(task ? 'Tarefa salva' : 'Tarefa criada');
   });
-  if (task) {
+  if (task && access.canDelete) {
     modalField('#deleteTask').addEventListener('click', () => {
       deleteTask(p, task);
       closeModal();

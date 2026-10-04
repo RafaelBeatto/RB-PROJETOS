@@ -4,12 +4,13 @@ import { icon } from '../../components/icons';
 import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
 import { db } from '../../services/db';
+import { can } from '../../services/permissionService';
 import { createProject, toggleArchived, updateProject } from '../../services/projectService';
 import { ui } from '../../state/store';
 import { PROJECT_STATUSES, type Project, type ProjectDraft, type ProjectStatus } from '../../types/project';
 import type { User } from '../../types/user';
 import { $$, esc } from '../../utils/dom';
-import { promptNewUser } from '../users/users';
+import { promptNewUser } from '../settings/usersAdmin';
 
 function pickButton(u: User, selected: boolean): string {
   return `<button type="button" class="pick-u ${selected ? 'on' : ''}" data-user="${u.id}" aria-pressed="${selected}">${avatar(u)}<span>${esc(u.name)}</span></button>`;
@@ -18,7 +19,9 @@ function pickButton(u: User, selected: boolean): string {
 function coordinatorPicker(selected: string[]): string {
   return `<div class="form-full"><div class="lbl">Coordenadores</div><div class="pick" id="coordPick">${db.users
     .map((u) => pickButton(u, selected.includes(u.id)))
-    .join('')}<button type="button" class="pick-add" id="coordAdd">${icon('plus')}Novo usuário</button></div></div>`;
+    .join('')}${
+    can('users', 'create') ? `<button type="button" class="pick-add" id="coordAdd">${icon('plus')}Novo usuário</button>` : ''
+  }</div></div>`;
 }
 
 function bindPicker(): void {
@@ -49,7 +52,7 @@ const input = (name: string, label: string, value: string, extra = ''): string =
 
 function formHtml(p: Project | undefined): string {
   const statusOptions = PROJECT_STATUSES.map((s) => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('');
-  const archive = !p
+  const archive = !p || !can('projects', 'delete', p.id)
     ? '<span></span>'
     : p.archived
       ? '<button class="ghost" type="button" id="archiveProject">Desarquivar</button>'
@@ -112,7 +115,7 @@ export function openProjectModal(project?: Project): void {
       showToast('Projeto criado');
     }
   });
-  if (!project) return;
+  if (!project || !can('projects', 'delete', project.id)) return;
   modalField('#archiveProject').addEventListener('click', () => {
     toggleArchived(project);
     closeModal();

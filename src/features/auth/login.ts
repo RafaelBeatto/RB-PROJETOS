@@ -1,3 +1,8 @@
+/**
+ * Tela de login. Fluxo: identificar usuário → carregar perfil e permissões → abrir o sistema.
+ * Sair limpa só a sessão e volta para esta tela.
+ */
+import { closeMenu } from '../../components/menu';
 import { closeModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
 import { isAuthenticated, login, logout } from '../../services/authService';
@@ -18,36 +23,39 @@ export function isLoginVisible(): boolean {
 }
 
 function showLogin(): void {
-  const form = $<HTMLFormElement>('#loginForm');
-  form.reset();
+  closeMenu();
+  closeModal();
+  $<HTMLFormElement>('#loginForm').reset();
   $('#loginErr').textContent = '';
   $('#login').hidden = false;
+  $('.app').setAttribute('aria-hidden', 'true');
   $('#loginName').focus();
 }
 
-function submit(e: SubmitEvent): void {
-  e.preventDefault();
-  const name = $<HTMLInputElement>('#loginName');
-  const pass = $<HTMLInputElement>('#loginPass');
-  const result = login(name.value, pass.value);
-  if (!result.ok) {
-    $('#loginErr').textContent = result.message;
-    if (result.field === 'name') name.focus();
-    else pass.select();
-    return;
-  }
-  $('#login').hidden = true;
-  showToast('Login realizado.');
-}
-
-export function initLogin(): void {
-  const root = $('#login');
-  root.innerHTML = FORM;
-  $<HTMLFormElement>('#loginForm').addEventListener('submit', submit);
+/** `onEnter` abre o sistema já com as permissões do usuário aplicadas. */
+export function initLogin(onEnter: () => void): void {
+  $('#login').innerHTML = FORM;
+  $<HTMLFormElement>('#loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $<HTMLInputElement>('#loginName');
+    const pass = $<HTMLInputElement>('#loginPass');
+    const result = login(name.value, pass.value);
+    if (!result.ok) {
+      $('#loginErr').textContent = result.message;
+      if (result.field === 'name') name.focus();
+      else pass.select();
+      return;
+    }
+    $('#loginErr').textContent = '';
+    $('#login').hidden = true;
+    $('.app').removeAttribute('aria-hidden');
+    onEnter();
+    showToast(`Olá, ${result.user.name}`);
+  });
   onClick('logout', () => {
     logout();
-    closeModal();
     showLogin();
   });
-  if (!isAuthenticated()) showLogin();
+  if (isAuthenticated()) onEnter();
+  else showLogin();
 }

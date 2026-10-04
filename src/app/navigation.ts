@@ -1,11 +1,15 @@
 /**
  * Navegação entre páginas globais e o projeto aberto.
  * As telas se registram aqui, o que evita importações circulares entre features.
+ * Toda troca de página/aba passa pela verificação de permissão.
  */
+import { showToast } from '../components/toast';
+import { can } from '../services/permissionService';
 import { findProject } from '../services/projectService';
 import { emptyBranchFilters, emptyTaskFilters, ui, type Page } from '../state/store';
 import type { Project } from '../types/project';
 import { $, $$ } from '../utils/dom';
+import { NO_ACCESS, PAGE_ORDER, TAB_ORDER, applyAccess, canOpenPage, canOpenTab } from './access';
 
 const pages = new Map<Page, () => void>();
 let renderProjectView: () => void = () => undefined;
@@ -33,20 +37,47 @@ export function currentProject(): Project {
   return p;
 }
 
-export function goTo(page: Page): void {
-  ui.page = page;
+function showNoAccess(): void {
+  setPageHeader('Sem acesso', 'Seu perfil não tem acesso a nenhum módulo.', false);
+  $('#homeFilters').innerHTML = '';
+  resetFilterBar();
+  pageContent().innerHTML = `<div class="empty">${NO_ACCESS}</div>`;
+}
+
+/** Primeira página que o usuário pode abrir. */
+export function homePage(): Page | null {
+  return PAGE_ORDER.find(canOpenPage) ?? null;
+}
+
+export function goTo(page: Page, silent = false): void {
+  applyAccess();
   $('#home').hidden = false;
   $('#projectView').hidden = true;
-  setActiveNav(page);
-  pages.get(page)?.();
+  let target: Page | null = page;
+  if (!canOpenPage(page)) {
+    if (!silent) showToast(NO_ACCESS);
+    target = homePage();
+  }
+  if (!target) {
+    setActiveNav(page);
+    showNoAccess();
+    return;
+  }
+  ui.page = target;
+  setActiveNav(target);
+  pages.get(target)?.();
 }
 
 export function refreshPage(): void {
-  pages.get(ui.page)?.();
+  goTo(ui.page, true);
 }
 
 export function openProject(id: string): void {
   if (!findProject(id)) return;
+  if (!canOpenTab('overview', id)) {
+    showToast(NO_ACCESS);
+    return;
+  }
   ui.projectId = id;
   ui.tab = 'overview';
   ui.cardLevel = null;
@@ -55,11 +86,14 @@ export function openProject(id: string): void {
   $('#home').hidden = true;
   $('#projectView').hidden = false;
   window.scrollTo(0, 0);
-  renderProjectView();
+  refreshProject();
 }
 
 export function refreshProject(): void {
-  if (isProjectOpen()) renderProjectView();
+  if (!isProjectOpen()) return;
+  applyAccess(ui.projectId ?? undefined);
+  if (!canOpenTab(ui.tab, ui.projectId ?? undefined)) ui.tab = TAB_ORDER.find((t) => canOpenTab(t, ui.projectId ?? undefined)) ?? 'overview';
+  renderProjectView();
 }
 
 /** Redesenha o que estiver na tela. */
@@ -71,7 +105,7 @@ export function refresh(): void {
 export function setPageHeader(title: string, subtitle: string, showNewProject: boolean): void {
   $('#pageTitle').textContent = title;
   $('#pageSub').textContent = subtitle;
-  $('#homeNew').hidden = !showNewProject;
+  $('#homeNew').hidden = !showNewProject || !can('projects', 'create');
 }
 
 /** Troca a barra de filtros só quando muda o tipo de página, para não perder o foco ao digitar. */

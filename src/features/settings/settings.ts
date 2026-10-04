@@ -1,38 +1,96 @@
-import { refresh } from '../../app/navigation';
+/** Página Configurações (Usuários | Perfis e permissões), Minha conta e menu "Mais" do celular. */
+import { canOpenPage } from '../../app/access';
+import { pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
+import { avatar } from '../../components/avatar';
 import { icon } from '../../components/icons';
 import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
-import { getMyName, setMyName } from '../../services/userService';
+import { currentUser } from '../../services/authService';
+import { can } from '../../services/permissionService';
+import { findProfile } from '../../services/profileService';
+import { MIN_PASSWORD, changeOwnPassword } from '../../services/userService';
+import { ui, type SettingsTab } from '../../state/store';
 import { onClick } from '../../utils/actions';
 import { esc } from '../../utils/dom';
+import { initProfilesAdmin, mountProfilesTab, renderProfilesTab } from './profilesAdmin';
+import { initUsersAdmin, renderUsersTab, usersFilterBar } from './usersAdmin';
 
-export function openSettings(): void {
+const TABS: { tab: SettingsTab; label: string; module: 'users' | 'profiles' }[] = [
+  { tab: 'users', label: 'Usuários', module: 'users' },
+  { tab: 'profiles', label: 'Perfis e permissões', module: 'profiles' },
+];
+
+function renderSettings(): void {
+  setPageHeader('Configurações', 'Usuários, perfis e permissões de acesso.', false);
+  const allowed = TABS.filter((t) => can(t.module, 'view'));
+  if (!allowed.some((t) => t.tab === ui.settingsTab) && allowed[0]) ui.settingsTab = allowed[0].tab;
+  const tabs = `<nav class="tabs settings-tabs" aria-label="Configurações">${allowed
+    .map((t) => `<button class="tab ${t.tab === ui.settingsTab ? 'active' : ''}" data-action="settings-tab" data-tab="${t.tab}">${t.label}</button>`)
+    .join('')}</nav>`;
+  if (!allowed.length) {
+    setFilterBar('settings-empty', () => '');
+    pageContent().innerHTML = '<div class="empty">Seu perfil não tem acesso a usuários nem a perfis.</div>';
+    return;
+  }
+  if (ui.settingsTab === 'users') {
+    setFilterBar('users', () => tabs + usersFilterBar());
+    pageContent().innerHTML = renderUsersTab();
+  } else {
+    setFilterBar('profiles', () => tabs);
+    pageContent().innerHTML = renderProfilesTab();
+    mountProfilesTab();
+  }
+}
+
+function openAccount(): void {
+  const user = currentUser();
+  if (!user) return;
+  const profile = findProfile(user.profileId);
   openModal(
-    'Configurações',
-    `<form id="setForm"><div class="form-full"><label>Seu nome<input class="field" name="me" list="usersList" value="${esc(
-      getMyName(),
-    )}"></label></div><p class="sub small">Usado em comentários, na atividade e no filtro "Minhas".</p><div class="modal-actions"><span></span><button class="primary">Salvar</button></div></form>`,
+    'Minha conta',
+    `<div class="account-head">${avatar(user)}<div><b>${esc(user.name)}</b><small>${esc(profile?.name ?? 'Sem perfil')}${
+      user.role ? ` · ${esc(user.role)}` : ''
+    }</small></div></div><form id="pwForm" class="sec" novalidate><h3>Alterar senha</h3><div class="form-grid"><label>Senha atual<input class="field" name="current" type="password" autocomplete="current-password"></label><span></span><label>Nova senha<input class="field" name="next" type="password" autocomplete="new-password" placeholder="Mínimo ${MIN_PASSWORD} caracteres"></label><label>Confirmar nova senha<input class="field" name="confirm" type="password" autocomplete="new-password"></label></div><p class="form-error" id="pwErr" role="alert"></p><div class="modal-actions"><button class="ghost" type="button" data-action="logout">${icon(
+      'logout',
+    )}Sair</button><button class="primary">Alterar senha</button></div></form>`,
   );
-  modalField<HTMLFormElement>('#setForm').addEventListener('submit', (e) => {
+  const form = modalField<HTMLFormElement>('#pwForm');
+  form.addEventListener('submit', (e) => {
     e.preventDefault();
-    setMyName(String(new FormData(e.currentTarget as HTMLFormElement).get('me') ?? ''));
+    const data = new FormData(form);
+    const next = String(data.get('next') ?? '');
+    const error = next !== String(data.get('confirm') ?? '') ? 'As senhas não conferem.' : changeOwnPassword(String(data.get('current') ?? ''), next);
+    if (error) {
+      modalField('#pwErr').textContent = error;
+      return;
+    }
     closeModal();
-    refresh();
-    showToast('Configurações salvas');
+    showToast('Senha alterada');
   });
 }
 
 /** Menu "Mais" do celular: itens que não cabem na barra inferior. */
 function openMore(): void {
+  const settings = canOpenPage('settings')
+    ? `<button class="ghost" data-action="nav" data-page="settings">${icon('settings')}Configurações</button>`
+    : '';
+  const archive = canOpenPage('archive') ? `<button class="ghost" data-action="nav" data-page="archive">${icon('archive')}Arquivados</button>` : '';
   openModal(
     'Mais',
-    `<div class="more-list"><button class="ghost" data-action="nav" data-page="archive">${icon('archive')}Arquivados</button><button class="ghost" data-action="nav" data-page="users">${icon(
-      'users',
-    )}Usuários</button><button class="ghost" data-action="settings">${icon('settings')}Configurações</button><button class="ghost" data-action="logout">${icon('logout')}Sair</button></div>`,
+    `<div class="more-list">${archive}${settings}<button class="ghost" data-action="account">${icon('users')}Minha conta</button><button class="ghost" data-action="logout">${icon(
+      'logout',
+    )}Sair</button></div>`,
   );
 }
 
 export function initSettings(): void {
-  onClick('settings', openSettings);
+  initUsersAdmin();
+  initProfilesAdmin();
+  registerPage('settings', renderSettings);
+  onClick('settings-tab', (el) => {
+    ui.settingsTab = el.dataset.tab === 'profiles' ? 'profiles' : 'users';
+    renderSettings();
+  });
+  onClick('account', openAccount);
   onClick('more', openMore);
 }

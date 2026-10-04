@@ -8,6 +8,7 @@ export interface DialogField {
   label: string;
   value?: string;
   required?: boolean;
+  type?: 'text' | 'password' | 'email';
 }
 
 interface DialogOptions {
@@ -27,7 +28,7 @@ function openDialog(title: string, options: DialogOptions): Promise<string[] | n
     }${fields
       .map(
         (f, i) =>
-          `<div class="form-full"><label>${esc(f.label)}<input class="field" data-dialog-field="${i}" value="${esc(f.value ?? '')}" ${f.required ? 'required' : ''}></label></div>`,
+          `<div class="form-full"><label>${esc(f.label)}<input class="field" data-dialog-field="${i}" type="${f.type ?? 'text'}" value="${esc(f.value ?? '')}" ${f.required ? 'required' : ''}></label></div>`,
       )
       .join('')}<div class="modal-actions"><button type="button" class="ghost" data-dialog-cancel>Cancelar</button><button class="${
       options.danger ? 'danger' : 'primary'

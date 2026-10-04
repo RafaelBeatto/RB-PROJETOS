@@ -1,4 +1,5 @@
 import { icon } from '../../components/icons';
+import { can } from '../../services/permissionService';
 import { agreementName, agreementTotal, hasAgreement, projectProgress } from '../../services/projectService';
 import type { Project } from '../../types/project';
 import { formatDate } from '../../utils/date';
@@ -11,7 +12,9 @@ const text = (v: string): string => esc(v.trim() || '—');
 
 function renderInfo(p: Project): string {
   const prog = projectProgress(p);
-  return `<div class="sec-head"><h3>Identificação</h3><button class="ghost" data-action="project-edit">${icon('edit')}Editar informações</button></div><div class="info">${row(
+  return `<div class="sec-head"><h3>Identificação</h3>${
+    can('projects', 'edit', p.id) ? `<button class="ghost" data-action="project-edit">${icon('edit')}Editar informações</button>` : ''
+  }</div><div class="info">${row(
     'Nome',
     text(p.name),
   )}${row('Processo', text(p.processo))}${row('Descrição', text(p.description))}</div><div class="sec-head"><h3>Andamento</h3></div><div class="info">${row(

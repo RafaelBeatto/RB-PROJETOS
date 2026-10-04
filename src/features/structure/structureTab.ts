@@ -2,6 +2,7 @@ import { currentProject, refreshProject } from '../../app/navigation';
 import { icon } from '../../components/icons';
 import { ensureLayout, findBranch } from '../../services/branchService';
 import { persistProjects } from '../../services/db';
+import { can } from '../../services/permissionService';
 import { ui, type StructureMode } from '../../state/store';
 import type { Project } from '../../types/project';
 import { onClick } from '../../utils/actions';
@@ -16,13 +17,16 @@ import { mapToolbar, renderMap } from './mapView';
 function modeSwitch(): string {
   const button = (mode: StructureMode, label: string, ic: 'map' | 'cards'): string =>
     `<button data-action="structure-mode" data-mode="${mode}" class="${ui.structureMode === mode ? 'on' : ''}" aria-pressed="${ui.structureMode === mode}">${icon(ic)}${label}</button>`;
-  return `<div class="seg" role="group" aria-label="Visualização">${button('map', 'Mapa', 'map')}${button('cards', 'Cartões', 'cards')}</div>`;
+  const map = can('map', 'view', ui.projectId ?? undefined) ? button('map', 'Mapa', 'map') : '';
+  return `<div class="seg" role="group" aria-label="Visualização">${map}${button('cards', 'Cartões', 'cards')}</div>`;
 }
 
 function renderStructure(p: Project): string {
   if (ensureLayout(p)) persistProjects();
+  // Sem acesso ao Mapa, a Estrutura abre direto em Cartões.
+  if (!can('map', 'view', p.id)) ui.structureMode = 'cards';
   if (ui.structureMode === 'cards') return `<div class="toolbar">${modeSwitch()}</div>${branchFilterBar(p)}${renderCards(p)}`;
-  return `<div class="toolbar">${modeSwitch()}<button class="ghost" data-action="branch-new">${icon('plus')}Ramificação</button>${mapToolbar()}</div>${branchFilterBar(
+  return `<div class="toolbar">${modeSwitch()}<button class="ghost" data-perm="structure.create" data-action="branch-new">${icon('plus')}Ramificação</button>${mapToolbar()}</div>${branchFilterBar(
     p,
   )}${renderMap(p)}`;
 }

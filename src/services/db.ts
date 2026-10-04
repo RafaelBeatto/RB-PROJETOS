@@ -8,7 +8,8 @@ import { ensureLayout } from './branchService';
 import { migrateProjects, migrateUsers } from './migrations';
 import { SEED_PROJECTS } from './seed';
 import { STORAGE_KEYS, readJSON, readString, writeJSON, writeString } from './storage';
-import { seedUsersFromNames, userByName } from './userService';
+import { adminProfileId, loadAccess } from './profileService';
+import { isAdminProfile, seedUsersFromNames, upgradeLegacyUser, userByName } from './userService';
 
 export const db = {
   projects: [] as Project[],
@@ -48,8 +49,19 @@ export function loadDatabase(): void {
   const { projects, withoutCoordinators } = migrateProjects(rawProjects);
   db.projects = projects;
 
+  loadAccess();
+  const admin = adminProfileId();
   const storedUsers = migrateUsers(readJSON(STORAGE_KEYS.users));
-  db.users = storedUsers ?? seedUsersFromNames(projects.flatMap((p) => [p.owner, ...p.tasks.map((t) => t.assignee)]));
+  db.users = storedUsers ?? seedUsersFromNames(projects.flatMap((p) => [p.owner, ...p.tasks.map((t) => t.assignee)]), admin);
+  let usersChanged = !storedUsers;
+  for (const u of db.users) if (upgradeLegacyUser(u, admin)) usersChanged = true;
+  // Regra de segurança: nunca ficar sem administrador ativo.
+  const first = db.users[0];
+  if (first && !db.users.some((u) => u.active && isAdminProfile(u.profileId))) {
+    first.profileId = admin;
+    first.active = true;
+    usersChanged = true;
+  }
 
   for (const p of projects) {
     if (withoutCoordinators.has(p.id)) {
@@ -61,5 +73,5 @@ export function loadDatabase(): void {
 
   const before = JSON.stringify(rawProjects);
   if (rawProjects !== SEED_PROJECTS && JSON.stringify(db.projects) !== before) persistProjects();
-  if (!storedUsers) persistUsers();
+  if (usersChanged) persistUsers();
 }

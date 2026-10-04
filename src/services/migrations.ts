@@ -135,5 +135,11 @@ export function migrateUsers(raw: unknown): User[] | undefined {
     email: str(r.email),
     role: str(r.role),
     color: str(r.color) || '#3b82f6',
+    // Campos de acesso: vazios em dados antigos; completados em userService.upgradeLegacyUser.
+    profileId: str(r.profileId),
+    active: r.active !== false,
+    createdAt: str(r.createdAt),
+    passwordHash: str(r.passwordHash),
+    passwordSalt: str(r.passwordSalt),
   }));
 }

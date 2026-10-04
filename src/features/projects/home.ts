@@ -3,6 +3,7 @@ import { avatarStack } from '../../components/avatar';
 import { icon } from '../../components/icons';
 import { progressRow } from '../../components/progress';
 import { db } from '../../services/db';
+import { can } from '../../services/permissionService';
 import { agreementName, lateTaskCount, projectProgress } from '../../services/projectService';
 import type { Project } from '../../types/project';
 import { formatDate } from '../../utils/date';
@@ -37,6 +38,7 @@ function renderList(archived: boolean): void {
   if (list.length) html = list.map(projectCard).join('');
   else if (projectFiltersActive()) html = '<div class="empty">Nenhum projeto encontrado com esses filtros.</div>';
   else if (archived) html = '<div class="empty">Ainda não existem projetos arquivados.</div>';
+  else if (!can('projects', 'create')) html = '<div class="empty">Ainda não existem projetos.</div>';
   else html = `<div class="empty">Ainda não existem projetos.<br><br><button class="primary" data-action="project-new">${icon('plus')}<span>Criar primeiro projeto</span></button></div>`;
   pageContent().innerHTML = html;
 }
