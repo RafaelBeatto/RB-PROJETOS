@@ -1,0 +1,203 @@
+import { currentProject, refreshProject } from '../../app/navigation';
+import { askFields } from '../../components/dialog';
+import { icon } from '../../components/icons';
+import { closeModal, modalField, openModal } from '../../components/modal';
+import { showToast } from '../../components/toast';
+import {
+  addComment,
+  addLink,
+  deleteTask,
+  dependenciesOf,
+  dependentsOf,
+  findTask,
+  isBlocked,
+  removeLink,
+  saveTask,
+} from '../../services/taskService';
+import type { Project } from '../../types/project';
+import { PRIORITIES, TASK_STATUSES, type Priority, type Subtask, type Task, type TaskDraft, type TaskStatus } from '../../types/task';
+import { $$, esc } from '../../utils/dom';
+import { uid } from '../../utils/ids';
+
+function dependencyFlow(t: Task, p: Project): string {
+  const before = dependenciesOf(t, p);
+  const after = dependentsOf(t, p);
+  if (!before.length && !after.length) return '';
+  const item = (x: Task): string => {
+    const done = x.status === 'Concluído';
+    return `<span class="flow-item ${done ? 'ok' : ''}">${done ? icon('check') : icon('milestone')} ${esc(x.title)}</span>`;
+  };
+  const warn = isBlocked(t, p) ? `<div class="flow-warn">${icon('lock')} Bloqueada — aguardando dependências</div>` : '';
+  return `<div class="flow">${warn}${before.map((x) => `${item(x)}<i>↓</i>`).join('')}<span class="flow-item cur">${esc(t.title)}</span>${after
+    .map((x) => `<i>↓</i>${item(x)}`)
+    .join('')}</div>`;
+}
+
+function checklistRow(s: Subtask): string {
+  return `<div class="next-task"><input type="checkbox" ${s.done ? 'checked' : ''} data-sub="${s.id}" aria-label="Concluído"><span class="sub-t" title="Toque para renomear">${esc(
+    s.title,
+  )}</span><button type="button" class="sub-x" aria-label="Remover item">${icon('close')}</button></div>`;
+}
+
+function commentsHtml(t: Task): string {
+  return t.comments.map((c) => `<div class="cmt"><b>${esc(c.who)}</b>${esc(c.text)}</div>`).join('') || '<div class="cmt"><b>Nenhum comentário.</b></div>';
+}
+
+function linksHtml(t: Task): string {
+  return t.links
+    .map((l) => {
+      const isUrl = /^https?:\/\//i.test(l.url);
+      const label = esc(l.label || l.url);
+      const content = isUrl ? `${icon('link')} <a href="${esc(l.url)}" target="_blank" rel="noopener">${label}</a>` : `${icon('paperclip')} ${label}`;
+      return `<div class="lnk"><span>${content}</span><button type="button" data-del-link="${l.id}" aria-label="Remover">${icon('close')}</button></div>`;
+    })
+    .join('');
+}
+
+function extrasHtml(t: Task): string {
+  return `<div class="sec"><h3>Comentários</h3><div id="cmts">${commentsHtml(
+    t,
+  )}</div><div class="cmt-add"><input class="field" id="cmtText" placeholder="Escrever comentário" aria-label="Comentário"><button class="ghost" type="button" id="cmtBtn">Enviar</button></div></div><div class="sec"><h3>Anexos</h3><div id="lnks">${linksHtml(
+    t,
+  )}</div><button class="ghost" type="button" id="lnkBtn">${icon('plus')}Link ou arquivo</button></div>`;
+}
+
+function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: string): string {
+  const selectedBranch = t ? t.branch : branch;
+  const sel = (on: boolean): string => (on ? 'selected' : '');
+  const statusOpts = TASK_STATUSES.map((s) => `<option ${sel((t?.status ?? status) === s)}>${s}</option>`).join('');
+  const prioOpts = PRIORITIES.map((x) => `<option ${sel(t?.priority === x)}>${x}</option>`).join('');
+  const branchOpts = p.branches.map((b) => `<option value="${b.id}" ${sel(selectedBranch === b.id)}>${esc(b.name)}</option>`).join('');
+  const depOpts = p.tasks
+    .filter((x) => x.id !== t?.id)
+    .map((x) => `<option value="${x.id}" ${sel(!!t?.dependencies.includes(x.id))}>${esc(x.title)}${x.status !== 'Concluído' ? ' (pendente)' : ''}</option>`)
+    .join('');
+  return `${t ? dependencyFlow(t, p) : ''}<form id="taskForm"><div class="form-grid"><label>Título<input class="field" name="title" required value="${esc(
+    t?.title ?? '',
+  )}"></label><label>Status<select class="field" name="status">${statusOpts}</select></label><label>Responsável<input class="field" name="assignee" list="usersList" value="${esc(
+    t?.assignee ?? '',
+  )}"></label><label>Prazo<input class="field" type="date" name="due" value="${esc(
+    t?.due ?? '',
+  )}"></label><label>Prioridade<select class="field" name="priority">${prioOpts}</select></label><label>Ramificação<select class="field" name="branch"><option value="">Sem ramificação</option>${branchOpts}</select></label></div><div class="form-full"><label>Descrição<textarea class="field" name="description">${esc(
+    t?.description ?? '',
+  )}</textarea></label></div><div class="form-full"><label>Dependências<select class="field" name="dependencies" multiple size="3">${depOpts}</select></label></div><div class="form-full"><label>Checklist <span id="subProg"></span></label><div class="pbar" style="margin:8px 0"><i id="subBar"></i></div><div id="subs">${(
+    t?.subtasks ?? []
+  )
+    .map(checklistRow)
+    .join('')}</div><button class="ghost" type="button" id="newSub">${icon('plus')}Item</button></div><div class="modal-actions">${
+    t ? `<button type="button" class="danger" id="deleteTask">${icon('trash')}Excluir</button>` : '<span></span>'
+  }<button class="primary">Salvar</button></div></form>${t ? extrasHtml(t) : ''}`;
+}
+
+function readChecklist(): Subtask[] {
+  return $$<HTMLInputElement>('#subs [data-sub]').map((box) => ({
+    id: box.dataset.sub ?? uid('s'),
+    title: box.nextElementSibling?.textContent ?? '',
+    done: box.checked,
+  }));
+}
+
+function updateChecklistProgress(): void {
+  const items = readChecklist();
+  const done = items.filter((s) => s.done).length;
+  modalField('#subProg').textContent = items.length ? `${done}/${items.length}` : '';
+  modalField('#subBar').style.width = `${items.length ? (done / items.length) * 100 : 0}%`;
+}
+
+function bindChecklist(): void {
+  const list = modalField<HTMLElement>('#subs');
+  modalField('#newSub').addEventListener('click', async () => {
+    const r = await askFields('Novo item', [{ label: 'Nome do item', required: true }]);
+    if (!r?.[0]) return;
+    list.insertAdjacentHTML('beforeend', checklistRow({ id: uid('s'), title: r[0], done: false }));
+    updateChecklistProgress();
+  });
+  list.addEventListener('change', updateChecklistProgress);
+  list.addEventListener('click', async (e) => {
+    const target = e.target as Element;
+    const row = target.closest('.next-task');
+    if (!row) return;
+    if (target.closest('.sub-x')) {
+      row.remove();
+      updateChecklistProgress();
+    } else if (target.closest('.sub-t')) {
+      const label = row.querySelector('.sub-t');
+      const r = await askFields('Renomear item', [{ label: 'Nome', value: label?.textContent ?? '', required: true }]);
+      if (r?.[0] && label) label.textContent = r[0];
+    }
+  });
+  updateChecklistProgress();
+}
+
+function bindExtras(p: Project, t: Task): void {
+  const input = modalField<HTMLInputElement>('#cmtText');
+  const send = (): void => {
+    const text = input.value.trim();
+    if (!text) return;
+    addComment(p, t, text);
+    input.value = '';
+    modalField('#cmts').innerHTML = commentsHtml(t);
+  };
+  modalField('#cmtBtn').addEventListener('click', send);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      send();
+    }
+  });
+  const links = modalField<HTMLElement>('#lnks');
+  modalField('#lnkBtn').addEventListener('click', async () => {
+    const r = await askFields('Adicionar anexo', [{ label: 'Link (https://…) ou nome do arquivo', required: true }, { label: 'Nome de exibição (opcional)' }]);
+    if (!r?.[0]) return;
+    addLink(t, r[0], r[1] ?? '');
+    links.innerHTML = linksHtml(t);
+  });
+  links.addEventListener('click', (e) => {
+    const button = (e.target as Element).closest<HTMLElement>('[data-del-link]');
+    if (!button?.dataset.delLink) return;
+    removeLink(t, button.dataset.delLink);
+    links.innerHTML = linksHtml(t);
+  });
+}
+
+function readDraft(form: HTMLFormElement): TaskDraft {
+  const data = new FormData(form);
+  const text = (name: string): string => String(data.get(name) ?? '').trim();
+  const status = text('status') as TaskStatus;
+  const priority = text('priority') as Priority;
+  return {
+    title: text('title'),
+    status: TASK_STATUSES.includes(status) ? status : 'A fazer',
+    priority: PRIORITIES.includes(priority) ? priority : 'Média',
+    assignee: text('assignee'),
+    due: text('due'),
+    branch: text('branch'),
+    description: text('description'),
+    dependencies: data.getAll('dependencies').map(String),
+    subtasks: readChecklist(),
+  };
+}
+
+export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branch = ''): void {
+  const p = currentProject();
+  const task = findTask(p, id);
+  openModal(task ? 'Editar tarefa' : 'Nova tarefa', formHtml(p, task, status, branch));
+  bindChecklist();
+  if (task) bindExtras(p, task);
+
+  modalField<HTMLFormElement>('#taskForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    saveTask(p, task, readDraft(e.currentTarget as HTMLFormElement));
+    closeModal();
+    refreshProject();
+    showToast(task ? 'Tarefa salva' : 'Tarefa criada');
+  });
+  if (task) {
+    modalField('#deleteTask').addEventListener('click', () => {
+      deleteTask(p, task);
+      closeModal();
+      refreshProject();
+      showToast('Tarefa excluída');
+    });
+  }
+}

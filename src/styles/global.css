@@ -1,0 +1,125 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+  color: inherit;
+}
+.app {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 218px 1fr;
+  grid-template-rows: 64px 1fr;
+}
+.topbar {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: #101217;
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 10;
+}
+.brand {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  font-size: 18px;
+}
+.brand i {
+  color: var(--blue);
+  font-style: normal;
+}
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
+.sidebar {
+  border-right: 1px solid var(--line);
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.nav-item {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  text-align: left;
+  padding: 10px 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.nav-item.active,
+.nav-item:hover {
+  background: #1b2130;
+  color: var(--text);
+}
+.nav-bottom {
+  margin-top: auto;
+}
+.main {
+  padding: 34px clamp(20px, 4vw, 56px);
+  max-width: 1500px;
+  width: 100%;
+  margin: 0 auto;
+}
+.mobile-only {
+  display: none;
+}
+#projects:has(.pboard) {
+  max-width: none;
+}
+.topbar .settings-top {
+  display: none;
+}
+[hidden] {
+  display: none !important;
+}
+/* Ícones SVG (Lucide) acompanham o tamanho e a cor do texto. */
+.ic {
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  vertical-align: -0.16em;
+}
+.nav-item .ic {
+  width: 17px;
+  height: 17px;
+  opacity: 0.9;
+}
+kbd {
+  font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+:focus-visible {
+  outline: 2px solid #3b82f6aa;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

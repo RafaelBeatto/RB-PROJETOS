@@ -1,0 +1,75 @@
+/** Estrutura fixa da aplicação: barra superior, navegação, áreas de conteúdo e camadas. */
+import type { Page, ProjectTab } from '../state/store';
+import { icon, type IconName } from './icons';
+import { modalShell } from './modal';
+
+const NAV: { page: Page; label: string; icon: IconName; mobile: boolean }[] = [
+  { page: 'home', label: 'Projetos', icon: 'projects', mobile: true },
+  { page: 'board', label: 'Kanban', icon: 'board', mobile: true },
+  { page: 'today', label: 'Hoje', icon: 'today', mobile: true },
+  { page: 'archive', label: 'Arquivados', icon: 'archive', mobile: false },
+  { page: 'users', label: 'Usuários', icon: 'users', mobile: false },
+  { page: 'history', label: 'Histórico', icon: 'activity', mobile: true },
+];
+
+const TABS: { tab: ProjectTab; label: string }[] = [
+  { tab: 'overview', label: 'Visão geral' },
+  { tab: 'info', label: 'Informações' },
+  { tab: 'kanban', label: 'Kanban' },
+  { tab: 'structure', label: 'Estrutura' },
+  { tab: 'list', label: 'Lista' },
+  { tab: 'timeline', label: 'Timeline' },
+];
+
+const navItem = (n: (typeof NAV)[number]): string =>
+  `<button class="nav-item${n.mobile ? '' : ' desktop-only'}" data-action="nav" data-page="${n.page}">${icon(n.icon)}<span>${n.label}</span></button>`;
+
+export function appShell(): string {
+  return `
+<div class="login" id="login" hidden></div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">RB <i>PROJECTS</i></div>
+    <div class="top-actions">
+      <button class="ghost settings-top" data-action="settings" aria-label="Configurações">${icon('settings')}</button>
+      <button class="ghost" data-action="search" aria-label="Pesquisar">${icon('search')}<span class="hide-sm">Pesquisar</span><kbd class="hide-sm">Ctrl K</kbd></button>
+      <button class="primary" data-action="project-new">${icon('plus')}<span>Projeto</span></button>
+    </div>
+  </header>
+  <aside class="sidebar" aria-label="Navegação">
+    ${NAV.map(navItem).join('')}
+    <button class="nav-item mobile-only" data-action="more">${icon('more')}<span>Mais</span></button>
+    <div class="nav-bottom">
+      <button class="nav-item" data-action="settings">${icon('settings')}<span>Configurações</span></button>
+      <button class="nav-item" data-action="logout">${icon('logout')}<span>Sair</span></button>
+    </div>
+  </aside>
+  <main class="main">
+    <section id="home">
+      <div class="page-head">
+        <div><h1 id="pageTitle">Projetos</h1><p class="sub" id="pageSub"></p></div>
+        <button class="primary" id="homeNew" data-action="project-new">${icon('plus')}<span>Novo projeto</span></button>
+      </div>
+      <div id="homeFilters"></div>
+      <div id="projects" class="projects"></div>
+    </section>
+    <section id="projectView" class="project-view" hidden>
+      <button class="crumb" data-action="back">${icon('chevronLeft')}Projetos</button>
+      <div class="project-title">
+        <div><h1 id="pName"></h1><p class="sub" id="pDescription"></p></div>
+        <div class="top-actions">
+          <button class="ghost" data-action="project-edit">${icon('edit')}<span>Editar</span></button>
+          <button class="primary" data-action="add-menu">${icon('plus')}<span>Adicionar</span></button>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="Seções do projeto">
+        ${TABS.map((t) => `<button class="tab" data-action="tab" data-tab="${t.tab}">${t.label}</button>`).join('')}
+      </nav>
+      <div id="viewContent"></div>
+    </section>
+  </main>
+</div>
+${modalShell()}
+<div id="toast" class="toast" role="status" hidden></div>
+<datalist id="usersList"></datalist>`;
+}

@@ -1,0 +1,164 @@
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+.page-head h1 {
+  font-size: 26px;
+  letter-spacing: -0.04em;
+  margin: 0;
+}
+.search-results {
+  margin-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.result {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.result small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.empty {
+  border: 1px dashed #394253;
+  border-radius: var(--radius);
+  padding: 45px 24px;
+  text-align: center;
+  color: var(--muted);
+}
+.today-g {
+  margin-bottom: 22px;
+}
+.today-g h3 {
+  margin: 0 0 10px;
+}
+.today-i {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--panel);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.today-i small {
+  color: var(--muted);
+}
+.hist-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.hist-sum b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.hist-day {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 20px 0 8px;
+}
+.hist-i {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+.hist-i:hover,
+.hist-i:focus-visible {
+  border-color: #45516a;
+  outline: none;
+}
+.hist-body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.hist-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
+.hist-tag {
+  color: #91bdfd;
+}
+.more-list {
+  display: grid;
+  gap: 8px;
+}
+.more-list .ghost {
+  text-align: left;
+  min-height: 48px;
+  font-size: 15px;
+  color: var(--text);
+}
+.users {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.user-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.user-card > .av {
+  width: 40px;
+  height: 40px;
+  font-size: 13px;
+}
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+.user-info small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.user-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.user-acts {
+  display: flex;
+  gap: 6px;
+}
+.user-acts .ghost {
+  padding: 7px 10px;
+  min-height: 36px;
+}
+.today-g h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.more-list .ghost .ic {
+  width: 18px;
+  height: 18px;
+}

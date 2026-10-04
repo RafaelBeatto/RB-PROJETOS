@@ -1,0 +1,9 @@
+@import './variables.css';
+@import './global.css';
+@import './components.css';
+@import './projects.css';
+@import './tasks.css';
+@import './structure.css';
+@import './pages.css';
+@import './auth.css';
+@import './responsive.css';
