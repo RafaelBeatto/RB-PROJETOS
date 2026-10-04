@@ -401,6 +401,12 @@
 .column.drop-on {
   border-color: var(--blue);
 }
+.board.touch-dragging {
+  scroll-snap-type: none;
+}
+.task-card {
+  -webkit-touch-callout: none;
+}
 .drag-ghost {
   position: fixed;
   z-index: 60;
