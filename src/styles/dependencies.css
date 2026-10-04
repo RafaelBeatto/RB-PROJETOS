@@ -404,3 +404,9 @@
 .struct-note {
   font-size: 12px;
 }
+
+.bd-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

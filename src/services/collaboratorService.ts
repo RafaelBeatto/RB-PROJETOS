@@ -3,7 +3,7 @@
  *
  * Vínculos considerados (sem misturar com a coordenação do projeto):
  * - Tarefa: o usuário está entre os colaboradores da tarefa (`task.assignees`).
- * - Etapa: o usuário é o projetista da etapa (`branch.designer`).
+ * - Etapa: o usuário é o responsável pela etapa (`branch.designer`).
  * Projetos arquivados ficam de fora: não são trabalho em andamento.
  *
  * O agrupamento usa só os estados que já existem no sistema:

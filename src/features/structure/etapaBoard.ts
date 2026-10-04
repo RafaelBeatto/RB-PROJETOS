@@ -36,7 +36,7 @@ function etapaCard(p: Project, b: Branch): string {
   return `<article class="task-card ecard${badge ? ' is-blocked' : ''}" draggable="${canMove(p)}" data-action="branch-detail" data-id="${b.id}" tabindex="0"><h3>${esc(
     b.name,
   )}</h3>${path ? `<small class="pc-sub">Dentro de ${esc(path)}</small>` : ''}${badge}<div class="task-card-footer"><span>${
-    designer ? `${avatar(designer, true)} ${esc(designer.name)}` : '<span class="sub flat">Sem projetista</span>'
+    designer ? `${avatar(designer, true)} ${esc(designer.name)}` : '<span class="sub flat">Sem responsável</span>'
   }</span>${late ? '<span class="late-txt">Com atraso</span>' : ''}</div></article>`;
 }
 
