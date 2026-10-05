@@ -1,5 +1,5 @@
 /**
- * Aba "Etapas": Kanban das etapas (etapas) do projeto. É a tela inicial do projeto.
+ * Modo Kanban da aba "Etapas" (a tela inicial do projeto).
  * Mostra só as etapas; as tarefas ficam dentro de cada etapa (janela de detalhes).
  */
 import { currentProject, refreshProject } from '../../app/navigation';
@@ -20,8 +20,7 @@ import { TASK_STATUSES, type TaskStatus } from '../../types/task';
 import { onClick } from '../../utils/actions';
 import { $$, esc, plural } from '../../utils/dom';
 import { blockedBadge } from '../dependencies/dependencyView';
-import { registerTab } from '../projects/projectView';
-import { branchFilterBar, matchesBranchFilters } from './branchFilters';
+import { matchesBranchFilters } from './branchFilters';
 import { openNewBranchModal } from './branchModals';
 
 /** Mover etapas muda o status: exige Kanban → Editar e Estrutura → Editar. */
@@ -46,7 +45,7 @@ function looseNotice(p: Project): string {
   return `<div class="loose-note">${icon('info')}<span>${plural(loose, 'tarefa está', 'tarefas estão')} sem etapa.</span><button class="ghost" data-action="loose-tasks">Escolher etapa</button></div>`;
 }
 
-function renderBoard(p: Project): string {
+export function renderEtapaBoard(p: Project): string {
   const list = p.branches.filter((b) => matchesBranchFilters(p, b));
   const canCreate = can('structure', 'create', p.id);
   const columns = TASK_STATUSES.map((status) => {
@@ -58,10 +57,10 @@ function renderBoard(p: Project): string {
   const empty = p.branches.length
     ? ''
     : `<div class="empty">Nenhuma etapa ainda.${canCreate ? `<br><br><button class="primary" data-action="etapa-new" data-status="A fazer">${icon('plus')}<span>Criar primeira etapa</span></button>` : ''}</div>`;
-  return `${branchFilterBar(p)}${looseNotice(p)}${empty || `<div class="board">${columns}</div>`}`;
+  return `${looseNotice(p)}${empty || `<div class="board">${columns}</div>`}`;
 }
 
-function mountBoard(p: Project, container: HTMLElement): void {
+export function mountEtapaBoard(p: Project, container: HTMLElement): void {
   if (!canMove(p)) return;
   const move = (id: string, column: HTMLElement): void => {
     const b = findBranch(p, id);
@@ -100,7 +99,6 @@ function openLooseTasks(p: Project): void {
 }
 
 export function initEtapaBoard(): void {
-  registerTab('kanban', { render: renderBoard, mount: mountBoard });
   onClick('etapa-new', (el) => {
     const status = el.dataset.status as TaskStatus | undefined;
     openNewBranchModal(null, status && TASK_STATUSES.includes(status) ? status : 'A fazer');

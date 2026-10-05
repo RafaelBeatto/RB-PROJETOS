@@ -16,7 +16,7 @@ export const PERMISSION_MODULES = {
   projects: { label: 'Projetos', actions: ['view', 'create', 'edit', 'delete'], hint: 'Excluir = arquivar e desarquivar projetos; Editar inclui marcos.' },
   kanban: { label: 'Kanban / Etapas', actions: ['view', 'edit'], hint: 'Editar = mover cartões entre colunas (etapas e projetos).' },
   tasks: { label: 'Tarefas', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui checklist, comentários e anexos.' },
-  structure: { label: 'Etapas e Estrutura', actions: ['view', 'create', 'edit', 'delete'], hint: 'Criar, editar e excluir etapas; a aba Estrutura é só visualização.' },
+  structure: { label: 'Etapas e Estrutura', actions: ['view', 'create', 'edit', 'delete'], hint: 'Criar, editar e excluir etapas; Visualizar libera o Mapa e os Cartões na aba Etapas.' },
   map: { label: 'Mapa', actions: ['view', 'edit'], hint: 'Editar = mover cartões no mapa.' },
   collaborators: { label: 'Colaboradores', actions: ['view'], hint: 'Acompanhamento administrativo das atividades de cada colaborador.' },
   users: { label: 'Usuários', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui ativar e desativar.' },

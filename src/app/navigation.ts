@@ -81,6 +81,7 @@ export function openProject(id: string): void {
   ui.projectId = id;
   // O projeto abre nas Etapas; sem acesso ao Kanban, refreshProject cai na primeira aba permitida.
   ui.tab = 'kanban';
+  ui.structureMode = 'board';
   ui.cardLevel = null;
   ui.branchFilters = emptyBranchFilters();
   $('#home').hidden = true;

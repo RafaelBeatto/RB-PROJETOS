@@ -22,24 +22,25 @@ const PAGE_ACCESS: Record<Page, PermissionModule> = {
   settings: 'settings',
 };
 
-const TAB_ACCESS: Record<ProjectTab, PermissionModule> = {
-  overview: 'projects',
-  info: 'projects',
-  kanban: 'kanban',
-  structure: 'structure',
+/** Permissões que abrem cada aba ("|" = qualquer uma delas). */
+const TAB_ACCESS: Record<ProjectTab, string> = {
+  overview: 'projects.view',
+  info: 'projects.view',
+  // Etapas reúne o Kanban e a Estrutura (mapa e cartões): basta ver um dos dois.
+  kanban: 'kanban.view|structure.view',
   // Quem vê o projeto participa do chat dele.
-  chat: 'projects',
+  chat: 'projects.view',
 };
 
 export const PAGE_ORDER: Page[] = ['home', 'board', 'today', 'history', 'collaborators', 'archive', 'settings'];
-export const TAB_ORDER: ProjectTab[] = ['kanban', 'overview', 'info', 'structure', 'chat'];
+export const TAB_ORDER: ProjectTab[] = ['kanban', 'overview', 'info', 'chat'];
 
 export function canOpenPage(page: Page): boolean {
   return can(PAGE_ACCESS[page], 'view');
 }
 
 export function canOpenTab(tab: ProjectTab, projectId?: string): boolean {
-  return can(TAB_ACCESS[tab], 'view', projectId);
+  return canAny(TAB_ACCESS[tab], projectId);
 }
 
 /** Lê "modulo.acao" (ex.: "projects.create"); várias opções separadas por "|" valem como "ou". */

@@ -124,7 +124,7 @@ export function initHistory(): void {
     openProject(p.id);
     if (findTask(p, el.dataset.task)) openTaskModal(el.dataset.task);
     else if (findBranch(p, el.dataset.branch)) {
-      ui.tab = 'structure';
+      ui.tab = 'kanban';
       refreshProject();
       openBranchDetail(el.dataset.branch ?? '');
     }
