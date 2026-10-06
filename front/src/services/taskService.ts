@@ -1,12 +1,12 @@
 import type { Project } from '../types/project';
-import { TASK_STATUSES, type ChecklistItem, type Subtask, type SubtaskDraft, type Task, type TaskDraft, type TaskLink, type TaskStatus } from '../types/task';
+import { TASK_STATUSES, type ChecklistItem, type Subtask, type SubtaskDraft, type Task, type TaskDraft, type TaskStatus } from '../types/task';
 import type { User } from '../types/user';
 import { today } from '../utils/date';
 import { uid } from '../utils/ids';
 import { logActivity, logTaskStatus } from './activityService';
 import { cleanResponsibles, findBranch } from './branchService';
 import { cleanDependencies } from './dependencyService';
-import { deleteFile, formatBytes, MAX_FILE_BYTES, putFile } from './fileStore';
+import { stampCompletion } from './completionService';
 import { persistProjects } from './db';
 import { RuleError } from './errors';
 import { canCreateSubtask, canCreateTask, canEditChecklist, canEditSubtask, canEditTask, ensure } from './permissionService';
@@ -43,7 +43,8 @@ const peopleNames = (ids: string[]): string =>
 export function createTask(p: Project, input: TaskDraft): Task {
   ensure(canCreateTask(p, findBranch(p, input.branch)));
   const draft = validate(p, input, undefined);
-  const task: Task = { id: uid('t'), tags: '', checklist: [], subtasks: [], comments: [], links: [], ...draft };
+  const task: Task = { id: uid('t'), tags: '', checklist: [], subtasks: [], comments: [], ...draft };
+  stampCompletion(task, task.status === 'Concluído');
   p.tasks.push(task);
   logActivity(p, `criou "${task.title}"`, { kind: 'task', task: task.id, branch: task.branch });
   persistProjects();
@@ -57,6 +58,7 @@ export function updateTask(p: Project, task: Task, input: TaskDraft): void {
   if (draft.branch !== task.branch) ensure(canCreateTask(p, findBranch(p, draft.branch)));
   const old = { ...task };
   Object.assign(task, draft);
+  stampCompletion(task, task.status === 'Concluído');
   if (old.status !== task.status) logTaskStatus(p, task);
   if (String(old.dependencies) !== String(task.dependencies)) logActivity(p, `alterou as dependências de "${task.title}"`, { kind: 'task', task: task.id, branch: task.branch });
   if (String(old.assignees) !== String(task.assignees)) {
@@ -72,6 +74,7 @@ export function setTaskStatus(p: Project, t: Task, status: TaskStatus): boolean 
   ensure(canEditTask(p, t));
   if (!TASK_STATUSES.includes(status) || t.status === status) return false;
   t.status = status;
+  stampCompletion(t, status === 'Concluído');
   logTaskStatus(p, t);
   persistProjects();
   return true;
@@ -97,6 +100,7 @@ function validateSubtask(draft: SubtaskDraft): SubtaskDraft {
 export function createSubtask(p: Project, t: Task, input: SubtaskDraft): Subtask {
   ensure(canCreateSubtask(p, t));
   const subtask: Subtask = { id: uid('s'), ...validateSubtask(input) };
+  stampCompletion(subtask, subtask.status === 'Concluído');
   t.subtasks.push(subtask);
   logActivity(p, `criou a subtarefa "${subtask.title}" em "${t.title}"`, { kind: 'subtask', task: t.id, branch: t.branch });
   persistProjects();
@@ -108,6 +112,7 @@ export function updateSubtask(p: Project, t: Task, s: Subtask, input: SubtaskDra
   const draft = validateSubtask(input);
   const oldStatus = s.status;
   Object.assign(s, draft);
+  stampCompletion(s, s.status === 'Concluído');
   if (oldStatus !== s.status) logActivity(p, `moveu a subtarefa "${s.title}" (${t.title}) para ${s.status}`, { kind: 'subtask', task: t.id, branch: t.branch });
   persistProjects();
 }
@@ -116,6 +121,7 @@ export function setSubtaskStatus(p: Project, t: Task, s: Subtask, status: TaskSt
   ensure(canEditSubtask(p, t));
   if (!TASK_STATUSES.includes(status) || s.status === status) return;
   s.status = status;
+  stampCompletion(s, status === 'Concluído');
   logActivity(p, `moveu a subtarefa "${s.title}" (${t.title}) para ${status}`, { kind: 'subtask', task: t.id, branch: t.branch });
   persistProjects();
 }
@@ -144,6 +150,7 @@ export function setChecklistItemDone(p: Project, t: Task, id: string, done: bool
   const item = t.checklist.find((x) => x.id === id);
   if (!item) return;
   item.done = done;
+  stampCompletion(item, done);
   if (done) logActivity(p, `concluiu o item "${item.text}" em "${t.title}"`, { kind: 'checklist', task: t.id, branch: t.branch });
   persistProjects();
 }
@@ -158,42 +165,11 @@ export function checklistProgress(t: Task): { done: number; total: number } {
   return { done: t.checklist.filter((s) => s.done).length, total: t.checklist.length };
 }
 
-// Comentários e anexos: quem edita a tarefa.
+// Comentários: quem edita a tarefa.
 
 export function addComment(p: Project, task: Task, text: string): void {
   ensure(canEditTask(p, task));
   task.comments.push({ id: uid('c'), who: currentActor(p.owner), text, at: new Date().toISOString() });
   logActivity(p, `comentou em "${task.title}"`, { kind: 'comment', task: task.id, branch: task.branch });
   persistProjects();
-}
-
-export function addLink(p: Project, task: Task, url: string, label: string): void {
-  ensure(canEditTask(p, task));
-  task.links.push({ id: uid('l'), url, label });
-  persistProjects();
-}
-
-export function removeLink(p: Project, task: Task, linkId: string): void {
-  ensure(canEditTask(p, task));
-  const link = task.links.find((l) => l.id === linkId);
-  task.links = task.links.filter((l) => l.id !== linkId);
-  persistProjects();
-  if (link?.fileId) void deleteFile(link.fileId);
-}
-
-/** Anexa um arquivo de verdade (guardado no navegador, ver fileStore). */
-export async function addFile(p: Project, task: Task, file: File): Promise<TaskLink> {
-  ensure(canEditTask(p, task));
-  if (file.size > MAX_FILE_BYTES) throw new RuleError(`“${file.name}” passa de ${formatBytes(MAX_FILE_BYTES)}, o limite por arquivo.`);
-  const fileId = uid('f');
-  try {
-    await putFile(fileId, file);
-  } catch {
-    throw new RuleError(`Não foi possível guardar “${file.name}” neste navegador (espaço cheio ou bloqueado).`);
-  }
-  const link: TaskLink = { id: uid('l'), url: '', label: file.name, fileId, size: file.size, mime: file.type };
-  task.links.push(link);
-  logActivity(p, `anexou "${file.name}" em "${task.title}"`, { kind: 'task', task: task.id, branch: task.branch });
-  persistProjects();
-  return link;
 }

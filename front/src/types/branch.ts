@@ -1,11 +1,11 @@
-import type { OptionalPriority } from './task';
+import type { Completion, OptionalPriority } from './task';
 
 /** Status da etapa (colunas do Kanban de etapas, nesta ordem). */
 export const BRANCH_STATUSES = ['Em espera', 'Em pausa', 'Em andamento', 'Concluído'] as const;
 export type BranchStatus = (typeof BRANCH_STATUSES)[number];
 
 /** Etapa do projeto (no código, "branch" por compatibilidade com os dados salvos). */
-export interface Branch {
+export interface Branch extends Completion {
   id: string;
   name: string;
   description: string;

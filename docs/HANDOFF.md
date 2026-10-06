@@ -9,8 +9,8 @@ As regras de negócio novas (hierarquia, status, permissões por função, depen
 | Contratantes | Configurações → Contratantes; campo no projeto | Igual à versão anterior. Acesso só pela matriz (módulo "Contratantes"). O perfil Coordenador **não** recebeu esse módulo. | Quem cadastra contratantes? O Coordenador deve ter acesso? |
 | Convênio (processo, órgão, número, valores, origem do recurso) | Formulário e aba Informações do projeto | Igual. Quem edita o projeto edita o convênio. | Continua fazendo parte do projeto? |
 | Marcos | Visão geral do projeto | Igual. Quem edita o projeto (Administrador e Coordenador) cria e edita marcos. | Continuam? Quem edita? |
-| Chat do projeto | Aba Chat | Igual. Quem vê o projeto usa o chat; o autor apaga as próprias mensagens e o Administrador apaga qualquer uma. O Visualizador **pode escrever** no chat. | O Visualizador deve poder escrever? O Coordenador deve apagar mensagens? |
-| Comentários e anexos (links) | Janela da tarefa | Quem edita a tarefa comenta e anexa. | Continuam? Quem pode? |
+| Chat do projeto | Aba Chat | Quem vê o projeto lê o chat. **Decidido:** o Visualizador só lê, não escreve. O autor apaga as próprias mensagens e o Administrador apaga qualquer uma. | O Coordenador deve apagar mensagens? |
+| Comentários | Janela da tarefa | Quem edita a tarefa comenta. **Decidido:** anexos e links foram removidos do sistema. | Continuam? Quem pode? |
 | Hoje | Menu Hoje | Mostra só os projetos que o usuário vê. | Continua? |
 | Histórico | Menu Histórico e Visão geral | Mostra só os projetos que o usuário vê. Projetos na lixeira saem do histórico até serem restaurados. | Continua? |
 | Colaboradores | Menu Colaboradores | Acesso pela matriz (módulo "Colaboradores"); o Coordenador recebeu. "Bloqueadas" virou "Em espera" (projeto ou etapa em espera/pausa), porque as dependências não bloqueiam mais. | Continua? Quem acessa? |

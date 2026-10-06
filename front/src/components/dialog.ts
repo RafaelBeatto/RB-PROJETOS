@@ -67,3 +67,8 @@ export function askFields(title: string, fields: DialogField[], confirmLabel = '
 export async function confirmDanger(title: string, message: string, confirmLabel = 'Excluir'): Promise<boolean> {
   return (await openDialog(title, { message, confirmLabel, danger: true })) !== null;
 }
+
+/** Confirmação comum (botão azul): para avisos que não apagam nada. */
+export async function confirmAction(title: string, message: string, confirmLabel = 'Continuar'): Promise<boolean> {
+  return (await openDialog(title, { message, confirmLabel })) !== null;
+}

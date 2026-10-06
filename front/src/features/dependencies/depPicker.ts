@@ -2,6 +2,7 @@
  * Seletor de dependências (etapas e tarefas do mesmo projeto) usado nos formulários
  * da tarefa e da etapa, e o resumo "Depende de / Dependem deste".
  */
+import { confirmAction } from '../../components/dialog';
 import { icon } from '../../components/icons';
 import { dependencyItems, dependencyOptions, dependentItems, type DepItem, type DepOwner } from '../../services/dependencyService';
 import type { Project } from '../../types/project';
@@ -72,4 +73,26 @@ export function relationsHtml(p: Project, id: string, deps: string[]): string {
   return `<div class="deps-view">${before.length ? `<div><span class="lbl">${icon('link')} Depende de</span>${chips(before)}</div>` : ''}${
     after.length ? `<div><span class="lbl">${icon('arrowRight')} Dependem deste</span>${chips(after)}</div>` : ''
   }</div>`;
+}
+
+/** Status em que o item conta como iniciado. */
+const STARTED = ['Em andamento', 'Concluído'];
+
+const stateOf = (status: string): string => (status === 'A fazer' ? 'ainda não foi iniciada' : `ainda está ${status.toLowerCase()}`);
+
+/**
+ * Aviso (não trava): ao iniciar ou concluir algo que depende de itens ainda não concluídos,
+ * pergunta se quer continuar. Devolve true para seguir.
+ */
+export async function confirmPendingDependencies(p: Project, deps: string[], previous: string | undefined, next: string): Promise<boolean> {
+  if (!STARTED.includes(next) || next === previous) return true;
+  const pending = dependencyItems(p, deps).filter((x) => x.status !== 'Concluído');
+  if (!pending.length) return true;
+  const verb = next === 'Concluído' ? 'Concluir' : 'Iniciar';
+  const what = (x: DepItem, article: 'da' | 'a'): string => `${article} ${x.kind === 'branch' ? 'etapa' : 'tarefa'} “${x.name}”, que ${stateOf(x.status)}`;
+  const message =
+    pending.length === 1
+      ? `Depende ${what(pending[0]!, 'da')}. ${verb} mesmo assim?`
+      : `Depende de itens ainda não concluídos: ${pending.map((x) => what(x, 'a')).join('; ')}. ${verb} mesmo assim?`;
+  return confirmAction('Dependência pendente', message, `${verb} mesmo assim`);
 }

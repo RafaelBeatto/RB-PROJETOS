@@ -42,6 +42,12 @@ function installPermissionErrors(): void {
 }
 
 function start(): void {
+  // Anexos foram removidos do sistema: apaga os arquivos que tenham ficado guardados no navegador.
+  try {
+    indexedDB.deleteDatabase('rb-files');
+  } catch {
+    /* armazenamento indisponível: nada a apagar */
+  }
   installPermissionErrors();
   loadDatabase();
   $('#app').innerHTML = appShell();

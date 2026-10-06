@@ -8,7 +8,7 @@ import type { User } from '../types/user';
 import { uid } from '../utils/ids';
 import { currentUser } from './authService';
 import { db, persistProjects } from './db';
-import { PermissionDeniedError, canSeeProject, ensure, isAdmin } from './permissionService';
+import { PermissionDeniedError, canSeeProject, ensure, isAdmin, roleOf } from './permissionService';
 import { STORAGE_KEYS, readJSON, writeJSON } from './storage';
 
 /** Palavra que marca todo mundo. */
@@ -77,8 +77,14 @@ export function mentionsUser(m: ChatMessage, userId: string): boolean {
   return m.everyone || m.mentions.includes(userId);
 }
 
+/** Quem vê o projeto lê o chat; escrever é para todos menos o Visualizador (somente leitura). */
+export function canWriteChat(p: Project): boolean {
+  const user = currentUser();
+  return canSeeProject(p) && !!user && roleOf(user, p.id) !== 'viewer';
+}
+
 export function sendChatMessage(p: Project, raw: string): ChatMessage | null {
-  ensure(canSeeProject(p));
+  ensure(canWriteChat(p));
   const user = currentUser();
   const text = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
   if (!user || !text) return null;

@@ -24,7 +24,6 @@ import {
   type Subtask,
   type Task,
   type TaskComment,
-  type TaskLink,
   type TaskStatus,
 } from '../types/task';
 import type { User } from '../types/user';
@@ -51,9 +50,14 @@ function migrateBranchStatus(v: unknown): BranchStatus {
   return oneOf<BranchStatus>(BRANCH_STATUSES, v, 'Em espera');
 }
 
+/** Registro de conclusão (quem e quando), se existir. */
+function completion(r: Raw): { doneBy?: string; doneByName?: string; doneAt?: string } {
+  return str(r.doneAt) ? { doneBy: str(r.doneBy), doneByName: str(r.doneByName), doneAt: str(r.doneAt) } : {};
+}
+
 function migrateChecklistItem(r: Raw): ChecklistItem {
   // Formato antigo: { title, done }.
-  return { id: str(r.id) || uid('ck'), text: str(r.text) || str(r.title), done: r.done === true };
+  return { id: str(r.id) || uid('ck'), text: str(r.text) || str(r.title), done: r.done === true, ...(r.done === true ? completion(r) : {}) };
 }
 
 function migrateSubtask(r: Raw): Subtask {
@@ -65,6 +69,7 @@ function migrateSubtask(r: Raw): Subtask {
     start: str(r.start),
     due: str(r.due),
     status: migrateTaskStatus(r.status),
+    ...completion(r),
   };
 }
 
@@ -82,16 +87,6 @@ function migrateChatMessage(r: Raw): ChatMessage {
     mentions: ids(r.mentions),
     everyone: r.everyone === true,
   };
-}
-
-function migrateLink(r: Raw): TaskLink {
-  const link: TaskLink = { id: str(r.id) || uid('l'), url: str(r.url), label: str(r.label) };
-  if (str(r.fileId)) {
-    link.fileId = str(r.fileId);
-    link.size = typeof r.size === 'number' ? r.size : 0;
-    link.mime = str(r.mime);
-  }
-  return link;
 }
 
 /**
@@ -129,7 +124,7 @@ function migrateTask(r: Raw, projectId: string): Task {
     checklist: objs(hasChecklist ? r.checklist : r.subtasks).map(migrateChecklistItem),
     subtasks: hasChecklist ? objs(r.subtasks).map(migrateSubtask) : [],
     comments: objs(r.comments).map(migrateComment),
-    links: objs(r.links).map(migrateLink),
+    ...completion(r),
   };
 }
 
@@ -147,6 +142,7 @@ function migrateBranch(r: Raw, tasks: Task[], raw: Raw[], projectId: string): Br
     status: typeof r.status === 'string' ? migrateBranchStatus(r.status) : statusFromTasks(id, tasks, raw),
     assignees: assignees.slice(0, MAX_RESPONSIBLES),
     dependencies: migrateTaskDependencies(r.dependencies, projectId),
+    ...completion(r),
   };
 }
 

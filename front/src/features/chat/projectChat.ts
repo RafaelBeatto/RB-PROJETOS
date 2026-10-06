@@ -16,6 +16,7 @@ import {
   markChatSeen,
   mentionableUsers,
   mentionsUser,
+  canWriteChat,
   sendChatMessage,
   unreadMentions,
 } from '../../services/chatService';
@@ -70,6 +71,11 @@ function renderChat(p: Project): string {
     })
     .join('');
   const empty = `<div class="chat-empty">${icon('comment')}<p>Nenhuma mensagem ainda.</p><p class="sub flat">Converse com a equipe sobre este projeto. Use <b>@</b> para marcar alguém ou <b>@${EVERYONE}</b> para marcar todos.</p></div>`;
+  if (!canWriteChat(p)) {
+    return `<div class="chat"><div class="chat-log" id="chatLog" aria-live="polite">${log || empty}</div><p class="chat-hint chat-readonly">${icon(
+      'lock',
+    )}Seu perfil (Visualizador) pode ler o chat, mas não enviar mensagens.</p></div>`;
+  }
   return `<div class="chat"><div class="chat-log" id="chatLog" aria-live="polite">${log || empty}</div><form class="chat-compose" id="chatForm" autocomplete="off">
   <div class="chat-input"><div class="mention-pop" id="mentionPop" role="listbox" aria-label="Marcar pessoa" hidden></div>
   <textarea class="field" id="chatText" rows="1" maxlength="${MAX_MESSAGE_LENGTH}" placeholder="Escreva uma mensagem… use @ para marcar alguém" aria-label="Mensagem">${esc(drafts.get(p.id) ?? '')}</textarea></div>
@@ -104,6 +110,11 @@ function mentionOptions(): MentionOption[] {
 /** Liga envio, rascunho, altura automática e a lista de marcação ao campo de texto. */
 function mountChat(p: Project, container: HTMLElement): void {
   markChatSeen(p);
+  if (!canWriteChat(p)) {
+    const log = container.querySelector<HTMLElement>('#chatLog');
+    if (log) log.scrollTop = log.scrollHeight;
+    return;
+  }
   const log = $('#chatLog', container);
   const form = $<HTMLFormElement>('#chatForm', container);
   const input = $<HTMLTextAreaElement>('#chatText', container);

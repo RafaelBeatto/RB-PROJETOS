@@ -10,15 +10,23 @@ export type OptionalPriority = Priority | '';
 /** Tarefa e etapa aceitam no máximo dois responsáveis. */
 export const MAX_RESPONSIBLES = 2;
 
+/** Quem concluiu e quando (preenchido ao concluir, apagado ao reabrir). */
+export interface Completion {
+  doneBy?: string;
+  /** Nome no momento da conclusão, para exibir mesmo se o usuário for excluído. */
+  doneByName?: string;
+  doneAt?: string;
+}
+
 /** Item do checklist: só texto e marcado/desmarcado. */
-export interface ChecklistItem {
+export interface ChecklistItem extends Completion {
   id: string;
   text: string;
   done: boolean;
 }
 
 /** Subtarefa: não tem responsável próprio; herda os responsáveis da tarefa. */
-export interface Subtask {
+export interface Subtask extends Completion {
   id: string;
   title: string;
   description: string;
@@ -35,18 +43,7 @@ export interface TaskComment {
   at: string;
 }
 
-export interface TaskLink {
-  id: string;
-  /** Endereço (link) ou nome digitado; vazio quando é um arquivo enviado. */
-  url: string;
-  label: string;
-  /** Arquivo enviado: id no armazenamento de arquivos (IndexedDB), tamanho e tipo. */
-  fileId?: string;
-  size?: number;
-  mime?: string;
-}
-
-export interface Task {
+export interface Task extends Completion {
   id: string;
   title: string;
   status: TaskStatus;
@@ -66,7 +63,6 @@ export interface Task {
   checklist: ChecklistItem[];
   subtasks: Subtask[];
   comments: TaskComment[];
-  links: TaskLink[];
 }
 
 export type TaskDraft = Pick<Task, 'title' | 'status' | 'priority' | 'assignees' | 'assignee' | 'start' | 'due' | 'branch' | 'description' | 'dependencies'>;

@@ -13,7 +13,6 @@
 import type { Project } from '../types/project';
 import type { Subtask, Task } from '../types/task';
 import { dropDependencies } from './dependencyService';
-import { deleteFile } from './fileStore';
 import { TRASH_LABELS, type TrashEntry, type TrashKind } from '../types/trash';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
@@ -272,11 +271,6 @@ function itemIdsIn(entries: TrashEntry[]): Set<string> {
   return ids;
 }
 
-/** Arquivos anexados às tarefas que deixam de existir de vez. */
-function fileIdsIn(entries: TrashEntry[]): string[] {
-  const tasks = entries.flatMap((e) => (e.kind === 'project' ? e.project.tasks : e.kind === 'branch' ? e.tasks : e.kind === 'task' ? [e.task] : []));
-  return tasks.flatMap((t) => t.links.map((l) => l.fileId ?? '')).filter(Boolean);
-}
 
 export function purgeEntries(ids: string[]): number {
   if (!canPurge()) throw new PermissionDeniedError();
@@ -296,7 +290,6 @@ export function purgeEntries(ids: string[]): number {
   }
   persistTrash();
   persistProjects();
-  for (const fileId of fileIdsIn(gone)) void deleteFile(fileId);
   return gone.length;
 }
 

@@ -15,7 +15,7 @@ import { ui } from '../../state/store';
 import { BRANCH_STATUSES, type Branch, type BranchDraft, type BranchStatus } from '../../types/branch';
 import { MAX_RESPONSIBLES } from '../../types/task';
 import { esc } from '../../utils/dom';
-import { bindDepPicker, depPickerHtml } from '../dependencies/depPicker';
+import { bindDepPicker, confirmPendingDependencies, depPickerHtml } from '../dependencies/depPicker';
 
 function formHtml(b: Partial<Branch>, editing: boolean): string {
   const remove = editing && canDeleteBranch(currentProject()) ? `<button class="danger" type="button" id="deleteBranch">${icon('trash')}Excluir etapa</button>` : '<span></span>';
@@ -39,12 +39,14 @@ function readDraft(form: HTMLFormElement): BranchDraft {
 }
 
 /** Grava; erros de regra aparecem no formulário em vez de fechá-lo. */
-function bindForm(save: (draft: BranchDraft) => void, done: string): void {
+function bindForm(save: (draft: BranchDraft) => void, done: string, previous?: BranchStatus): void {
   const form = modalField<HTMLFormElement>('#branchForm');
   bindUserPicker(modalField('#branchPick'));
   bindDepPicker(form, currentProject(), () => ({ kind: 'branch', id: '' }), true);
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const pending = readDraft(form);
+    if (!(await confirmPendingDependencies(currentProject(), pending.dependencies, previous ?? 'Em espera', pending.status))) return;
     try {
       save(readDraft(form));
     } catch (error) {
@@ -74,7 +76,7 @@ export function openEditBranchModal(id: string): void {
   const b = findBranch(p, id);
   if (!b || !canEditBranch(p)) return;
   openModal('Editar etapa', formHtml(b, true));
-  bindForm((draft) => updateBranch(p, b, draft), 'Etapa salva');
+  bindForm((draft) => updateBranch(p, b, draft), 'Etapa salva', b.status);
   document.getElementById('deleteBranch')?.addEventListener('click', () => void confirmDeleteEtapa(b.id));
 }
 
