@@ -4,7 +4,7 @@
  * o caminho no projeto (Projeto → Etapa → Tarefa) e o que está impedindo o avanço.
  */
 import { canOpenTab } from '../../app/access';
-import { openProject, pageContent, refreshPage, registerPage, resetFilterBar, setFilterBar, setPageHeader } from '../../app/navigation';
+import { openBranch, openProject, pageContent, refreshPage, registerPage, resetFilterBar, setFilterBar, setPageHeader } from '../../app/navigation';
 import { avatar } from '../../components/avatar';
 import { clearButton, filterSearch, filterToggle, registerFilterGroup } from '../../components/filterBar';
 import { icon } from '../../components/icons';
@@ -18,7 +18,6 @@ import {
   type CollaboratorSummary,
 } from '../../services/collaboratorService';
 import { db } from '../../services/db';
-import { blockerText } from '../../services/dependencyService';
 import { findProfile } from '../../services/profileService';
 import { findUser } from '../../services/userService';
 import { emptyCollaboratorFilters, ui } from '../../state/store';
@@ -27,7 +26,6 @@ import { onClick } from '../../utils/actions';
 import { formatDate } from '../../utils/date';
 import { esc, plural } from '../../utils/dom';
 import { priorityClass, taskStatusClass } from '../../utils/format';
-import { openBranchDetail } from '../structure/branchDetail';
 import { openTaskModal } from '../tasks/taskModal';
 
 // Lista
@@ -55,7 +53,7 @@ function card(u: User, s: CollaboratorSummary): string {
     u.name,
   )}</b><small>${esc(identity(u) || '—')}</small></div>${s.attention ? `<span class="status late">${icon('warning')}${s.attention}</span>` : ''}</div><div class="collab-linked">${
     linked ? `${plural(s.tasks, 'tarefa', 'tarefas')} · ${plural(s.etapas, 'etapa', 'etapas')}` : 'Nenhuma atividade vinculada'
-  }</div><div class="cstats">${stat(s.pending, 'pendentes')}${stat(s.done, 'concluídas', 'ok')}${stat(s.blocked, 'bloqueadas', s.blocked ? 'warn' : '')}</div></article>`;
+  }</div><div class="cstats">${stat(s.pending, 'pendentes')}${stat(s.done, 'concluídas', 'ok')}${stat(s.waiting, 'em espera', s.waiting ? 'warn' : '')}</div></article>`;
 }
 
 function renderList(): void {
@@ -91,11 +89,8 @@ function activityHtml(a: CollaboratorActivity): string {
   ]
     .filter(Boolean)
     .join('');
-  const reasons = [...a.blockers.map(blockerText), ...(a.waitingReason ? [a.waitingReason] : [])];
-  const blocked = reasons.length
-    ? `<div class="ca-block">${icon('lock')}<div><b>${a.blockers.length ? 'Impedida de avançar' : 'Em espera'}</b><ul>${reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div></div>`
-    : '';
-  return `<article class="ca${a.late ? ' late' : ''}${a.blockers.length ? ' blocked' : ''}" data-action="collab-activity" data-project="${a.project.id}" data-kind="${a.kind}" data-id="${
+  const blocked = a.waitingReason ? `<div class="ca-block">${icon('lock')}<div><b>Em espera</b><ul><li>${esc(a.waitingReason)}</li></ul></div></div>` : '';
+  return `<article class="ca${a.late ? ' late' : ''}" data-action="collab-activity" data-project="${a.project.id}" data-kind="${a.kind}" data-id="${
     a.task?.id ?? a.branch?.id ?? ''
   }" tabindex="0" title="Abrir no projeto"><div class="ca-top"><span class="ca-kind">${icon(a.kind === 'task' ? 'done' : 'branch')}${a.kind === 'task' ? 'Tarefa' : 'Etapa'}</span><b class="ca-name">${esc(
     a.name,
@@ -115,12 +110,12 @@ function renderPanel(u: User): void {
   setFilterBar('collaborator-panel', () => '');
   const { activities, summary: s } = collaboratorData(u);
   const tiles = `<div class="cstats big">${stat(s.tasks, 'tarefas')}${stat(s.etapas, 'etapas')}${stat(s.pending, 'pendentes')}${stat(s.done, 'concluídas', 'ok')}${stat(
-    s.blocked,
-    'bloqueadas',
-    s.blocked ? 'warn' : '',
+    s.waiting,
+    'em espera',
+    s.waiting ? 'warn' : '',
   )}${stat(s.late, 'atrasadas', s.late ? 'bad' : '')}</div>`;
   const attention = s.attention
-    ? `<div class="ca-attention">${icon('warning')}<span>${plural(s.attention, 'atividade exige', 'atividades exigem')} atenção (atrasada ou bloqueada). Elas aparecem primeiro em cada grupo.</span></div>`
+    ? `<div class="ca-attention">${icon('warning')}<span>${plural(s.attention, 'atividade exige', 'atividades exigem')} atenção (atrasada). Elas aparecem primeiro em cada grupo.</span></div>`
     : '';
   const body = activities.length
     ? GROUP_ORDER.map((g) => groupHtml(g, activities)).join('')
@@ -135,6 +130,11 @@ function renderCollaborators(): void {
   else renderList();
 }
 
+/** Etapa da tarefa, para abrir a tarefa dentro dela. */
+function branchOfTask(projectId: string, taskId: string): string | null {
+  return db.projects.find((p) => p.id === projectId)?.tasks.find((t) => t.id === taskId)?.branch ?? null;
+}
+
 /** Abre a atividade no lugar dela: o projeto e a etapa ou a tarefa. */
 function openActivity(projectId: string, kind: string, id: string): void {
   if (!canOpenTab('overview', projectId)) {
@@ -142,8 +142,10 @@ function openActivity(projectId: string, kind: string, id: string): void {
     return;
   }
   openProject(projectId);
-  if (kind === 'task') openTaskModal(id);
-  else openBranchDetail(id);
+  if (kind === 'task') {
+    openBranch(branchOfTask(projectId, id));
+    openTaskModal(id);
+  } else openBranch(id);
 }
 
 export function initCollaborators(): void {

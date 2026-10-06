@@ -18,15 +18,12 @@ import {
   LayoutGrid,
   Link,
   Lock,
-  LockOpen,
   LogOut,
-  Map,
   MessageSquare,
   Paperclip,
   Pencil,
   Plus,
   RotateCcw,
-  Scan,
   Search,
   SendHorizontal,
   Settings,
@@ -39,8 +36,6 @@ import {
   UserCheck,
   Users,
   X,
-  ZoomIn,
-  ZoomOut,
 } from 'lucide';
 
 type IconNode = [tag: string, attrs: Record<string, string | number | undefined>][];
@@ -51,7 +46,6 @@ const ICONS = {
   arrowRight: ArrowRight,
   board: SquareKanban,
   branch: GitBranch,
-  cards: LayoutGrid,
   check: Check,
   chevronDown: ChevronDown,
   chevronLeft: ChevronLeft,
@@ -64,9 +58,7 @@ const ICONS = {
   info: Info,
   link: Link,
   lock: Lock,
-  unlock: LockOpen,
   logout: LogOut,
-  map: Map,
   milestone: Diamond,
   more: Ellipsis,
   moreVertical: EllipsisVertical,
@@ -74,7 +66,6 @@ const ICONS = {
   plus: Plus,
   projects: LayoutGrid,
   reset: RotateCcw,
-  scan: Scan,
   search: Search,
   send: SendHorizontal,
   selectOff: Square,
@@ -84,8 +75,6 @@ const ICONS = {
   trash: Trash,
   users: Users,
   warning: TriangleAlert,
-  zoomIn: ZoomIn,
-  zoomOut: ZoomOut,
 } satisfies Record<string, IconNode>;
 
 export type IconName = keyof typeof ICONS;

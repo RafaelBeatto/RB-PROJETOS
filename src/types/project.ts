@@ -1,18 +1,16 @@
 import type { Activity } from './activity';
-import type { Branch, Point } from './branch';
+import type { Branch } from './branch';
 import type { ChatMessage } from './chat';
-import type { Dependency } from './dependency';
-import type { Task } from './task';
+import type { OptionalPriority, Task } from './task';
 
 /**
  * Status do projeto (formulário e colunas do Kanban, nesta ordem).
- * Atraso não é status: é calculado pelo prazo (ver isProjectOverdue).
+ * Encerrar um projeto = arquivar (ver toggleArchived). Atraso não é status: vem da data de término.
  */
-export const PROJECT_STATUSES = ['Em espera', 'Em andamento', 'Em pausa', 'Concluído'] as const;
-export const PROJECT_BOARD_COLUMNS = PROJECT_STATUSES;
+export const PROJECT_STATUSES = ['Em espera', 'Em pausa', 'Em andamento', 'Em análise'] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
-/** Status que contam como "projeto iniciado"; exigem as dependências do projeto atendidas. */
-export const PROJECT_STARTED_STATUSES: readonly ProjectStatus[] = ['Em andamento', 'Concluído'];
+/** Iniciar a execução (ir para "Em andamento") exige pelo menos uma etapa. */
+export const PROJECT_RUNNING: ProjectStatus = 'Em andamento';
 
 export const MILESTONE_STATUSES = ['Pendente', 'Concluído'] as const;
 export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number];
@@ -22,11 +20,6 @@ export interface Milestone {
   name: string;
   due: string;
   status: MilestoneStatus;
-}
-
-/** Posição e zoom do canvas do mapa. */
-export interface MapView extends Point {
-  z: number;
 }
 
 export interface Agreement {
@@ -41,27 +34,25 @@ export interface Agreement {
 export interface Project extends Agreement {
   id: string;
   name: string;
-  /** Campo antigo: não é mais pedido no formulário; mantido para não perder dados. */
   description: string;
   status: ProjectStatus;
+  priority: OptionalPriority;
+  start: string;
+  /** Data de término (o campo se chama due por compatibilidade). */
+  due: string;
   /** Campo antigo "Responsável": substituído pelos coordenadores; mantido por compatibilidade. */
   owner: string;
-  due: string;
+  /** Projeto encerrado. */
   archived: boolean;
   coordinators: string[];
   /** Contratante cadastrada pelo administrador (vazio = nenhuma). */
   contratanteId: string;
-  /** O que precisa acontecer antes de o projeto (e tudo dentro dele) poder avançar. */
-  dependencies: Dependency[];
   branches: Branch[];
   tasks: Task[];
   milestones: Milestone[];
   activity: Activity[];
   /** Chat do projeto, da mensagem mais antiga para a mais nova. */
   chat: ChatMessage[];
-  /** Posição do cartão do projeto no mapa. */
-  root?: Point;
-  view?: MapView;
 }
 
-export type ProjectDraft = Pick<Project, 'name' | 'status' | 'due' | 'description' | 'coordinators' | 'contratanteId' | 'dependencies'> & Agreement;
+export type ProjectDraft = Pick<Project, 'name' | 'status' | 'priority' | 'start' | 'due' | 'description' | 'coordinators' | 'contratanteId'> & Agreement;

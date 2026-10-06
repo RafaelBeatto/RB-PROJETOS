@@ -2,16 +2,15 @@
  * Estado da interface (o que está aberto e quais filtros estão ativos).
  * Não é salvo: ao recarregar, a aplicação volta para a lista de projetos.
  */
-export type Page = 'home' | 'archive' | 'board' | 'today' | 'history' | 'collaborators' | 'settings';
+/** "home" é o Kanban de projetos (tela inicial). */
+export type Page = 'home' | 'archive' | 'today' | 'history' | 'collaborators' | 'trash' | 'settings';
 export type SettingsTab = 'users' | 'profiles' | 'contratantes';
 export type ProjectTab = 'overview' | 'info' | 'kanban' | 'chat';
-/** Modo de visualização da aba Etapas. */
-export type StructureMode = 'board' | 'map' | 'cards';
-export type QuickTaskFilter = 'all' | 'mine' | 'today' | 'late' | 'soon';
 
 export interface ProjectFilters {
   q: string;
   coordinator: string;
+  priority: string;
   contratante: string;
   sort: '' | 'name' | 'due' | 'prog';
 }
@@ -19,7 +18,15 @@ export interface ProjectFilters {
 export interface BranchFilters {
   q: string;
   designer: string;
+  priority: string;
   state: '' | 'late' | 'open' | 'done' | 'empty';
+}
+
+/** Filtros do Kanban de tarefas dentro da etapa. */
+export interface TaskFilters {
+  q: string;
+  person: string;
+  priority: string;
 }
 
 export interface TodayFilters {
@@ -51,8 +58,9 @@ export interface HistoryFilters {
   limit: number;
 }
 
-export const emptyProjectFilters = (): ProjectFilters => ({ q: '', coordinator: '', contratante: '', sort: '' });
-export const emptyBranchFilters = (): BranchFilters => ({ q: '', designer: '', state: '' });
+export const emptyProjectFilters = (): ProjectFilters => ({ q: '', coordinator: '', priority: '', contratante: '', sort: '' });
+export const emptyBranchFilters = (): BranchFilters => ({ q: '', designer: '', priority: '', state: '' });
+export const emptyTaskFilters = (): TaskFilters => ({ q: '', person: '', priority: '' });
 export const emptyUserFilters = (): UserFilters => ({ q: '', role: '', profile: '', status: '' });
 export const emptyCollaboratorFilters = (): CollaboratorFilters => ({ q: '', attention: false, inactive: false });
 export const emptyHistoryFilters = (): HistoryFilters => ({ q: '', project: '', person: '', kind: '', period: '', limit: 100 });
@@ -61,11 +69,13 @@ export const ui = {
   page: 'home' as Page,
   projectId: null as string | null,
   tab: 'overview' as ProjectTab,
-  structureMode: 'board' as StructureMode,
-  /** Nível aberto na visão Cartões (null = raiz do projeto). */
-  cardLevel: null as string | null,
+  /** Etapa aberta na aba Etapas (null = Kanban de etapas). */
+  branchId: null as string | null,
   projectFilters: emptyProjectFilters(),
   branchFilters: emptyBranchFilters(),
+  taskFilters: emptyTaskFilters(),
+  /** Itens marcados na lixeira. */
+  trashSelection: new Set<string>(),
   todayFilters: { project: '', person: '' } as TodayFilters,
   userFilters: emptyUserFilters(),
   settingsTab: 'users' as SettingsTab,

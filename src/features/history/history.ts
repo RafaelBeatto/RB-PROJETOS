@@ -1,10 +1,11 @@
-import { openProject, pageContent, refreshProject, registerPage, resetFilterBar, setFilterBar, setPageHeader } from '../../app/navigation';
+import { openBranch, openProject, pageContent, registerPage, resetFilterBar, setFilterBar, setPageHeader } from '../../app/navigation';
 import { avatar } from '../../components/avatar';
 import { clearButton, filterSearch, filterSelect, registerFilterGroup } from '../../components/filterBar';
 import { icon } from '../../components/icons';
 import { allEvents, kindOf, whoOf, type ProjectEvent } from '../../services/activityService';
 import { findBranch } from '../../services/branchService';
 import { db } from '../../services/db';
+import { visibleProjects } from '../../services/permissionService';
 import { findProject } from '../../services/projectService';
 import { findTask } from '../../services/taskService';
 import { personByName } from '../../services/userService';
@@ -13,7 +14,6 @@ import { ACTIVITY_KINDS } from '../../types/activity';
 import { onClick } from '../../utils/actions';
 import { dayLabel, formatTime, ymd, ymdOf } from '../../utils/date';
 import { esc, plural } from '../../utils/dom';
-import { openBranchDetail } from '../structure/branchDetail';
 import { openTaskModal } from '../tasks/taskModal';
 
 const PAGE_SIZE = 100;
@@ -24,7 +24,7 @@ function filterBar(): string {
   return `<div class="fbar">${filterSearch('history.q', 'Buscar no histórico', f.q)}<div class="fchips">${filterSelect(
     'history.project',
     'Projeto',
-    db.projects.map((p) => [p.id, p.name + (p.archived ? ' (arquivado)' : '')] as const),
+    visibleProjects().map((p) => [p.id, p.name + (p.archived ? ' (arquivado)' : '')] as const),
     f.project,
     'Todos',
   )}${filterSelect(
@@ -51,8 +51,10 @@ function filteredEvents(): ProjectEvent[] {
   const f = ui.historyFilters;
   const since = f.period ? ymd(1 - Number(f.period)) : '';
   const q = f.q.trim().toLowerCase();
+  const visible = new Set(visibleProjects());
   return allEvents().filter(
     (a) =>
+      visible.has(a.project) &&
       (!f.project || a.project.id === f.project) &&
       (!f.person || whoOf(a) === f.person) &&
       (!f.kind || kindOf(a) === f.kind) &&
@@ -122,11 +124,10 @@ export function initHistory(): void {
     const p = findProject(el.dataset.project);
     if (!p) return;
     openProject(p.id);
-    if (findTask(p, el.dataset.task)) openTaskModal(el.dataset.task);
-    else if (findBranch(p, el.dataset.branch)) {
-      ui.tab = 'kanban';
-      refreshProject();
-      openBranchDetail(el.dataset.branch ?? '');
-    }
+    const t = findTask(p, el.dataset.task);
+    if (t) {
+      openBranch(t.branch);
+      openTaskModal(t.id);
+    } else if (findBranch(p, el.dataset.branch)) openBranch(el.dataset.branch ?? null);
   });
 }

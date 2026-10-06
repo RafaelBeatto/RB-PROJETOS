@@ -4,12 +4,12 @@ import { icon, type IconName } from './icons';
 import { modalShell } from './modal';
 
 const NAV: { page: Page; label: string; icon: IconName; mobile: boolean; perm: string }[] = [
-  { page: 'home', label: 'Projetos', icon: 'projects', mobile: true, perm: 'projects.view' },
-  { page: 'board', label: 'Kanban', icon: 'board', mobile: true, perm: 'kanban.view' },
+  { page: 'home', label: 'Projetos', icon: 'board', mobile: true, perm: 'projects.view' },
   { page: 'today', label: 'Hoje', icon: 'today', mobile: true, perm: 'projects.view' },
-  { page: 'archive', label: 'Arquivados', icon: 'archive', mobile: false, perm: 'projects.view' },
   { page: 'history', label: 'Histórico', icon: 'activity', mobile: true, perm: 'projects.view' },
   { page: 'collaborators', label: 'Colaboradores', icon: 'collaborators', mobile: false, perm: 'collaborators.view' },
+  { page: 'archive', label: 'Arquivados', icon: 'archive', mobile: false, perm: 'projects.view' },
+  { page: 'trash', label: 'Lixeira', icon: 'trash', mobile: false, perm: '@trash' },
 ];
 
 const TABS: { tab: ProjectTab; label: string }[] = [
@@ -29,9 +29,9 @@ export function appShell(): string {
   <header class="topbar">
     <div class="brand">RB <i>PROJECTS</i></div>
     <div class="top-actions">
-      <button class="ghost settings-top" data-action="nav" data-page="settings" data-perm="settings.view" aria-label="Configurações">${icon('settings')}</button>
+      <button class="ghost settings-top" data-action="nav" data-page="settings" data-perm="@settings" aria-label="Configurações">${icon('settings')}</button>
       <button class="ghost" data-action="search" aria-label="Pesquisar">${icon('search')}<span class="hide-sm">Pesquisar</span><kbd class="hide-sm">Ctrl K</kbd></button>
-      <button class="primary" data-action="project-new" data-perm="projects.create">${icon('plus')}<span>Projeto</span></button>
+      <button class="primary" data-action="project-new" data-perm="@projectCreate">${icon('plus')}<span>Projeto</span></button>
     </div>
   </header>
   <aside class="sidebar" aria-label="Navegação">
@@ -39,7 +39,7 @@ export function appShell(): string {
     <button class="nav-item mobile-only" data-action="more">${icon('more')}<span>Mais</span></button>
     <div class="nav-bottom">
       <div id="accountSlot"></div>
-      <button class="nav-item" data-action="nav" data-page="settings" data-perm="settings.view">${icon('settings')}<span>Configurações</span></button>
+      <button class="nav-item" data-action="nav" data-page="settings" data-perm="@settings">${icon('settings')}<span>Configurações</span></button>
       <button class="nav-item" data-action="logout">${icon('logout')}<span>Sair</span></button>
     </div>
   </aside>
@@ -55,10 +55,10 @@ export function appShell(): string {
     <section id="projectView" class="project-view" hidden>
       <button class="crumb" data-action="back">${icon('chevronLeft')}Projetos</button>
       <div class="project-title">
-        <div><h1 id="pName"></h1><p class="sub" id="pDescription"></p></div>
+        <div><h1 id="pName"></h1><p class="sub" id="pDescription"></p><div id="pMeta" class="p-meta"></div></div>
         <div class="top-actions">
-          <button class="ghost" data-action="project-edit" data-perm="projects.edit">${icon('edit')}<span>Editar</span></button>
-          <button class="primary" data-action="add-menu" data-perm="structure.create|projects.edit">${icon('plus')}<span>Adicionar</span></button>
+          <button class="ghost" data-action="project-edit" data-perm="@projectEdit">${icon('edit')}<span>Editar</span></button>
+          <button class="primary" data-action="add-menu" data-perm="@branchCreate|@projectEdit">${icon('plus')}<span>Adicionar</span></button>
         </div>
       </div>
       <nav class="tabs" aria-label="Seções do projeto">

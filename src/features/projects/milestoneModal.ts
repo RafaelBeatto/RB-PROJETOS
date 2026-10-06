@@ -4,12 +4,12 @@ import { showToast } from '../../components/toast';
 import { deleteMilestone, saveMilestone } from '../../services/projectService';
 import { MILESTONE_STATUSES, type MilestoneStatus } from '../../types/project';
 import { onClick } from '../../utils/actions';
-import { can } from '../../services/permissionService';
+import { canEditProject } from '../../services/permissionService';
 import { esc } from '../../utils/dom';
 
 export function openMilestoneModal(id?: string): void {
   const p = currentProject();
-  if (!can('projects', 'edit', p.id)) return;
+  if (!canEditProject(p)) return;
   const m = id ? p.milestones.find((x) => x.id === id) : undefined;
   const statusOptions = MILESTONE_STATUSES.map((s) => `<option ${m?.status === s ? 'selected' : ''}>${s}</option>`).join('');
   openModal(

@@ -1,12 +1,10 @@
 import { avatar } from '../../components/avatar';
 import { icon } from '../../components/icons';
 import { progressRow } from '../../components/progress';
-import { can } from '../../services/permissionService';
+import { canEditProject } from '../../services/permissionService';
 import { projectProgress, sortedMilestones } from '../../services/projectService';
 import { contratanteCidade, contratanteName } from '../../services/contratanteService';
-import { projectRef, taskRef } from '../../services/dependencyService';
 import { isLate } from '../../services/taskService';
-import { blockedBadge, blockersPanel, dependentsLine } from '../dependencies/dependencyView';
 import { findUser, taskPeople } from '../../services/userService';
 import type { Project } from '../../types/project';
 import { dayLabel, formatDate, formatShortDate, today } from '../../utils/date';
@@ -23,7 +21,7 @@ function coordination(p: Project): string {
 }
 
 function milestones(p: Project): string {
-  const editable = can('projects', 'edit', p.id);
+  const editable = canEditProject(p);
   const list = sortedMilestones(p);
   const next = list.find((m) => m.status !== 'Concluído');
   const rows = list
@@ -46,8 +44,8 @@ function nextTasks(p: Project): string {
     .map(
       (t) =>
         `<div class="next-task" data-action="task-open" data-id="${t.id}" tabindex="0"><span class="check"></span>${esc(t.title)}${
-          blockedBadge(taskRef(p, t))
-        }${isLate(t) ? '<span class="status late">Atrasada</span>' : ''}</div>`,
+          isLate(t) ? '<span class="status late">Atrasada</span>' : ''
+        }</div>`,
     )
     .join('');
 }
@@ -80,14 +78,13 @@ function recentActivity(p: Project): string {
 
 function renderOverview(p: Project): string {
   const prog = projectProgress(p);
-  const blocked = `${blockersPanel(projectRef(p), 'Projeto bloqueado — tarefas não podem ser iniciadas')}${dependentsLine(projectRef(p))}`;
-  return `<div class="overview">${blocked}<div class="facts"><div class="fact"><label>Status</label><span class="status ${projectStatusClass(p.status)}">${esc(
+  return `<div class="overview">${p.description.trim() ? `<p class="desc">${esc(p.description)}</p>` : ''}<div class="facts"><div class="fact"><label>Status</label><span class="status ${projectStatusClass(p.status)}">${esc(
     p.status,
-  )}</span></div><div class="fact"><label>Contratante</label>${esc([contratanteName(p), contratanteCidade(p)].filter(Boolean).join(' · ') || '—')}</div><div class="fact"><label>Prazo</label>${formatDate(
+  )}</span></div><div class="fact"><label>Contratante</label>${esc([contratanteName(p), contratanteCidade(p)].filter(Boolean).join(' · ') || '—')}</div><div class="fact"><label>Término</label>${formatDate(
     p.due,
-  )}</div><div class="fact"><label>Progresso</label>${prog.done} de ${prog.total} concluídas</div></div>${progressRow(prog.pct)}${coordination(
+  )}</div><div class="fact"><label>Progresso</label>${prog.done} de ${plural(prog.total, 'etapa concluída', 'etapas concluídas')}</div></div>${progressRow(prog.pct)}${coordination(
     p,
-  )}<div class="sec-head"><h3>Marcos</h3>${can('projects', 'edit', p.id) ? `<button class="ghost" data-action="milestone-new">${icon('plus')}Marco</button>` : ''}</div>${milestones(
+  )}<div class="sec-head"><h3>Marcos</h3>${canEditProject(p) ? `<button class="ghost" data-action="milestone-new">${icon('plus')}Marco</button>` : ''}</div>${milestones(
     p,
   )}<h3 class="sec-title">Próximas tarefas</h3><div class="next-list">${nextTasks(p)}</div>${workload(p)}${recentActivity(p)}</div>`;
 }

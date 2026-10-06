@@ -1,11 +1,11 @@
-import { PROJECT_STARTED_STATUSES, type Milestone, type MilestoneStatus, type Project, type ProjectDraft, type ProjectStatus } from '../types/project';
+import { PROJECT_RUNNING, PROJECT_STATUSES, type Milestone, type MilestoneStatus, type Project, type ProjectDraft, type ProjectStatus } from '../types/project';
 import { today } from '../utils/date';
 import { pct } from '../utils/format';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
 import { db, persistProjects } from './db';
-import { DependencyError, NEW_ID, blockedMessage, blockersOf, draftBlockers, projectRef, sameDependencies, validateDependencies } from './dependencyService';
-import { authorize } from './permissionService';
+import { RuleError } from './errors';
+import { canCreateProject, canEditProject, ensure } from './permissionService';
 import { findUser } from './userService';
 import { isLate } from './taskService';
 
@@ -19,9 +19,10 @@ export interface Progress {
   pct: number;
 }
 
+/** Progresso do projeto: só a quantidade de etapas concluídas (sem peso, sem contar tarefas). */
 export function projectProgress(p: Project): Progress {
-  const done = p.tasks.filter((t) => t.status === 'Concluído').length;
-  return { total: p.tasks.length, done, pct: pct(done, p.tasks.length) };
+  const done = p.branches.filter((b) => b.status === 'Concluído').length;
+  return { total: p.branches.length, done, pct: pct(done, p.branches.length) };
 }
 
 export function lateTaskCount(p: Project): number {
@@ -29,55 +30,58 @@ export function lateTaskCount(p: Project): number {
 }
 
 export function isProjectOverdue(p: Project): boolean {
-  return !!p.due && p.due < today() && p.status !== 'Concluído';
+  return !!p.due && p.due < today() && !p.archived;
 }
 
-/** Projeto bloqueado por dependências não pode ser iniciado nem concluído. */
-function assertCanEnter(status: ProjectStatus, previous: ProjectStatus | undefined, blockers: ReturnType<typeof blockersOf>): void {
-  if (status === previous || !PROJECT_STARTED_STATUSES.includes(status) || !blockers.length) return;
-  throw new DependencyError(blockedMessage('O projeto está bloqueado e não pode ser iniciado nem concluído', blockers));
+/** Para iniciar a execução, o projeto precisa de pelo menos uma etapa. */
+function assertCanRun(p: Pick<Project, 'branches'>, status: ProjectStatus, previous?: ProjectStatus): void {
+  if (status === PROJECT_RUNNING && previous !== PROJECT_RUNNING && !p.branches.length) {
+    throw new RuleError('Para iniciar o projeto (Em andamento), crie pelo menos uma etapa.');
+  }
 }
 
 /** O antigo campo "Responsável" passa a acompanhar o primeiro coordenador. */
 const ownerFrom = (coordinators: string[], fallback: string): string => findUser(coordinators[0])?.name ?? fallback;
 
+const cleanCoordinators = (ids: string[]): string[] => ids.filter((id, i, all) => !!findUser(id) && all.indexOf(id) === i);
+
 export function createProject(draft: ProjectDraft): Project {
-  authorize('projects', 'create');
-  const owner = { ref: { kind: 'project' as const, projectId: NEW_ID, id: NEW_ID }, dependencies: draft.dependencies };
-  const dependencies = validateDependencies(owner);
-  assertCanEnter(draft.status, undefined, draftBlockers({ ...owner, dependencies }));
-  const project: Project = { id: uid('p'), ...draft, dependencies, owner: ownerFrom(draft.coordinators, ''), archived: false, branches: [], tasks: [], milestones: [], activity: [], chat: [] };
-  db.projects.unshift(project);
+  ensure(canCreateProject());
+  if (!draft.name.trim()) throw new RuleError('Informe o nome do projeto.');
+  assertCanRun({ branches: [] }, draft.status);
+  const coordinators = cleanCoordinators(draft.coordinators);
+  const project: Project = { id: uid('p'), ...draft, coordinators, owner: ownerFrom(coordinators, ''), archived: false, branches: [], tasks: [], milestones: [], activity: [], chat: [] };
+  // Ordem de criação: o mais novo fica por último.
+  db.projects.push(project);
   logActivity(project, 'criou o projeto', { kind: 'project' });
   persistProjects();
   return project;
 }
 
 export function updateProject(p: Project, draft: ProjectDraft): void {
-  authorize('projects', 'edit', p.id);
-  const owner = { ref: projectRef(p), dependencies: draft.dependencies };
-  const dependencies = validateDependencies(owner);
-  assertCanEnter(draft.status, p.status, draftBlockers({ ...owner, dependencies }));
+  ensure(canEditProject(p));
+  if (!draft.name.trim()) throw new RuleError('Informe o nome do projeto.');
+  assertCanRun(p, draft.status, p.status);
+  const coordinators = cleanCoordinators(draft.coordinators);
   if (p.status !== draft.status) logActivity(p, `mudou o status do projeto para ${draft.status}`, { kind: 'project' });
-  if (!sameDependencies(p.dependencies, dependencies)) logActivity(p, 'alterou as dependências do projeto', { kind: 'project' });
-  if (String(p.coordinators) !== String(draft.coordinators)) logActivity(p, 'alterou a coordenação do projeto', { kind: 'project' });
+  if (String(p.coordinators) !== String(coordinators)) logActivity(p, 'alterou a coordenação do projeto', { kind: 'project' });
   if (p.contratanteId !== draft.contratanteId) logActivity(p, 'alterou a contratante do projeto', { kind: 'project' });
-  Object.assign(p, draft, { dependencies, owner: ownerFrom(draft.coordinators, p.owner) });
+  Object.assign(p, draft, { coordinators, owner: ownerFrom(coordinators, p.owner) });
   persistProjects();
 }
 
-/** Arquivar/desarquivar usa a permissão "excluir" de Projetos. */
+/** Encerrar (arquivar) e reabrir: quem edita o projeto. Não exige etapas concluídas. */
 export function toggleArchived(p: Project): void {
-  authorize('projects', 'delete', p.id);
+  ensure(canEditProject(p));
   p.archived = !p.archived;
+  logActivity(p, p.archived ? 'encerrou o projeto' : 'reabriu o projeto', { kind: 'project' });
   persistProjects();
 }
 
 export function setProjectStatus(p: Project, status: ProjectStatus): boolean {
-  authorize('projects', 'edit', p.id);
-  authorize('kanban', 'edit', p.id);
-  if (p.status === status) return false;
-  assertCanEnter(status, p.status, blockersOf(projectRef(p)));
+  ensure(canEditProject(p));
+  if (p.status === status || !PROJECT_STATUSES.includes(status)) return false;
+  assertCanRun(p, status, p.status);
   p.status = status;
   logActivity(p, `mudou o status do projeto para ${status}`, { kind: 'project' });
   persistProjects();
@@ -112,7 +116,7 @@ export function sortedMilestones(p: Project): Milestone[] {
 }
 
 export function saveMilestone(p: Project, milestone: Milestone | undefined, draft: MilestoneDraft): void {
-  authorize('projects', 'edit', p.id);
+  ensure(canEditProject(p));
   if (milestone) {
     const wasDone = milestone.status === 'Concluído';
     Object.assign(milestone, draft);
@@ -125,7 +129,7 @@ export function saveMilestone(p: Project, milestone: Milestone | undefined, draf
 }
 
 export function deleteMilestone(p: Project, id: string): void {
-  authorize('projects', 'edit', p.id);
+  ensure(canEditProject(p));
   p.milestones = p.milestones.filter((m) => m.id !== id);
   persistProjects();
 }

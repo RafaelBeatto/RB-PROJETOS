@@ -5,7 +5,7 @@ import { showToast } from '../components/toast';
 import { openMilestoneModal } from '../features/projects/milestoneModal';
 import { openProjectModal } from '../features/projects/projectModal';
 import { openNewBranchModal } from '../features/structure/branchModals';
-import { can } from '../services/permissionService';
+import { canCreateBranch, canCreateProject, canEditProject } from '../services/permissionService';
 import { findProject } from '../services/projectService';
 import { ui, type Page, type ProjectTab } from '../state/store';
 import { onClick } from '../utils/actions';
@@ -13,16 +13,16 @@ import { NO_ACCESS, PAGE_ORDER, TAB_ORDER, canOpenTab } from './access';
 import { currentProject, goTo, openProject, refreshProject } from './navigation';
 
 function openAddMenu(): void {
-  const p = currentProject().id;
+  const p = currentProject();
   const options = [
     // Tarefas são criadas dentro de cada etapa.
-    can('structure', 'create', p) ? `<button class="ghost" id="chooseBranch">${icon('branch')}Etapa</button>` : '',
-    can('projects', 'edit', p) ? `<button class="ghost" id="chooseMs">${icon('milestone')}Marco</button>` : '',
+    canCreateBranch(p) ? `<button class="ghost" id="chooseBranch">${icon('branch')}Etapa</button>` : '',
+    canEditProject(p) ? `<button class="ghost" id="chooseMs">${icon('milestone')}Marco</button>` : '',
   ].join('');
   if (!options) return;
   openModal('Adicionar', `<div class="form-grid">${options}</div>`);
-  document.getElementById('chooseBranch')?.addEventListener('click', () => openNewBranchModal(null));
-  if (can('projects', 'edit', p)) modalField('#chooseMs').addEventListener('click', () => openMilestoneModal());
+  document.getElementById('chooseBranch')?.addEventListener('click', () => openNewBranchModal());
+  if (canEditProject(p)) modalField('#chooseMs').addEventListener('click', () => openMilestoneModal());
 }
 
 export function installAppActions(): void {
@@ -47,11 +47,9 @@ export function installAppActions(): void {
   });
   onClick('modal-close', closeModal);
   onClick('project-new', () => {
-    if (can('projects', 'create')) openProjectModal();
+    if (canCreateProject()) openProjectModal();
   });
-  onClick('project-edit', () => {
-    if (can('projects', 'edit', ui.projectId ?? undefined)) openProjectModal(currentProject());
-  });
+  onClick('project-edit', () => openProjectModal(currentProject()));
   onClick('project-open', (el) => {
     if (findProject(el.dataset.id)) openProject(el.dataset.id ?? '');
   });

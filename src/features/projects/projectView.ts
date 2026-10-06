@@ -1,10 +1,13 @@
 import { applyPerms } from '../../app/access';
 import { currentProject, registerProjectView } from '../../app/navigation';
 import { ui, type ProjectTab } from '../../state/store';
+import { datesBadge, peopleLine, priorityBadge } from '../../components/itemParts';
+import { progressRow } from '../../components/progress';
 import { contratanteName } from '../../services/contratanteService';
+import { projectProgress } from '../../services/projectService';
 import type { Project } from '../../types/project';
-import { formatDate } from '../../utils/date';
-import { $, $$, $maybe } from '../../utils/dom';
+import { $, $$, $maybe, esc } from '../../utils/dom';
+import { projectStatusClass } from '../../utils/format';
 
 export interface TabView {
   render: (p: Project) => string;
@@ -23,9 +26,13 @@ export function registerTab(tab: ProjectTab, view: TabView): void {
 function renderProjectView(): void {
   const p = currentProject();
   $('#pName').textContent = p.name;
-  // Subtítulo: dados de identificação (a descrição saiu da interface).
-  $('#pDescription').textContent =
-    [p.processo && `Processo ${p.processo}`, contratanteName(p), p.due && `Prazo ${formatDate(p.due)}`].filter(Boolean).join(' · ') || p.status;
+  $('#pDescription').textContent = [p.processo && `Processo ${p.processo}`, contratanteName(p)].filter(Boolean).join(' · ');
+  const prog = projectProgress(p);
+  $('#pMeta').innerHTML = `<span class="status ${projectStatusClass(p.status)}">${esc(p.status)}</span>${p.archived ? '<span class="status todo">Arquivado</span>' : ''}${priorityBadge(
+    p.priority,
+  )}${datesBadge(p.start, p.due, p.archived)}<span class="p-people">${peopleLine(p.coordinators, 'Sem coordenador')}</span><span class="p-prog" title="Etapas concluídas">${progressRow(
+    prog.pct,
+  )}<small>${prog.done}/${prog.total} etapas</small></span>`;
   $$('[data-action="tab"]').forEach((t) => {
     const active = t.dataset.tab === ui.tab;
     t.classList.toggle('active', active);

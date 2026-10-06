@@ -1,20 +1,20 @@
-import type { Dependency } from './dependency';
-import type { TaskStatus } from './task';
+import type { OptionalPriority } from './task';
 
-export interface Point {
-  x: number;
-  y: number;
-}
+/** Status da etapa (colunas do Kanban de etapas, nesta ordem). */
+export const BRANCH_STATUSES = ['Em espera', 'Em pausa', 'Em andamento', 'Concluído'] as const;
+export type BranchStatus = (typeof BRANCH_STATUSES)[number];
 
-export interface Branch extends Point {
+/** Etapa do projeto (no código, "branch" por compatibilidade com os dados salvos). */
+export interface Branch {
   id: string;
   name: string;
-  /** Id da etapa pai; null quando fica direto no projeto. */
-  parent: string | null;
-  /** Id do usuário responsável pela etapa (o campo se chama designer por compatibilidade). */
-  designer: string | null;
-  /** Coluna da etapa no Kanban "Etapas" (mesmas colunas das tarefas). */
-  status: TaskStatus;
-  /** O que precisa acontecer antes de a etapa (e suas tarefas) poder avançar. */
-  dependencies: Dependency[];
+  description: string;
+  priority: OptionalPriority;
+  start: string;
+  due: string;
+  status: BranchStatus;
+  /** Responsáveis (ids de usuários), no máximo MAX_RESPONSIBLES. */
+  assignees: string[];
 }
+
+export type BranchDraft = Omit<Branch, 'id'>;

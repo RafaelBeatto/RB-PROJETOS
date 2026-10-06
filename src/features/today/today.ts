@@ -1,7 +1,8 @@
-import { openProject, pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
+import { openBranch, openProject, pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
 import { filterSelect, registerFilterGroup } from '../../components/filterBar';
 import { icon, type IconName } from '../../components/icons';
 import { db } from '../../services/db';
+import { visibleProjects } from '../../services/permissionService';
 import { isLate } from '../../services/taskService';
 import { ui } from '../../state/store';
 import type { Project } from '../../types/project';
@@ -34,12 +35,12 @@ function filterBar(): string {
   return `<div class="fbar"><div class="fchips">${filterSelect(
     'today.project',
     'Projeto',
-    db.projects.filter((p) => !p.archived).map((p) => [p.id, p.name] as const),
+    visibleProjects().filter((p) => !p.archived).map((p) => [p.id, p.name] as const),
     f.project,
     'Todos',
   )}${filterSelect(
     'today.person',
-    'Colaborador',
+    'Responsável',
     db.users.map((u) => [u.id, u.name] as const),
     f.person,
     'Todas',
@@ -54,7 +55,7 @@ function renderToday(): void {
   const due: Item[] = [];
   const milestones: Item[] = [];
   const soon = ymd(7);
-  for (const project of db.projects) {
+  for (const project of visibleProjects()) {
     if (project.archived || (f.project && project.id !== f.project)) continue;
     for (const t of project.tasks) {
       if (f.person && !t.assignees.includes(f.person)) continue;
@@ -78,6 +79,10 @@ export function initToday(): void {
   registerFilterGroup('today', { get: () => ui.todayFilters, reset: () => undefined, render: renderToday });
   onClick('today-open', (el) => {
     openProject(el.dataset.project ?? '');
-    if (el.dataset.task) openTaskModal(el.dataset.task);
+    const p = visibleProjects().find((x) => x.id === el.dataset.project);
+    const t = p?.tasks.find((x) => x.id === el.dataset.task);
+    if (!t) return;
+    openBranch(t.branch);
+    openTaskModal(t.id);
   });
 }

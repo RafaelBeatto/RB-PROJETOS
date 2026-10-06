@@ -7,23 +7,26 @@ import { findUser } from '../../services/userService';
 import { emptyBranchFilters, ui } from '../../state/store';
 import type { Branch } from '../../types/branch';
 import type { Project } from '../../types/project';
+import { PRIORITIES } from '../../types/task';
 import { plural } from '../../utils/dom';
 
 export function branchFiltersActive(): boolean {
   const f = ui.branchFilters;
-  return !!(f.q.trim() || f.designer || f.state);
+  return !!(f.q.trim() || f.designer || f.priority || f.state);
 }
 
 export function matchesBranchFilters(p: Project, b: Branch): boolean {
   const f = ui.branchFilters;
   const q = f.q.trim().toLowerCase();
-  if (q && !`${b.name} ${findUser(b.designer)?.name ?? ''}`.toLowerCase().includes(q)) return false;
-  if (f.designer === 'none' && b.designer) return false;
-  if (f.designer && f.designer !== 'none' && b.designer !== f.designer) return false;
+  const names = b.assignees.map((id) => findUser(id)?.name ?? '').join(' ');
+  if (q && !`${b.name} ${b.description} ${names}`.toLowerCase().includes(q)) return false;
+  if (f.designer === 'none' && b.assignees.length) return false;
+  if (f.designer && f.designer !== 'none' && !b.assignees.includes(f.designer)) return false;
+  if (f.priority && b.priority !== (f.priority === 'none' ? '' : f.priority)) return false;
   const tasks = tasksIn(p, b.id);
   switch (f.state) {
     case 'late':
-      return tasks.some(isLate);
+      return tasks.some(isLate) || isLate({ status: b.status === 'Concluído' ? 'Concluído' : 'A fazer', due: b.due });
     case 'open':
       return b.status !== 'Concluído';
     case 'done':
@@ -45,7 +48,7 @@ export function branchFilterBar(p: Project): string {
     [['none', 'Sem responsável'] as const, ...db.users.map((u) => [u.id, u.name] as const)],
     f.designer,
     'Todos',
-  )}${filterSelect(
+  )}${filterSelect('branches.priority', 'Prioridade', [...PRIORITIES.map((x) => [x, x] as const), ['none', 'Sem prioridade'] as const], f.priority, 'Todas')}${filterSelect(
     'branches.state',
     'Situação',
     [
