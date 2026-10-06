@@ -1,6 +1,6 @@
 # RB Projects
 
-Gerenciador de projetos simples e visual: estrutura do projeto em mapa e cartões, Kanban, tarefas com checklist, marcos e histórico.
+Gerenciador de projetos simples e visual: Kanban de projetos, etapas e tarefas, com subtarefas, checklist, dependências, lixeira e histórico.
 
 A aplicação é 100% estática. Não há servidor, banco de dados nem API: os dados ficam no navegador de cada pessoa (`localStorage`). O site publicado é só HTML, CSS e JavaScript.
 
@@ -8,16 +8,18 @@ A aplicação é 100% estática. Não há servidor, banco de dados nem API: os d
 
 ## Funcionalidades
 
-- **Projetos**: status (Em espera, Em andamento, Em pausa, Concluído), coordenadores, prazo (atraso calculado pelo prazo), processo, contratante (nome e cidade), dados de convênio e arquivamento.
-- **Dependências**: qualquer projeto, ramificação ou tarefa pode depender de outro projeto, ramificação ou tarefa (inclusive de outros projetos), com a condição "Concluído" ou "Iniciado". Itens bloqueados mostram o motivo e não podem avançar; dependências circulares são impedidas.
-- **Estrutura**: ramificações em níveis ilimitados, vistas como
-  - **Mapa**: canvas com cartões arrastáveis, conexões, pan, zoom (botões, Ctrl+roda e pinça) e posições salvas;
-  - **Cartões**: navegação nível a nível, com caminho clicável.
-- **Etapas**: o projeto abre no Kanban de etapas (arrastar com mouse ou toque); as tarefas ficam dentro de cada etapa, com checklist, comentários e anexos. A Estrutura (mapa e cartões) é só visualização. Cada tarefa pode ter vários colaboradores (usuários cadastrados).
-- **Colaboradores**: acompanhamento administrativo do trabalho de cada colaborador — tarefas e etapas vinculadas, com o caminho no projeto (Projeto → Etapa → Tarefa), status, prazo, prioridade e o que está bloqueando.
-- **Visões gerais**: Kanban de projetos, Hoje (atrasos e próximos marcos) e Histórico com filtros.
-- **Configurações**: usuários, perfis e permissões por módulo e ação (ver abaixo).
-- **Login local** (sem servidor) e atalhos de teclado: `Ctrl+K` ou `/` pesquisa, `N` novo, `T` tarefa, `R` ramificação, `K`/`L`/`S` trocam de aba.
+Hierarquia: **Projeto → Etapas → Tarefas → Subtarefas**. Os quatro níveis têm nome (obrigatório), descrição, prioridade (Baixa, Média, Alta, Urgente) e datas de início e de término, todos opcionais. A ordem é sempre a de criação (não há ordenação manual); o Kanban organiza por status.
+
+- **Projetos** (tela inicial em Kanban): Em espera, Em pausa, Em andamento, Em análise. Vários coordenadores (opcionais). Para ir para "Em andamento" o projeto precisa de pelo menos uma etapa. Encerrar = arquivar, sem exigir etapas concluídas. Progresso = etapas concluídas ÷ etapas.
+- **Etapas** (Kanban dentro do projeto): Em espera, Em pausa, Em andamento, Concluído. Até 2 responsáveis. Podem ser concluídas livremente. Progresso = tarefas concluídas ÷ tarefas ("Em andamento" não conta).
+- **Tarefas** (Kanban dentro da etapa): A fazer, Em andamento, Concluído. Até 2 responsáveis. Podem ser concluídas livremente (subtarefas e checklist não impedem).
+- **Subtarefas**: A fazer, Em andamento, Concluído. Não têm responsável próprio: mostram sempre os responsáveis atuais da tarefa.
+- **Dependências**: uma tarefa pode depender de outras tarefas do mesmo projeto. São só informativas (aparecem no cartão e na tarefa) e não impedem iniciar nem concluir.
+- **Checklist** da tarefa: itens com texto e marcado/desmarcado. Só o responsável pela tarefa (e o Administrador) cria, edita, marca e exclui itens.
+- **Lixeira**: excluir sempre pede confirmação e envia para a lixeira com o que está dentro (projeto → etapas, tarefas e subtarefas; etapa → tarefas e subtarefas; tarefa → subtarefas). Restaurar um ou vários itens, excluir permanentemente (com confirmação) e esvaziar. Um item cujo "pai" também está na lixeira volta junto com ele ou depois dele.
+- **Busca geral** (`Ctrl+K` ou `/`): projetos, etapas, tarefas, subtarefas e pessoas, só nos projetos que o usuário pode ver.
+- Mantidos da versão anterior: **chat do projeto** (com `@` e `@todos`), **marcos**, **convênio e contratante**, **comentários e anexos** nas tarefas, **Hoje**, **Histórico**, **Colaboradores** e **Arquivados**. Ver `docs/HANDOFF.md`.
+- **Login local** (sem servidor) e atalhos: `N` novo (projeto; dentro do projeto, etapa; dentro da etapa, tarefa), `T` tarefa, `R` etapa, `K`/`C` trocam para Etapas e Chat.
 
 ## Tecnologias
 
@@ -32,9 +34,10 @@ A aplicação é 100% estática. Não há servidor, banco de dados nem API: os d
 
 ## Desenvolvimento
 
-Requer Node.js 20 ou mais recente.
+Requer Node.js 20 ou mais recente. A aplicação fica na pasta `front/`:
 
 ```bash
+cd front
 npm install
 npm run dev        # servidor local com recarga automática
 npm run typecheck  # verificação de tipos
@@ -42,7 +45,7 @@ npm run build      # gera a versão final em dist/
 npm run preview    # serve o conteúdo de dist/ localmente
 ```
 
-O build usa caminhos relativos (`base: './'` em `vite.config.ts`), então o mesmo `dist/` funciona no GitHub Pages (`/RB-PROJETOS/`), em outro repositório ou em qualquer servidor estático.
+O build usa caminhos relativos (`base: './'` em `vite.config.ts`), então o mesmo `front/dist/` funciona no GitHub Pages (`/RB-PROJETOS/`), em outro repositório ou em qualquer servidor estático.
 
 ## Publicação no GitHub Pages
 
@@ -53,21 +56,26 @@ Configuração única no repositório: **Settings → Pages → Build and deploy
 ## Estrutura do projeto
 
 ```text
-src/
+front/                   aplicação (o site publicado)
+back/                    reservado para um futuro servidor (hoje vazio, ver back/README.md)
+docs/                    documentação
+
+front/src/
 ├── main.ts              inicialização: dados, interface, login
 ├── app/                 navegação, ações globais e atalhos de teclado
-├── types/               modelos: projeto, ramificação, tarefa, usuário, atividade
+├── types/               modelos: projeto, etapa, tarefa, usuário, lixeira, atividade
 ├── services/            regras e dados
 │   ├── storage.ts       única porta de acesso ao localStorage
 │   ├── migrations.ts    converte dados salvos por versões antigas
 │   ├── db.ts            dados em memória e gravação
-│   ├── permissionService.ts  hasPermission/can/authorize: verificação central de acesso
+│   ├── permissionService.ts  regras de acesso: função do perfil + matriz de permissões
 │   ├── profileService.ts     perfis e permissões (rb-access-v1)
-│   └── *Service.ts      projetos, tarefas, ramificações, usuários, atividade, login
+│   ├── trashService.ts       lixeira (enviar, restaurar, excluir permanentemente)
+│   └── *Service.ts      projetos, etapas, tarefas, usuários, atividade, login
 ├── state/store.ts       estado da interface (o que está aberto e filtros)
 ├── components/          modal, diálogos, toast, ícones, avatar, filtros, arrastar
-├── features/            telas: auth, projects, tasks, structure, collaborators,
-│                        today, history, search, settings (usuários e perfis)
+├── features/            telas: auth, projects, structure (etapas), tasks, trash,
+│                        collaborators, today, history, search, settings
 ├── utils/               DOM, datas, formatação, ids, delegação de eventos
 └── styles/              variáveis, base, componentes, telas e responsivo
 ```
@@ -84,24 +92,34 @@ As chaves do navegador são as mesmas das versões anteriores:
 
 | Chave | Conteúdo |
 | --- | --- |
-| `rb-projects-v1` | projetos, ramificações, tarefas, marcos e atividade |
+| `rb-projects-v1` | projetos, etapas, tarefas, marcos, atividade e chat |
 | `rb-users-v1` | usuários (com perfil, status, data de criação e senha em hash) |
 | `rb-access-v1` | perfis e permissões |
+| `rb-chat-seen-v1` | até onde cada usuário já leu o chat de cada projeto |
+| `rb-trash-v1` | lixeira (itens excluídos com o que estava dentro deles) |
+| `rb-projects-v1-antes-das-regras` | cópia dos projetos como estavam antes da conversão para as regras atuais |
 | `rb-projects-auth` | sessão: id do usuário logado |
 
-Ao abrir, `migrations.ts` completa campos ausentes de dados antigos sem apagar nada. Se o conteúdo salvo estiver ilegível, uma cópia é guardada em `rb-projects-v1-backup` antes de usar o projeto de exemplo.
+Ao abrir, `migrations.ts` converte dados antigos: projeto "Concluído" vira arquivado (status "Em análise"); subetapas viram etapas do projeto; "Em revisão" vira "Em andamento"; etapa "A fazer" vira "Em espera"; o antigo checklist (guardado em `subtasks`) passa para `checklist`; ficam só as dependências de tarefa para tarefa do mesmo projeto; responsáveis de etapa e tarefa ficam limitados a 2. Antes da primeira conversão, uma cópia dos projetos originais é guardada em `rb-projects-v1-antes-das-regras`. Se o conteúdo salvo estiver ilegível, uma cópia é guardada em `rb-projects-v1-backup` antes de usar o projeto de exemplo.
 
-Os dados ficam no navegador de cada aparelho; não há sincronização entre dispositivos.
+Os dados ficam no navegador de cada aparelho; não há sincronização entre dispositivos. Isso vale também para o chat: as mensagens só aparecem para quem usa o mesmo navegador.
 
 ## Usuários, perfis e permissões
 
-Fluxo de acesso: **Usuário → Perfil → Permissões → Módulos e ações**.
+Usuário: nome, foto, e-mail, telefone, cargo, ativo/inativo e perfil. Desativado perde o acesso, mas continua no histórico e nos vínculos. Excluído sai dos projetos, etapas e tarefas, que ficam sem ele (nada é transferido).
 
-- Cada usuário tem um perfil. Perfis iniciais: **Administrador** (acesso total, não pode ser excluído nem ter permissões reduzidas), **Gerente**, **Colaborador** e **Visualizador**. Todos podem ser editados em *Configurações → Perfis e permissões*, e novos perfis podem ser criados.
-- Permissões por módulo: Projetos, Kanban/Etapas, Tarefas, Etapas e Estrutura, Mapa, Contratantes, Colaboradores, Usuários, Perfis e Configurações, com as ações **Visualizar, Criar, Editar e Excluir** quando fazem sentido para o módulo.
-- A interface esconde o que o perfil não permite, e toda operação que grava dados passa por `authorize(módulo, ação)` em `services/permissionService.ts`.
+Cada **perfil** tem uma **função** e uma **matriz de permissões** (editável em *Configurações → Perfis e permissões*). Uma ação só é liberada quando as duas permitem.
+
+| Função | O que pode |
+| --- | --- |
+| Administrador | Tudo, inclusive perfis e permissões. |
+| Coordenador | Criar e editar projetos, etapas, tarefas e subtarefas; gerenciar usuários (inclusive torná-los Administrador); lixeira. |
+| Responsável | Criar e editar etapas; criar e editar tarefas nas etapas em que é responsável; editar as tarefas em que é responsável; criar e editar subtarefas nas tarefas em que é responsável. Sem lixeira e sem usuários. |
+| Visualizador | Somente leitura. Administrador e Coordenador podem limitar o acesso dele a projetos específicos. |
+
+- Quem edita um item também pode excluí-lo e alterar status, prioridade, datas, descrição e responsáveis.
+- Todos os usuários ativos veem todos os projetos, exceto o Visualizador com acesso limitado.
 - Sempre existe ao menos um administrador ativo: o último não pode ser excluído, desativado nem perder o perfil.
-- Usuários desativados não conseguem entrar.
-- Estrutura preparada para permissões por projeto (`projectRoles` em `rb-access-v1`), ainda sem interface.
+- Toda operação que grava dados passa pelas regras de `services/permissionService.ts`.
 
 > **Limitação importante:** o RB Projects roda inteiro no navegador (GitHub Pages). As permissões controlam a interface e a lógica do frontend, **não são segurança de servidor**. Quem tem acesso técnico ao navegador pode ler ou alterar os dados locais. Para segurança real é preciso uma API com autenticação e banco de dados; a camada `permissionService` já concentra as regras para facilitar essa evolução.
