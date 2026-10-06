@@ -8,7 +8,7 @@
  * - Checklist: só o responsável pela tarefa (e o Administrador).
  */
 import { NO_ACCESS } from '../../app/access';
-import { currentProject, refreshProject } from '../../app/navigation';
+import { currentProject, openBranch, refreshProject } from '../../app/navigation';
 import { askFields, confirmDanger } from '../../components/dialog';
 import { icon } from '../../components/icons';
 import { commonFields, datesBadge, peopleLine, priorityBadge, readCommon, statusSelect } from '../../components/itemParts';
@@ -28,16 +28,11 @@ import {
 import {
   addChecklistItem,
   addComment,
-  addLink,
   checklistProgress,
   createTask,
-  dependencyOptions,
-  dependenciesOf,
-  dependentsOf,
   findSubtask,
   findTask,
   removeChecklistItem,
-  removeLink,
   renameChecklistItem,
   setChecklistItemDone,
   setSubtaskStatus,
@@ -48,6 +43,8 @@ import type { Project } from '../../types/project';
 import { MAX_RESPONSIBLES, TASK_STATUSES, type Task, type TaskDraft, type TaskStatus } from '../../types/task';
 import { $, $$, $maybe, esc } from '../../utils/dom';
 import { taskStatusClass } from '../../utils/format';
+import { bindDepPicker, depPickerHtml, relationsHtml } from '../dependencies/depPicker';
+import { attachmentsHtml, bindAttachments } from './attachments';
 import { openSubtaskModal } from './subtaskModal';
 
 // Formulário
@@ -60,20 +57,6 @@ function branchOptions(p: Project, t: Task | undefined, selected: string): strin
     .join('');
 }
 
-function dependencyPicker(p: Project, t: Task | undefined, editable: boolean): string {
-  const options = dependencyOptions(p, t);
-  if (!options.length) return '<p class="sub flat small">Nenhuma outra tarefa neste projeto.</p>';
-  const selected = new Set(t?.dependencies ?? []);
-  return `<div class="dep-pick">${options
-    .map(
-      (x) =>
-        `<label class="dep-opt"><input type="checkbox" name="dep" value="${x.id}" ${selected.has(x.id) ? 'checked' : ''} ${editable ? '' : 'disabled'}><span>${esc(x.title)}<small>${esc(
-          findBranch(p, x.branch)?.name ?? '',
-        )} · ${esc(x.status)}</small></span></label>`,
-    )
-    .join('')}</div>`;
-}
-
 function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: string, editable: boolean): string {
   const canRemove = !!t && canDeleteTask(p, t);
   return `<form id="taskForm" novalidate><fieldset class="plain" ${editable ? '' : 'disabled'}><div class="form-grid"><div class="form-full"><label>Título<input class="field" name="title" required value="${esc(
@@ -84,11 +67,7 @@ function formHtml(p: Project, t: Task | undefined, status: TaskStatus, branch: s
     t?.assignee.trim()
       ? `<label class="check-row legacy-assignee"><input type="checkbox" name="keepLegacy" checked> Manter também o nome antigo “${esc(t.assignee)}” (sem cadastro de usuário)</label>`
       : ''
-  }</div><details class="form-full deps-box" ${t?.dependencies.length ? 'open' : ''}><summary>${icon('link')}Depende de <small>(informativo: não impede iniciar nem concluir)</small></summary>${dependencyPicker(
-    p,
-    t,
-    editable,
-  )}</details></fieldset><p class="form-error" id="taskErr" role="alert"></p><div class="modal-actions">${
+  }</div>${depPickerHtml(p, { kind: 'task', id: t?.id ?? '', branch: t?.branch ?? branch }, t?.dependencies ?? [], editable)}</fieldset><p class="form-error" id="taskErr" role="alert"></p><div class="modal-actions">${
     canRemove ? `<button type="button" class="danger" id="deleteTask">${icon('trash')}Excluir</button>` : '<span></span>'
   }${editable ? `<button class="primary">${t ? 'Salvar' : 'Criar tarefa'}</button>` : ''}</div></form>`;
 }
@@ -110,17 +89,6 @@ function readDraft(form: HTMLFormElement, task: Task | undefined): TaskDraft {
 }
 
 // Seções da tarefa já criada (cada uma se redesenha sozinha, sem perder o que está no formulário)
-
-function relationsHtml(p: Project, t: Task): string {
-  const deps = dependenciesOf(p, t);
-  const dependents = dependentsOf(p, t);
-  if (!deps.length && !dependents.length) return '';
-  const list = (items: Task[]): string =>
-    items.map((x) => `<button type="button" class="chip dep-chip" data-goto-task="${x.id}">${esc(x.title)} <span class="status ${taskStatusClass(x.status)}">${esc(x.status)}</span></button>`).join('');
-  return `<div class="deps-view">${deps.length ? `<div><span class="lbl">${icon('link')} Depende de</span>${list(deps)}</div>` : ''}${
-    dependents.length ? `<div><span class="lbl">${icon('arrowRight')} Outras tarefas dependem desta</span>${list(dependents)}</div>` : ''
-  }</div>`;
-}
 
 function subtasksHtml(p: Project, t: Task): string {
   const editable = canEditSubtask(p, t);
@@ -163,25 +131,14 @@ function commentsHtml(t: Task): string {
   return t.comments.map((c) => `<div class="cmt"><b>${esc(c.who)}</b>${esc(c.text)}</div>`).join('') || '<div class="cmt"><b>Nenhum comentário.</b></div>';
 }
 
-function linksHtml(t: Task, editable: boolean): string {
-  return t.links
-    .map((l) => {
-      const isUrl = /^https?:\/\//i.test(l.url);
-      const label = esc(l.label || l.url);
-      const content = isUrl ? `${icon('link')} <a href="${esc(l.url)}" target="_blank" rel="noopener">${label}</a>` : `${icon('paperclip')} ${label}`;
-      return `<div class="lnk"><span>${content}</span>${editable ? `<button type="button" data-del-link="${l.id}" aria-label="Remover">${icon('close')}</button>` : ''}</div>`;
-    })
-    .join('');
-}
-
 function extrasHtml(t: Task, editable: boolean): string {
   const addComment = editable
     ? '<div class="cmt-add"><input class="field" id="cmtText" placeholder="Escrever comentário" aria-label="Comentário"><button class="ghost" type="button" id="cmtBtn">Enviar</button></div>'
     : '';
-  const addLink = editable ? `<button class="ghost" type="button" id="lnkBtn">${icon('plus')}Link ou arquivo</button>` : '';
-  return `<div class="sec"><h3>Comentários</h3><div id="cmts">${commentsHtml(t)}</div>${addComment}</div><div class="sec"><h3>Anexos</h3><div id="lnks">${
-    linksHtml(t, editable) || (editable ? '' : '<span class="sub flat">Nenhum anexo.</span>')
-  }</div>${addLink}</div>`;
+  return `<div class="sec"><h3>Comentários</h3><div id="cmts">${commentsHtml(t)}</div>${addComment}</div><div class="sec"><h3>Anexos</h3><div id="lnks">${attachmentsHtml(
+    t,
+    editable,
+  )}</div></div>`;
 }
 
 // Ligações
@@ -277,19 +234,7 @@ function bindExtras(p: Project, t: Task): void {
       send();
     }
   });
-  const links = modalField<HTMLElement>('#lnks');
-  modalField('#lnkBtn').addEventListener('click', async () => {
-    const r = await askFields('Adicionar anexo', [{ label: 'Link (https://…) ou nome do arquivo', required: true }, { label: 'Nome de exibição (opcional)' }]);
-    if (!r?.[0]) return;
-    addLink(p, t, r[0], r[1] ?? '');
-    links.innerHTML = linksHtml(t, true);
-  });
-  links.addEventListener('click', (e) => {
-    const button = (e.target as Element).closest<HTMLElement>('[data-del-link]');
-    if (!button?.dataset.delLink) return;
-    removeLink(p, t, button.dataset.delLink);
-    links.innerHTML = linksHtml(t, true);
-  });
+
 }
 
 async function confirmTrash(p: Project, t: Task): Promise<void> {
@@ -317,7 +262,7 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
   const etapa = findBranch(p, task?.branch ?? branch);
   const path = `<p class="bd-path">${esc(p.name)}${etapa ? ` / ${esc(etapa.name)}` : ''}</p>`;
   const sections = task
-    ? `${relationsHtml(p, task)}<div class="sec" id="subBox">${subtasksHtml(p, task)}</div><div class="sec" id="ckBox">${checklistHtml(p, task)}</div>${extrasHtml(task, editable)}`
+    ? `${relationsHtml(p, task.id, task.dependencies)}<div class="sec" id="subBox">${subtasksHtml(p, task)}</div><div class="sec" id="ckBox">${checklistHtml(p, task)}</div>${extrasHtml(task, editable)}`
     : '';
   openModal(task ? (editable ? 'Editar tarefa' : 'Tarefa') : 'Nova tarefa', `${path}${formHtml(p, task, status, branch, editable)}${sections}`);
   bindUserPicker(modalField('#assigneePick'));
@@ -325,10 +270,25 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
     bindSubtasks(p, task);
     bindChecklist(p, task);
     if (editable) bindExtras(p, task);
+    // Abrir anexos vale para todos; adicionar e remover só aparecem para quem edita.
+    const links = modalField<HTMLElement>('#lnks');
+    bindAttachments(links, p, task, () => {
+      links.innerHTML = attachmentsHtml(task, editable);
+      refreshProject();
+    });
     $$('[data-goto-task]', $('#modalBody')).forEach((el) => el.addEventListener('click', () => openTaskModal(el.dataset.gotoTask)));
+    $$('[data-goto-branch]', $('#modalBody')).forEach((el) =>
+      el.addEventListener('click', () => {
+        closeModal();
+        openBranch(el.dataset.gotoBranch ?? null);
+      }),
+    );
   }
 
   const form = modalField<HTMLFormElement>('#taskForm');
+  // Ao trocar de etapa, as opções de dependência mudam (a tarefa não depende da própria etapa).
+  const deps = bindDepPicker(form, p, () => ({ kind: 'task', id: task?.id ?? '', branch: String(new FormData(form).get('branch') ?? '') }), editable);
+  form.querySelector('[name="branch"]')?.addEventListener('change', deps.refresh);
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     try {

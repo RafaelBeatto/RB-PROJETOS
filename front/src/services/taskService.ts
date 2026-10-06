@@ -1,10 +1,12 @@
 import type { Project } from '../types/project';
-import { TASK_STATUSES, type ChecklistItem, type Subtask, type SubtaskDraft, type Task, type TaskDraft, type TaskStatus } from '../types/task';
+import { TASK_STATUSES, type ChecklistItem, type Subtask, type SubtaskDraft, type Task, type TaskDraft, type TaskLink, type TaskStatus } from '../types/task';
 import type { User } from '../types/user';
 import { today } from '../utils/date';
 import { uid } from '../utils/ids';
 import { logActivity, logTaskStatus } from './activityService';
 import { cleanResponsibles, findBranch } from './branchService';
+import { cleanDependencies } from './dependencyService';
+import { deleteFile, formatBytes, MAX_FILE_BYTES, putFile } from './fileStore';
 import { persistProjects } from './db';
 import { RuleError } from './errors';
 import { canCreateSubtask, canCreateTask, canEditChecklist, canEditSubtask, canEditTask, ensure } from './permissionService';
@@ -18,28 +20,6 @@ export function isLate(t: { status: TaskStatus; due: string }): boolean {
   return t.status !== 'Concluído' && !!t.due && t.due < today();
 }
 
-// Dependências (informativas: não bloqueiam nada)
-
-/** Tarefas que podem ser escolhidas como dependência: as do mesmo projeto, menos a própria. */
-export function dependencyOptions(p: Project, t: Task | undefined): Task[] {
-  return p.tasks.filter((x) => x.id !== t?.id);
-}
-
-/** Tarefas das quais `t` depende (só as que ainda existem). */
-export function dependenciesOf(p: Project, t: Task): Task[] {
-  return t.dependencies.map((id) => findTask(p, id)).filter((x): x is Task => !!x);
-}
-
-/** Tarefas que dependem de `t`. */
-export function dependentsOf(p: Project, t: Task): Task[] {
-  return p.tasks.filter((x) => x.dependencies.includes(t.id));
-}
-
-/** Só tarefas existentes do mesmo projeto, sem repetição e nunca a própria. */
-function cleanDependencies(p: Project, ids: string[], selfId: string | undefined): string[] {
-  return ids.filter((id, i, all) => id !== selfId && !!findTask(p, id) && all.indexOf(id) === i);
-}
-
 // Tarefas
 
 function validate(p: Project, draft: TaskDraft, task: Task | undefined): TaskDraft {
@@ -50,7 +30,7 @@ function validate(p: Project, draft: TaskDraft, task: Task | undefined): TaskDra
     ...draft,
     title: draft.title.trim(),
     assignees: cleanResponsibles(draft.assignees),
-    dependencies: cleanDependencies(p, draft.dependencies, task?.id),
+    dependencies: cleanDependencies(p, { kind: 'task', id: task?.id ?? '', branch: draft.branch }, draft.dependencies, task?.dependencies),
   };
 }
 
@@ -195,6 +175,25 @@ export function addLink(p: Project, task: Task, url: string, label: string): voi
 
 export function removeLink(p: Project, task: Task, linkId: string): void {
   ensure(canEditTask(p, task));
+  const link = task.links.find((l) => l.id === linkId);
   task.links = task.links.filter((l) => l.id !== linkId);
   persistProjects();
+  if (link?.fileId) void deleteFile(link.fileId);
+}
+
+/** Anexa um arquivo de verdade (guardado no navegador, ver fileStore). */
+export async function addFile(p: Project, task: Task, file: File): Promise<TaskLink> {
+  ensure(canEditTask(p, task));
+  if (file.size > MAX_FILE_BYTES) throw new RuleError(`“${file.name}” passa de ${formatBytes(MAX_FILE_BYTES)}, o limite por arquivo.`);
+  const fileId = uid('f');
+  try {
+    await putFile(fileId, file);
+  } catch {
+    throw new RuleError(`Não foi possível guardar “${file.name}” neste navegador (espaço cheio ou bloqueado).`);
+  }
+  const link: TaskLink = { id: uid('l'), url: '', label: file.name, fileId, size: file.size, mime: file.type };
+  task.links.push(link);
+  logActivity(p, `anexou "${file.name}" em "${task.title}"`, { kind: 'task', task: task.id, branch: task.branch });
+  persistProjects();
+  return link;
 }

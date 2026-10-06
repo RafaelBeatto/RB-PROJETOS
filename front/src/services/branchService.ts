@@ -6,6 +6,7 @@ import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
 import { persistProjects } from './db';
 import { canCreateBranch, canEditBranch, ensure } from './permissionService';
+import { cleanDependencies } from './dependencyService';
 import { RuleError } from './errors';
 import type { Progress } from './projectService';
 import { findUser } from './userService';
@@ -39,15 +40,20 @@ const names = (ids: string[]): string =>
     .filter(Boolean)
     .join(' e ');
 
-function validate(draft: BranchDraft): BranchDraft {
+function validate(p: Project, draft: BranchDraft, b?: Branch): BranchDraft {
   if (!draft.name.trim()) throw new RuleError('Informe o nome da etapa.');
   if (!BRANCH_STATUSES.includes(draft.status)) throw new RuleError('Status inválido.');
-  return { ...draft, name: draft.name.trim(), assignees: cleanResponsibles(draft.assignees) };
+  return {
+    ...draft,
+    name: draft.name.trim(),
+    assignees: cleanResponsibles(draft.assignees),
+    dependencies: cleanDependencies(p, { kind: 'branch', id: b?.id ?? '' }, draft.dependencies, b?.dependencies),
+  };
 }
 
 export function createBranch(p: Project, input: BranchDraft): Branch {
   ensure(canCreateBranch(p));
-  const branch: Branch = { id: uid('b'), ...validate(input) };
+  const branch: Branch = { id: uid('b'), ...validate(p, input) };
   p.branches.push(branch);
   logActivity(p, `criou a etapa "${branch.name}"`, { kind: 'branch', branch: branch.id });
   persistProjects();
@@ -56,11 +62,12 @@ export function createBranch(p: Project, input: BranchDraft): Branch {
 
 export function updateBranch(p: Project, b: Branch, input: BranchDraft): void {
   ensure(canEditBranch(p));
-  const draft = validate(input);
+  const draft = validate(p, input, b);
   const old = { ...b };
   Object.assign(b, draft);
   if (old.name !== b.name) logActivity(p, `renomeou a etapa "${old.name}" para "${b.name}"`, { kind: 'branch', branch: b.id });
   if (old.status !== b.status) logActivity(p, `moveu a etapa "${b.name}" para ${b.status}`, { kind: 'branch', branch: b.id });
+  if (String(old.dependencies) !== String(b.dependencies)) logActivity(p, `alterou as dependências da etapa "${b.name}"`, { kind: 'branch', branch: b.id });
   if (String(old.assignees) !== String(b.assignees)) {
     const who = names(b.assignees);
     logActivity(p, who ? `definiu ${who} como responsável pela etapa "${b.name}"` : `removeu os responsáveis da etapa "${b.name}"`, { kind: 'branch', branch: b.id });
