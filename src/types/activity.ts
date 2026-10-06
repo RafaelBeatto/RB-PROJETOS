@@ -1,11 +1,13 @@
 export const ACTIVITY_KINDS = {
   status: 'Status de tarefa',
   task: 'Tarefas',
+  subtask: 'Subtarefas',
   checklist: 'Checklist',
   comment: 'Comentários',
   branch: 'Etapas',
   milestone: 'Marcos',
   project: 'Projetos',
+  trash: 'Lixeira',
 } as const;
 
 export type ActivityKind = keyof typeof ACTIVITY_KINDS;

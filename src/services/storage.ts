@@ -15,8 +15,12 @@ export const STORAGE_KEYS = {
   legacyPrefeituras: 'rb-prefeituras-v1',
   /** Até quando cada usuário já leu o chat de cada projeto (para avisar marcações novas). */
   chatSeen: 'rb-chat-seen-v1',
+  /** Lixeira: projetos, etapas, tarefas e subtarefas excluídos (com o que estava dentro deles). */
+  trash: 'rb-trash-v1',
   /** Cópia de segurança de um conteúdo de projetos ilegível, guardada antes de usar os dados de exemplo. */
   projectsBackup: 'rb-projects-v1-backup',
+  /** Cópia dos projetos como estavam antes da conversão para as regras atuais (hierarquia, status, dependências). */
+  projectsBeforeRules: 'rb-projects-v1-antes-das-regras',
 } as const;
 
 type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

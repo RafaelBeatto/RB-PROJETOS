@@ -8,7 +8,7 @@ import type { User } from '../types/user';
 import { uid } from '../utils/ids';
 import { currentUser } from './authService';
 import { db, persistProjects } from './db';
-import { PermissionDeniedError, authorize, isAdmin } from './permissionService';
+import { PermissionDeniedError, canSeeProject, ensure, isAdmin } from './permissionService';
 import { STORAGE_KEYS, readJSON, writeJSON } from './storage';
 
 /** Palavra que marca todo mundo. */
@@ -78,7 +78,7 @@ export function mentionsUser(m: ChatMessage, userId: string): boolean {
 }
 
 export function sendChatMessage(p: Project, raw: string): ChatMessage | null {
-  authorize('projects', 'view', p.id);
+  ensure(canSeeProject(p));
   const user = currentUser();
   const text = raw.trim().slice(0, MAX_MESSAGE_LENGTH);
   if (!user || !text) return null;
@@ -99,7 +99,7 @@ export function canDeleteChatMessage(m: ChatMessage): boolean {
 export function deleteChatMessage(p: Project, id: string): void {
   const m = p.chat.find((x) => x.id === id);
   if (!m) return;
-  if (!canDeleteChatMessage(m)) throw new PermissionDeniedError('projects', 'delete');
+  if (!canDeleteChatMessage(m)) throw new PermissionDeniedError();
   p.chat = p.chat.filter((x) => x.id !== id);
   persistProjects();
 }

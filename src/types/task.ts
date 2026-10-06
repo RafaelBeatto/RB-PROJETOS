@@ -1,17 +1,31 @@
-import type { Dependency } from './dependency';
-
-export const TASK_STATUSES = ['A fazer', 'Em andamento', 'Em revisão', 'Concluído'] as const;
-/** Único status permitido enquanto a tarefa está bloqueada por dependências. */
-export const TASK_NOT_STARTED = 'A fazer';
+/** Status de tarefas e subtarefas (colunas do Kanban de tarefas, nesta ordem). */
+export const TASK_STATUSES = ['A fazer', 'Em andamento', 'Concluído'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
-export const PRIORITIES = ['Alta', 'Média', 'Baixa'] as const;
+/** Prioridade é opcional em todos os níveis: string vazia = sem prioridade. Só organiza e filtra. */
+export const PRIORITIES = ['Baixa', 'Média', 'Alta', 'Urgente'] as const;
 export type Priority = (typeof PRIORITIES)[number];
+export type OptionalPriority = Priority | '';
 
+/** Tarefa e etapa aceitam no máximo dois responsáveis. */
+export const MAX_RESPONSIBLES = 2;
+
+/** Item do checklist: só texto e marcado/desmarcado. */
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
+/** Subtarefa: não tem responsável próprio; herda os responsáveis da tarefa. */
 export interface Subtask {
   id: string;
   title: string;
-  done: boolean;
+  description: string;
+  priority: OptionalPriority;
+  start: string;
+  due: string;
+  status: TaskStatus;
 }
 
 export interface TaskComment {
@@ -31,21 +45,24 @@ export interface Task {
   id: string;
   title: string;
   status: TaskStatus;
-  priority: Priority;
-  /** Colaboradores que executam a tarefa (ids de usuários cadastrados); pode ter mais de um. */
+  priority: OptionalPriority;
+  /** Responsáveis (ids de usuários cadastrados), no máximo MAX_RESPONSIBLES. */
   assignees: string[];
   /** Nome antigo digitado à mão que não corresponde a nenhum usuário; só exibição. */
   assignee: string;
+  start: string;
   due: string;
-  /** Id da etapa; string vazia quando a tarefa não pertence a nenhuma. */
+  /** Id da etapa. */
   branch: string;
   description: string;
   tags: string;
-  /** O que precisa acontecer antes de a tarefa poder ser iniciada. */
-  dependencies: Dependency[];
+  /** Ids das tarefas (do mesmo projeto) das quais esta depende. Informativo: não bloqueia nada. */
+  dependencies: string[];
+  checklist: ChecklistItem[];
   subtasks: Subtask[];
   comments: TaskComment[];
   links: TaskLink[];
 }
 
-export type TaskDraft = Pick<Task, 'title' | 'status' | 'priority' | 'assignees' | 'assignee' | 'due' | 'branch' | 'description' | 'dependencies' | 'subtasks'>;
+export type TaskDraft = Pick<Task, 'title' | 'status' | 'priority' | 'assignees' | 'assignee' | 'start' | 'due' | 'branch' | 'description' | 'dependencies'>;
+export type SubtaskDraft = Omit<Subtask, 'id'>;

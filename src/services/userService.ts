@@ -3,7 +3,7 @@ import { randomSalt, sha256 } from '../utils/hash';
 import { uid } from '../utils/ids';
 import { currentUser } from './authService';
 import { db, persistProjects, persistUsers } from './db';
-import { authorize } from './permissionService';
+import { PermissionDeniedError, canManageUsers } from './permissionService';
 import { DEFAULT_PROFILE_ID, findProfile } from './profileService';
 
 const COLORS = ['#3b82f6', '#22c55e', '#fbbf24', '#f87171', '#a78bfa', '#2dd4bf', '#fb923c', '#f472b6'];
@@ -13,9 +13,14 @@ export const MIN_PASSWORD = 4;
 export interface UserFields {
   name: string;
   email: string;
+  phone: string;
+  /** Foto em data URL; vazio = sem foto. */
+  photo: string;
   role: string;
   profileId: string;
   active: boolean;
+  /** Projetos do Visualizador; null = todos. */
+  projectIds: string[] | null;
   /** Obrigatória ao criar; ao editar, vazia mantém a senha atual. */
   password: string;
 }
@@ -100,10 +105,13 @@ function newUser(fields: Omit<UserFields, 'password'>, index: number, password: 
     id: uid('u'),
     name: fields.name.trim(),
     email: fields.email.trim(),
+    phone: fields.phone.trim(),
+    photo: fields.photo,
     role: fields.role.trim(),
     color: COLORS[index % COLORS.length] ?? COLORS[0]!,
     profileId: fields.profileId,
     active: fields.active,
+    projectIds: fields.projectIds,
     createdAt: new Date().toISOString(),
     passwordHash: '',
     passwordSalt: '',
@@ -121,7 +129,7 @@ export function seedUsersFromNames(names: string[], profileId: string): User[] {
   for (const raw of names) {
     const name = raw.trim();
     if (name && !users.some((u) => u.name.toLowerCase() === name.toLowerCase())) {
-      users.push(newUser({ name, email: '', role: '', profileId, active: true }, users.length, name));
+      users.push(newUser({ name, email: '', phone: '', photo: '', role: '', profileId, active: true, projectIds: null }, users.length, name));
     }
   }
   return users;
@@ -147,8 +155,12 @@ export function upgradeLegacyUser(user: User, adminProfileId: string): boolean {
 
 // Operações (protegidas por permissão)
 
+function authorizeUsers(action: 'create' | 'edit' | 'delete'): void {
+  if (!canManageUsers(action)) throw new PermissionDeniedError();
+}
+
 export function addUser(fields: UserFields): User {
-  authorize('users', 'create');
+  authorizeUsers('create');
   const error = validateUser(fields);
   if (error) throw new Error(error);
   const user = newUser(fields, db.users.length, fields.password);
@@ -159,16 +171,25 @@ export function addUser(fields: UserFields): User {
 
 /** Cadastro rápido (ex.: formulário do projeto) com o perfil padrão. */
 export function quickAddUser(name: string, email: string, role: string, password: string): User {
-  return addUser({ name, email, role, profileId: DEFAULT_PROFILE_ID, active: true, password });
+  return addUser({ name, email, phone: '', photo: '', role, profileId: DEFAULT_PROFILE_ID, active: true, projectIds: null, password });
 }
 
 /** Atualiza o usuário e renomeia o nome dele onde ele aparece como texto (responsáveis). */
 export function updateUser(user: User, fields: UserFields): void {
-  authorize('users', 'edit');
+  authorizeUsers('edit');
   const error = validateUser(fields, user);
   if (error) throw new Error(error);
   const oldName = user.name;
-  Object.assign(user, { name: fields.name.trim(), email: fields.email.trim(), role: fields.role.trim(), profileId: fields.profileId, active: fields.active });
+  Object.assign(user, {
+    name: fields.name.trim(),
+    email: fields.email.trim(),
+    phone: fields.phone.trim(),
+    photo: fields.photo,
+    role: fields.role.trim(),
+    profileId: fields.profileId,
+    active: fields.active,
+    projectIds: fields.projectIds,
+  });
   if (fields.password) applyPassword(user, fields.password);
   if (oldName !== user.name) {
     for (const p of db.projects) {
@@ -180,21 +201,25 @@ export function updateUser(user: User, fields: UserFields): void {
 }
 
 export function setUserActive(user: User, active: boolean): void {
-  authorize('users', 'edit');
+  authorizeUsers('edit');
   const error = adminBlock(user, { active, profileId: user.profileId }) ?? selfBlock(user, { active });
   if (error) throw new Error(error);
   user.active = active;
   persistUsers();
 }
 
+/**
+ * Exclui o usuário. Projetos, etapas, tarefas e subtarefas continuam; onde ele era
+ * coordenador ou responsável, o item fica sem ele (nada é transferido automaticamente).
+ */
 export function removeUser(user: User): void {
-  authorize('users', 'delete');
+  authorizeUsers('delete');
   const error = adminBlock(user, 'delete') ?? selfBlock(user, 'delete');
   if (error) throw new Error(error);
   db.users = db.users.filter((u) => u !== user);
   for (const p of db.projects) {
     p.coordinators = p.coordinators.filter((id) => id !== user.id);
-    for (const b of p.branches) if (b.designer === user.id) b.designer = null;
+    for (const b of p.branches) b.assignees = b.assignees.filter((id) => id !== user.id);
     for (const t of p.tasks) t.assignees = t.assignees.filter((id) => id !== user.id);
   }
   persistProjects();
@@ -226,7 +251,7 @@ export function userLinks(user: User): UserLinks {
   let tasks = 0;
   for (const p of db.projects) {
     if (!p.archived && p.coordinators.includes(user.id)) coordinates++;
-    designs += p.branches.filter((b) => b.designer === user.id).length;
+    designs += p.branches.filter((b) => b.assignees.includes(user.id)).length;
     tasks += p.tasks.filter((t) => t.assignees.includes(user.id)).length;
   }
   return { coordinates, designs, tasks };

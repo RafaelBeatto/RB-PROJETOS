@@ -3,8 +3,9 @@
  * Os serviços alteram `db` e chamam `persist*()`; nenhuma tela grava direto.
  */
 import type { Project } from '../types/project';
+import { MAX_RESPONSIBLES } from '../types/task';
+import { TRASH_KINDS, type TrashEntry } from '../types/trash';
 import type { User } from '../types/user';
-import { ensureLayout } from './branchService';
 import { migrateProjects, migrateUsers } from './migrations';
 import { SEED_PROJECTS } from './seed';
 import { STORAGE_KEYS, readJSON, readString, writeJSON, writeString } from './storage';
@@ -15,6 +16,8 @@ import { isAdminProfile, seedUsersFromNames, upgradeLegacyUser, userByName } fro
 export const db = {
   projects: [] as Project[],
   users: [] as User[],
+  /** Lixeira, da exclusão mais antiga para a mais recente. */
+  trash: [] as TrashEntry[],
 };
 
 export function persistProjects(): void {
@@ -25,11 +28,8 @@ export function persistUsers(): void {
   writeJSON(STORAGE_KEYS.users, db.users);
 }
 
-let pending: ReturnType<typeof setTimeout> | undefined;
-/** Grava com atraso; usado em pan/zoom do mapa para não salvar a cada movimento. */
-export function persistProjectsSoon(delay = 300): void {
-  clearTimeout(pending);
-  pending = setTimeout(persistProjects, delay);
+export function persistTrash(): void {
+  writeJSON(STORAGE_KEYS.trash, db.trash);
 }
 
 function loadRawProjects(): unknown {
@@ -44,11 +44,20 @@ function loadRawProjects(): unknown {
   return parsed;
 }
 
+function loadTrash(): TrashEntry[] {
+  const raw = readJSON(STORAGE_KEYS.trash);
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (e): e is TrashEntry => typeof e === 'object' && e !== null && typeof e.id === 'string' && TRASH_KINDS.includes(e.kind) && typeof e.projectId === 'string',
+  );
+}
+
 /** Carrega e migra os dados salvos. Grava de volta só se a migração mudou algo. */
 export function loadDatabase(): void {
   const rawProjects = loadRawProjects();
   const { projects, withoutCoordinators } = migrateProjects(rawProjects);
   db.projects = projects;
+  db.trash = loadTrash();
 
   loadAccess();
   loadContratantes();
@@ -65,6 +74,7 @@ export function loadDatabase(): void {
     usersChanged = true;
   }
 
+  const exists = (id: string): boolean => db.users.some((u) => u.id === id);
   for (const p of projects) {
     // Responsável antigo (texto) vira vínculo com o usuário de mesmo nome; sem cadastro, o nome fica guardado.
     for (const t of p.tasks) {
@@ -73,16 +83,20 @@ export function loadDatabase(): void {
         t.assignees = [user.id];
         t.assignee = '';
       }
-      t.assignees = t.assignees.filter((id, i, all) => db.users.some((u) => u.id === id) && all.indexOf(id) === i);
+      t.assignees = t.assignees.filter(exists).slice(0, MAX_RESPONSIBLES);
     }
+    for (const b of p.branches) b.assignees = b.assignees.filter(exists);
     if (withoutCoordinators.has(p.id)) {
       const owner = userByName(p.owner);
       p.coordinators = owner ? [owner.id] : [];
     }
-    ensureLayout(p);
   }
 
   const before = JSON.stringify(rawProjects);
-  if (rawProjects !== SEED_PROJECTS && JSON.stringify(db.projects) !== before) persistProjects();
+  if (rawProjects !== SEED_PROJECTS && JSON.stringify(db.projects) !== before) {
+    // A conversão descarta o que não existe mais (subníveis de etapa, dependências entre projetos…): guarda o original uma vez.
+    if (readString(STORAGE_KEYS.projectsBeforeRules) === null) writeString(STORAGE_KEYS.projectsBeforeRules, before);
+    persistProjects();
+  }
   if (usersChanged) persistUsers();
 }

@@ -1,71 +1,79 @@
+/** Tela inicial: Kanban de projetos por status. Também desenha a lista de projetos arquivados (encerrados). */
 import { pageContent, registerPage, setFilterBar, setPageHeader } from '../../app/navigation';
 import { avatarStack } from '../../components/avatar';
+import { icon } from '../../components/icons';
+import { datesBadge, priorityBadge } from '../../components/itemParts';
 import { progressRow } from '../../components/progress';
 import { showToast } from '../../components/toast';
 import { enableMouseDrag, enableMouseDrop, enableTouchDrag } from '../../components/touchDrag';
-import { db } from '../../services/db';
-import { DependencyError, blockedSnapshot, projectRef, releasedSince } from '../../services/dependencyService';
-import { blockedBadge } from '../dependencies/dependencyView';
-import { can } from '../../services/permissionService';
-import { findProject, isProjectOverdue, projectProgress, setProjectStatus } from '../../services/projectService';
-import { PROJECT_BOARD_COLUMNS, PROJECT_STATUSES, type Project, type ProjectStatus } from '../../types/project';
-import { formatShortDate } from '../../utils/date';
+import { RuleError } from '../../services/errors';
+import { canCreateProject, canEditProject, visibleProjects } from '../../services/permissionService';
+import { findProject, projectProgress, setProjectStatus } from '../../services/projectService';
+import { PROJECT_STATUSES, type Project, type ProjectStatus } from '../../types/project';
 import { $$, esc, plural } from '../../utils/dom';
-import { matchesProjectFilters, projectFilterBar, sortProjects } from './projectFilters';
-
-const canMove = (p: Project): boolean => can('kanban', 'edit', p.id) && can('projects', 'edit', p.id);
+import { matchesProjectFilters, projectFilterBar, projectFiltersActive, sortProjects } from './projectFilters';
 
 function card(p: Project): string {
-  const footerLeft = avatarStack(p.coordinators) || esc(p.owner || 'Sem coordenador');
-  return `<article class="task-card pcard" draggable="${canMove(p)}" data-action="project-open" data-id="${p.id}"><h3>${esc(p.name)}</h3>${
-    p.processo ? `<small class="pc-sub">Processo ${esc(p.processo)}</small>` : ''
-  }${blockedBadge(projectRef(p), 'Bloqueado')}${progressRow(projectProgress(p).pct)}<div class="task-card-footer"><span>${footerLeft}</span><span class="${isProjectOverdue(p) ? 'late-txt' : ''}">${formatShortDate(
-    p.due,
-  )}</span></div></article>`;
+  const prog = projectProgress(p);
+  const movable = !p.archived && canEditProject(p);
+  const coordinators = avatarStack(p.coordinators) || '<span class="sub flat">Sem coordenador</span>';
+  return `<article class="task-card pcard" draggable="${movable}" data-action="project-open" data-id="${p.id}" tabindex="0"><div class="card-top"><h3>${esc(p.name)}</h3>${priorityBadge(
+    p.priority,
+  )}</div>${p.archived ? `<span class="status todo">${esc(p.status)}</span>` : ''}${progressRow(prog.pct)}<small class="card-sub">${
+    prog.total ? `${prog.done} de ${plural(prog.total, 'etapa concluída', 'etapas concluídas')}` : 'Nenhuma etapa'
+  }</small><div class="task-card-footer"><span>${coordinators}</span>${datesBadge(p.start, p.due, p.archived)}</div></article>`;
 }
 
 function move(id: string, column: HTMLElement): void {
   const p = findProject(id);
   const status = column.dataset.status as ProjectStatus | undefined;
   if (!p || !status || !PROJECT_STATUSES.includes(status)) return;
-  const before = blockedSnapshot();
   try {
-    if (setProjectStatus(p, status)) {
-      const released = releasedSince(before);
-      showToast(`Projeto movido${released ? ` · ${plural(released, 'item liberado', 'itens liberados')}` : ''}`);
-    }
+    if (setProjectStatus(p, status)) showToast(`Projeto em “${status}”`);
   } catch (error) {
-    if (!(error instanceof DependencyError)) throw error;
+    if (!(error instanceof RuleError)) throw error;
     showToast(error.message);
   }
   renderBoard();
 }
 
+function emptyText(archived: boolean): string {
+  if (projectFiltersActive()) return '<div class="empty">Nenhum projeto encontrado com esses filtros.</div>';
+  if (archived) return '<div class="empty">Nenhum projeto arquivado.</div>';
+  if (!canCreateProject()) return '<div class="empty">Ainda não existem projetos.</div>';
+  return `<div class="empty">Ainda não existem projetos.<br><br><button class="primary" data-action="project-new">${icon('plus')}<span>Criar primeiro projeto</span></button></div>`;
+}
+
 function renderBoard(): void {
-  const movable = can('kanban', 'edit') && can('projects', 'edit');
-  setPageHeader('Kanban de projetos', movable ? 'Arraste um projeto para mudar o status.' : 'Projetos por status.', false);
+  setPageHeader('Projetos', 'Abra um projeto para ver as etapas. Arraste um cartão para mudar o status.', true);
   setFilterBar('projects', projectFilterBar);
-  const list = sortProjects(db.projects.filter((p) => !p.archived && matchesProjectFilters(p)));
+  const list = sortProjects(visibleProjects().filter((p) => !p.archived && matchesProjectFilters(p)));
   if (!list.length) {
-    pageContent().innerHTML = '<div class="empty">Ainda não existem projetos ativos.</div>';
+    pageContent().innerHTML = emptyText(false);
     return;
   }
-  const columnOf = (p: Project): ProjectStatus => ((PROJECT_BOARD_COLUMNS as readonly string[]).includes(p.status) ? p.status : 'Em espera');
-  pageContent().innerHTML = `<div class="board pboard">${PROJECT_BOARD_COLUMNS.map((status) => {
-    const items = list.filter((p) => columnOf(p) === status);
-    return `<section class="column" data-status="${status}"><div class="column-head"><span>${status.toUpperCase()} · ${items.length}</span></div><div class="dropzone">${items
-      .map(card)
-      .join('')}</div></section>`;
+  pageContent().innerHTML = `<div class="board pboard">${PROJECT_STATUSES.map((status) => {
+    const items = list.filter((p) => p.status === status);
+    return `<section class="column" data-status="${status}"><div class="column-head"><span>${status.toUpperCase()} · ${items.length}</span></div><div class="dropzone">${
+      items.map(card).join('') || '<p class="col-empty">Nenhum projeto</p>'
+    }</div></section>`;
   }).join('')}</div>`;
 
-  if (!movable) return;
-  $$('.pboard .pcard').forEach((el) => {
+  $$('.pboard .pcard[draggable="true"]').forEach((el) => {
     enableMouseDrag(el);
     enableTouchDrag(el, (column) => move(el.dataset.id ?? '', column));
   });
   $$('.pboard .column').forEach((column) => enableMouseDrop(column, '.pcard', move));
 }
 
+function renderArchive(): void {
+  setPageHeader('Arquivados', 'Projetos encerrados. Abra um projeto para reabrir.', false);
+  setFilterBar('projects', projectFilterBar);
+  const list = sortProjects(visibleProjects().filter((p) => p.archived && matchesProjectFilters(p)));
+  pageContent().innerHTML = list.length ? `<div class="card-grid">${list.map(card).join('')}</div>` : emptyText(true);
+}
+
 export function initProjectBoard(): void {
-  registerPage('board', renderBoard);
+  registerPage('home', renderBoard);
+  registerPage('archive', renderArchive);
 }

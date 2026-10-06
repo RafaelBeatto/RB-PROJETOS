@@ -4,9 +4,9 @@
  * Toda troca de página/aba passa pela verificação de permissão.
  */
 import { showToast } from '../components/toast';
-import { can } from '../services/permissionService';
+import { canCreateProject } from '../services/permissionService';
 import { findProject } from '../services/projectService';
-import { emptyBranchFilters, ui, type Page } from '../state/store';
+import { emptyBranchFilters, emptyTaskFilters, ui, type Page } from '../state/store';
 import type { Project } from '../types/project';
 import { $, $$ } from '../utils/dom';
 import { NO_ACCESS, PAGE_ORDER, TAB_ORDER, applyAccess, canOpenPage, canOpenTab } from './access';
@@ -75,23 +75,37 @@ export function refreshPage(): void {
 export function openProject(id: string): void {
   if (!findProject(id)) return;
   if (!canOpenTab('overview', id)) {
-    showToast(NO_ACCESS);
+    showToast('Você não tem acesso a este projeto.');
     return;
   }
   ui.projectId = id;
-  // O projeto abre nas Etapas; sem acesso ao Kanban, refreshProject cai na primeira aba permitida.
+  // O projeto abre no Kanban de etapas.
   ui.tab = 'kanban';
-  ui.structureMode = 'board';
-  ui.cardLevel = null;
+  ui.branchId = null;
   ui.branchFilters = emptyBranchFilters();
+  ui.taskFilters = emptyTaskFilters();
   $('#home').hidden = true;
   $('#projectView').hidden = false;
   window.scrollTo(0, 0);
   refreshProject();
 }
 
+/** Abre uma etapa do projeto aberto (Kanban de tarefas). */
+export function openBranch(id: string | null): void {
+  ui.tab = 'kanban';
+  if (ui.branchId !== id) ui.taskFilters = emptyTaskFilters();
+  ui.branchId = id;
+  window.scrollTo(0, 0);
+  refreshProject();
+}
+
 export function refreshProject(): void {
   if (!isProjectOpen()) return;
+  // Projeto que sumiu (enviado para a lixeira) ou ficou sem acesso: volta para a lista.
+  if (!canOpenTab('overview', ui.projectId ?? undefined)) {
+    goTo('home', true);
+    return;
+  }
   applyAccess(ui.projectId ?? undefined);
   if (!canOpenTab(ui.tab, ui.projectId ?? undefined)) ui.tab = TAB_ORDER.find((t) => canOpenTab(t, ui.projectId ?? undefined)) ?? 'overview';
   renderProjectView();
@@ -106,7 +120,7 @@ export function refresh(): void {
 export function setPageHeader(title: string, subtitle: string, showNewProject: boolean): void {
   $('#pageTitle').textContent = title;
   $('#pageSub').textContent = subtitle;
-  $('#homeNew').hidden = !showNewProject || !can('projects', 'create');
+  $('#homeNew').hidden = !showNewProject || !canCreateProject();
 }
 
 /** Troca a barra de filtros só quando muda o tipo de página, para não perder o foco ao digitar. */

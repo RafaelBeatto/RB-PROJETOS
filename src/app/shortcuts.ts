@@ -1,6 +1,6 @@
 /**
- * Atalhos de teclado: Ctrl+K ou / pesquisa; N novo (projeto ou tarefa); T tarefa; R etapa;
- * K e C trocam para Etapas e Chat. Ignorados enquanto se digita ou com login aberto.
+ * Atalhos de teclado: Ctrl+K ou / pesquisa; N novo (projeto, ou tarefa dentro de uma etapa); T tarefa
+ * (dentro de uma etapa); R etapa; K e C trocam para Etapas e Chat. Ignorados enquanto se digita ou com login aberto.
  */
 import { closeModal, isModalOpen } from '../components/modal';
 import { isLoginVisible } from '../features/auth/login';
@@ -9,7 +9,7 @@ import { openSearch } from '../features/search/search';
 import { openNewBranchModal } from '../features/structure/branchModals';
 import { openTaskModal } from '../features/tasks/taskModal';
 import { ui, type ProjectTab } from '../state/store';
-import { can } from '../services/permissionService';
+import { canCreateProject } from '../services/permissionService';
 import { canOpenTab } from './access';
 import { isProjectOpen, refreshProject } from './navigation';
 
@@ -32,11 +32,13 @@ export function installShortcuts(): void {
 
     const inProject = isProjectOpen();
     const projectId = ui.projectId ?? undefined;
+    const inEtapa = inProject && ui.tab === 'kanban' && !!ui.branchId;
     if (key === 'n') {
-      if (inProject) openTaskModal();
-      else if (can('projects', 'create')) openProjectModal();
-    } else if (inProject && key === 't') openTaskModal();
-    else if (inProject && key === 'r') openNewBranchModal(null);
+      if (inEtapa) openTaskModal(undefined, 'A fazer', ui.branchId ?? '');
+      else if (inProject) openNewBranchModal();
+      else if (canCreateProject()) openProjectModal();
+    } else if (inEtapa && key === 't') openTaskModal(undefined, 'A fazer', ui.branchId ?? '');
+    else if (inProject && key === 'r') openNewBranchModal();
     else if (inProject && TAB_KEYS[key] && canOpenTab(TAB_KEYS[key], projectId)) {
       ui.tab = TAB_KEYS[key];
       refreshProject();

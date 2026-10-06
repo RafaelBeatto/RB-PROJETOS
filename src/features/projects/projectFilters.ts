@@ -5,17 +5,20 @@ import { contratanteCidade, contratanteName, sortedContratantes } from '../../se
 import { agreementName, projectProgress } from '../../services/projectService';
 import { emptyProjectFilters, ui } from '../../state/store';
 import type { Project } from '../../types/project';
+import { PRIORITIES } from '../../types/task';
 
 export function projectFiltersActive(): boolean {
   const f = ui.projectFilters;
-  return !!(f.q.trim() || f.coordinator || f.contratante || f.sort);
+  return !!(f.q.trim() || f.coordinator || f.priority || f.contratante || f.sort);
 }
 
 export function matchesProjectFilters(p: Project): boolean {
   const f = ui.projectFilters;
   const q = f.q.trim().toLowerCase();
   if (q && ![p.name, p.description, p.processo, agreementName(p), p.convPolitico, contratanteName(p), contratanteCidade(p)].join(' ').toLowerCase().includes(q)) return false;
-  if (f.coordinator && !p.coordinators.includes(f.coordinator)) return false;
+  if (f.coordinator === 'none' && p.coordinators.length) return false;
+  if (f.coordinator && f.coordinator !== 'none' && !p.coordinators.includes(f.coordinator)) return false;
+  if (f.priority && p.priority !== (f.priority === 'none' ? '' : f.priority)) return false;
   if (f.contratante && p.contratanteId !== f.contratante) return false;
   return true;
 }
@@ -38,9 +41,15 @@ export function projectFilterBar(): string {
   return `<div class="fbar">${filterSearch('projects.q', 'Buscar projeto, processo, convênio ou contratante', f.q)}<div class="fchips">${filterSelect(
     'projects.coordinator',
     'Coordenador',
-    db.users.map((u) => [u.id, u.name] as const),
+    [['none', 'Sem coordenador'] as const, ...db.users.map((u) => [u.id, u.name] as const)],
     f.coordinator,
     'Todos',
+  )}${filterSelect(
+    'projects.priority',
+    'Prioridade',
+    [...PRIORITIES.map((x) => [x, x] as const), ['none', 'Sem prioridade'] as const],
+    f.priority,
+    'Todas',
   )}${filterSelect(
     'projects.contratante',
     'Contratante',
@@ -56,7 +65,7 @@ export function projectFilterBar(): string {
       ['prog', 'Progresso'],
     ],
     f.sort,
-    'Recentes',
+    'Criação',
   )}${clearButton('projects')}</div></div>`;
 }
 

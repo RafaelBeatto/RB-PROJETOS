@@ -6,7 +6,7 @@ import { icon } from '../../components/icons';
 import { closeModal, modalField, openModal } from '../../components/modal';
 import { showToast } from '../../components/toast';
 import { currentUser } from '../../services/authService';
-import { can } from '../../services/permissionService';
+import { can, canManageProfiles, canManageUsers } from '../../services/permissionService';
 import { findProfile } from '../../services/profileService';
 import { MIN_PASSWORD, changeOwnPassword } from '../../services/userService';
 import { ui, type SettingsTab } from '../../state/store';
@@ -16,15 +16,15 @@ import { initContratantesAdmin, renderContratantesTab } from './contratantesAdmi
 import { initProfilesAdmin, mountProfilesTab, renderProfilesTab } from './profilesAdmin';
 import { initUsersAdmin, renderUsersTab, usersFilterBar } from './usersAdmin';
 
-const TABS: { tab: SettingsTab; label: string; module: 'users' | 'profiles' | 'contratantes' }[] = [
-  { tab: 'users', label: 'Usuários', module: 'users' },
-  { tab: 'profiles', label: 'Perfis e permissões', module: 'profiles' },
-  { tab: 'contratantes', label: 'Contratantes', module: 'contratantes' },
+const TABS: { tab: SettingsTab; label: string; allowed: () => boolean }[] = [
+  { tab: 'users', label: 'Usuários', allowed: () => canManageUsers('view') },
+  { tab: 'profiles', label: 'Perfis e permissões', allowed: () => canManageProfiles('view') },
+  { tab: 'contratantes', label: 'Contratantes', allowed: () => can('contratantes', 'view') },
 ];
 
 function renderSettings(): void {
   setPageHeader('Configurações', 'Usuários, perfis, permissões de acesso e contratantes.', false);
-  const allowed = TABS.filter((t) => can(t.module, 'view'));
+  const allowed = TABS.filter((t) => t.allowed());
   if (!allowed.some((t) => t.tab === ui.settingsTab) && allowed[0]) ui.settingsTab = allowed[0].tab;
   const tabs = `<nav class="tabs settings-tabs" aria-label="Configurações">${allowed
     .map((t) => `<button class="tab ${t.tab === ui.settingsTab ? 'active' : ''}" data-action="settings-tab" data-tab="${t.tab}">${t.label}</button>`)
@@ -83,9 +83,10 @@ function openMore(): void {
     ? `<button class="ghost" data-action="nav" data-page="collaborators">${icon('collaborators')}Colaboradores</button>`
     : '';
   const archive = canOpenPage('archive') ? `<button class="ghost" data-action="nav" data-page="archive">${icon('archive')}Arquivados</button>` : '';
+  const trash = canOpenPage('trash') ? `<button class="ghost" data-action="nav" data-page="trash">${icon('trash')}Lixeira</button>` : '';
   openModal(
     'Mais',
-    `<div class="more-list">${collaborators}${archive}${settings}<button class="ghost" data-action="account">${icon('users')}Minha conta</button><button class="ghost" data-action="logout">${icon(
+    `<div class="more-list">${collaborators}${archive}${trash}${settings}<button class="ghost" data-action="account">${icon('users')}Minha conta</button><button class="ghost" data-action="logout">${icon(
       'logout',
     )}Sair</button></div>`,
   );

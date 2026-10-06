@@ -4,48 +4,60 @@
  */
 import { avatar } from '../components/avatar';
 import { currentUser } from '../services/authService';
-import { can } from '../services/permissionService';
+import { can, canCreateBranch, canCreateProject, canEditProject, canOpenSettings, canSeeProject, canUseTrash } from '../services/permissionService';
 import { findProfile } from '../services/profileService';
+import { findProject } from '../services/projectService';
 import type { Page, ProjectTab } from '../state/store';
 import { PERMISSION_ACTIONS, type PermissionAction, type PermissionModule } from '../types/access';
 import { $$, $maybe, esc } from '../utils/dom';
 
 export const NO_ACCESS = 'Você não possui permissão para acessar este módulo.';
 
-const PAGE_ACCESS: Record<Page, PermissionModule> = {
-  home: 'projects',
-  archive: 'projects',
-  today: 'projects',
-  history: 'projects',
-  board: 'kanban',
-  collaborators: 'collaborators',
-  settings: 'settings',
+/** Regras com nome, usadas em `data-perm="@nome"` (dependem da função e do vínculo, não só da matriz). */
+const RULES: Record<string, (projectId?: string) => boolean> = {
+  trash: () => canUseTrash(),
+  settings: () => canOpenSettings(),
+  projectCreate: () => canCreateProject(),
+  projectEdit: (id) => {
+    const p = findProject(id);
+    return !!p && canEditProject(p);
+  },
+  branchCreate: (id) => {
+    const p = findProject(id);
+    return !!p && canCreateBranch(p);
+  },
 };
 
-/** Permissões que abrem cada aba ("|" = qualquer uma delas). */
-const TAB_ACCESS: Record<ProjectTab, string> = {
-  overview: 'projects.view',
-  info: 'projects.view',
-  // Etapas reúne o Kanban e a Estrutura (mapa e cartões): basta ver um dos dois.
-  kanban: 'kanban.view|structure.view',
-  // Quem vê o projeto participa do chat dele.
-  chat: 'projects.view',
+const PAGE_ACCESS: Record<Page, string> = {
+  home: 'projects.view',
+  archive: 'projects.view',
+  today: 'projects.view',
+  history: 'projects.view',
+  collaborators: 'collaborators.view',
+  trash: '@trash',
+  settings: '@settings',
 };
 
-export const PAGE_ORDER: Page[] = ['home', 'board', 'today', 'history', 'collaborators', 'archive', 'settings'];
+export const PAGE_ORDER: Page[] = ['home', 'today', 'history', 'collaborators', 'archive', 'trash', 'settings'];
 export const TAB_ORDER: ProjectTab[] = ['kanban', 'overview', 'info', 'chat'];
 
 export function canOpenPage(page: Page): boolean {
-  return can(PAGE_ACCESS[page], 'view');
+  return canAny(PAGE_ACCESS[page]);
 }
 
-export function canOpenTab(tab: ProjectTab, projectId?: string): boolean {
-  return canAny(TAB_ACCESS[tab], projectId);
+/** Todas as abas do projeto exigem poder ver o projeto (Visualizadores podem ter acesso limitado). */
+export function canOpenTab(_tab: ProjectTab, projectId?: string): boolean {
+  const p = findProject(projectId);
+  return !!p && canSeeProject(p);
 }
 
-/** Lê "modulo.acao" (ex.: "projects.create"); várias opções separadas por "|" valem como "ou". */
+/**
+ * Lê "modulo.acao" (ex.: "projects.create") ou "@regra" (ex.: "@trash");
+ * várias opções separadas por "|" valem como "ou".
+ */
 export function canAny(spec: string, projectId?: string): boolean {
   return spec.split('|').some((part) => {
+    if (part.startsWith('@')) return RULES[part.slice(1)]?.(projectId) ?? false;
     const [module, action] = part.split('.') as [PermissionModule, PermissionAction | undefined];
     const act = action && (PERMISSION_ACTIONS as readonly string[]).includes(action) ? action : 'view';
     return can(module, act, projectId);
