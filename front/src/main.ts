@@ -3,6 +3,7 @@ import { installAppActions } from './app/appActions';
 import { goTo, homePage } from './app/navigation';
 import { installShortcuts } from './app/shortcuts';
 import { initTheme } from './app/theme';
+import { STORAGE_FAILED, STORAGE_KEYS, readString, writeString } from './services/storage';
 import { installFilters } from './components/filterBar';
 import { appShell } from './components/layout';
 import { installModal } from './components/modal';
@@ -30,6 +31,13 @@ import { installActions } from './utils/actions';
 import { $ } from './utils/dom';
 
 /** Ações bloqueadas pelas regras (permissão ou regra de negócio) viram um aviso, sem quebrar a tela. */
+/** Gravação recusada pelo navegador (espaço cheio ou bloqueado): avisa em vez de perder em silêncio. */
+function installStorageWarning(): void {
+  window.addEventListener(STORAGE_FAILED, () =>
+    showToast('Não foi possível salvar: o espaço deste navegador está cheio ou bloqueado. Esvazie a lixeira ou libere espaço; as últimas alterações podem se perder ao recarregar.'),
+  );
+}
+
 function installPermissionErrors(): void {
   const handle = (error: unknown, prevent: () => void): void => {
     if (error instanceof PermissionDeniedError || error instanceof RuleError) {
@@ -42,13 +50,17 @@ function installPermissionErrors(): void {
 }
 
 function start(): void {
-  // Anexos foram removidos do sistema: apaga os arquivos que tenham ficado guardados no navegador.
-  try {
-    indexedDB.deleteDatabase('rb-files');
-  } catch {
-    /* armazenamento indisponível: nada a apagar */
+  // Anexos foram removidos do sistema: apaga uma única vez os arquivos que tenham ficado no navegador.
+  if (!readString(STORAGE_KEYS.filesCleaned)) {
+    try {
+      // A marca só é gravada quando a exclusão termina; se for bloqueada, tenta de novo na próxima vez.
+      indexedDB.deleteDatabase('rb-files').onsuccess = () => writeString(STORAGE_KEYS.filesCleaned, '1');
+    } catch {
+      /* armazenamento indisponível: nada a apagar */
+    }
   }
   installPermissionErrors();
+  installStorageWarning();
   loadDatabase();
   $('#app').innerHTML = appShell();
   initTheme();

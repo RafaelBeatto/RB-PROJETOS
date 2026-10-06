@@ -122,8 +122,23 @@ export function canEditBranch(p: Project): boolean {
   return !!c && c.role !== 'viewer' && matrix('structure', 'edit', p);
 }
 
-export function canDeleteBranch(p: Project): boolean {
-  return canEditBranch(p) && matrix('structure', 'delete', p);
+/**
+ * Excluir a etapa leva as tarefas junto. Administrador e Coordenador excluem qualquer etapa;
+ * o Responsável, só as etapas em que ele é responsável (senão apagaria tarefas que não pode excluir).
+ */
+export function canDeleteBranch(p: Project, b?: Branch): boolean {
+  const c = context(p);
+  if (!c || !canEditBranch(p) || !matrix('structure', 'delete', p)) return false;
+  return manages(c.role) || (!!b && b.assignees.includes(c.user.id));
+}
+
+/**
+ * Responsáveis da etapa: só Administrador e Coordenador trocam. O Responsável, ao criar uma etapa,
+ * pode indicar só a si mesmo (sem isso, ele se colocaria em qualquer etapa e ganharia as tarefas dela).
+ */
+export function canSetBranchResponsibles(p: Project): boolean {
+  const c = context(p);
+  return !!c && manages(c.role);
 }
 
 // Tarefa: Administrador, Coordenador ou o responsável pela etapa; o responsável pela tarefa edita a própria tarefa.

@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   auth: 'rb-projects-auth',
   /** Tema escolhido: 'dark' (noturno) ou 'light'. */
   theme: 'rb-theme',
+  /** Marca que os arquivos de anexos antigos já foram apagados (limpeza feita uma vez). */
+  filesCleaned: 'rb-files-cleaned',
   /** Perfis e permissões (controle de acesso). */
   access: 'rb-access-v1',
   /** Contratantes cadastradas pelo administrador. */
@@ -35,11 +37,16 @@ export function readString(key: StorageKey): string | null {
   }
 }
 
+/** Avisado quando uma gravação falha (ex.: espaço do navegador cheio); a tela mostra o alerta. */
+export const STORAGE_FAILED = 'rb-storage-failed';
+
 export function writeString(key: StorageKey, value: string): boolean {
   try {
     localStorage.setItem(key, value);
     return true;
   } catch {
+    // Sem isso a falha passaria em silêncio e as alterações se perderiam ao recarregar.
+    window.dispatchEvent(new CustomEvent(STORAGE_FAILED, { detail: key }));
     return false;
   }
 }

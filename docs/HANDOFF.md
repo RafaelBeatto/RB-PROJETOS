@@ -42,3 +42,14 @@ As regras de negócio novas (hierarquia, status, permissões por função, depen
 8. **Foto do usuário**: guardada no navegador, reduzida para 160×160.
 9. **Busca de pessoas**: encontra todos os usuários (inclusive inativos, marcados como tal). A ficha da pessoa mostra só os vínculos nos projetos que quem busca pode ver.
 10. **Datas**: nenhuma validação (por exemplo, término antes do início é aceito), seguindo "não criar validações desnecessárias".
+
+## Revisão de bugs (regras aplicadas)
+
+- Só administrador dá o perfil Administrador ou altera/desativa/exclui a conta de outro administrador.
+- Responsável não troca os responsáveis de uma etapa; ao criar, só pode indicar a si mesmo. Só apaga etapas de que é responsável.
+- Dependência de item que está na lixeira é mantida ao editar e volta quando o item é restaurado.
+- "Concluído por/em" só é registrado quando o status muda (editar outro campo não altera).
+- A validação do formulário roda antes do aviso de dependências pendentes.
+- Se o navegador não conseguir gravar (armazenamento cheio/bloqueado), aparece um aviso.
+- Na busca, projetos/etapas/tarefas vêm antes das pessoas.
+- Não corrigível em código: a migração antiga de perfis já rodou; ajuste os perfis em Configurações → Perfis se algum ficou errado.

@@ -310,7 +310,7 @@
 }
 .tdetail {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 14px;
   margin-top: 10px;
   padding: 10px 12px;
@@ -399,11 +399,6 @@
   flex: none;
 }
 
-@media (max-width: 700px) {
-  .tdetail {
-    grid-template-columns: 1fr;
-  }
-}
 
 .sub-new {
   justify-self: start;

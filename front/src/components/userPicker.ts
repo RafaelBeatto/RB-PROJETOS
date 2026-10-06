@@ -10,8 +10,9 @@ function pill(u: User, on: boolean): string {
 }
 
 /** Usuários ativos e, mesmo inativos, os que já estão escolhidos. `max` limita quantos podem ser marcados. */
-export function userPickerHtml(id: string, selected: string[], max = 0): string {
-  const users = db.users.filter((u) => u.active || selected.includes(u.id));
+/** `only`: limita as opções a esses usuários (além dos já escolhidos). */
+export function userPickerHtml(id: string, selected: string[], max = 0, only?: string[]): string {
+  const users = db.users.filter((u) => (u.active || selected.includes(u.id)) && (!only || only.includes(u.id) || selected.includes(u.id)));
   return `<div class="pick" id="${id}" data-max="${max}">${users.map((u) => pill(u, selected.includes(u.id))).join('') || '<span class="sub flat">Nenhum usuário cadastrado.</span>'}</div>`;
 }
 

@@ -22,6 +22,11 @@ export function isLate(t: { status: TaskStatus; due: string }): boolean {
 
 // Tarefas
 
+/** Confere e limpa o rascunho sem gravar (o formulário usa antes de perguntar sobre dependências). */
+export function validateTaskDraft(p: Project, draft: TaskDraft, task: Task | undefined): TaskDraft {
+  return validate(p, draft, task);
+}
+
 function validate(p: Project, draft: TaskDraft, task: Task | undefined): TaskDraft {
   if (!draft.title.trim()) throw new RuleError('Informe o título da tarefa.');
   if (!TASK_STATUSES.includes(draft.status)) throw new RuleError('Status inválido.');
@@ -58,8 +63,11 @@ export function updateTask(p: Project, task: Task, input: TaskDraft): void {
   if (draft.branch !== task.branch) ensure(canCreateTask(p, findBranch(p, draft.branch)));
   const old = { ...task };
   Object.assign(task, draft);
-  stampCompletion(task, task.status === 'Concluído');
-  if (old.status !== task.status) logTaskStatus(p, task);
+  // Só registra (ou limpa) quem concluiu quando o status muda: editar outra coisa não altera o registro.
+  if (old.status !== task.status) {
+    stampCompletion(task, task.status === 'Concluído');
+    logTaskStatus(p, task);
+  }
   if (String(old.dependencies) !== String(task.dependencies)) logActivity(p, `alterou as dependências de "${task.title}"`, { kind: 'task', task: task.id, branch: task.branch });
   if (String(old.assignees) !== String(task.assignees)) {
     const who = peopleNames(task.assignees);
@@ -112,7 +120,7 @@ export function updateSubtask(p: Project, t: Task, s: Subtask, input: SubtaskDra
   const draft = validateSubtask(input);
   const oldStatus = s.status;
   Object.assign(s, draft);
-  stampCompletion(s, s.status === 'Concluído');
+  if (oldStatus !== s.status) stampCompletion(s, s.status === 'Concluído');
   if (oldStatus !== s.status) logActivity(p, `moveu a subtarefa "${s.title}" (${t.title}) para ${s.status}`, { kind: 'subtask', task: t.id, branch: t.branch });
   persistProjects();
 }

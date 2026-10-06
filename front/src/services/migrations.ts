@@ -50,10 +50,14 @@ function migrateBranchStatus(v: unknown): BranchStatus {
   return oneOf<BranchStatus>(BRANCH_STATUSES, v, 'Em espera');
 }
 
-/** Registro de conclusão (quem e quando), se existir. */
+/** Registro de conclusão (quem e quando), se existir e tiver uma data válida. */
 function completion(r: Raw): { doneBy?: string; doneByName?: string; doneAt?: string } {
-  return str(r.doneAt) ? { doneBy: str(r.doneBy), doneByName: str(r.doneByName), doneAt: str(r.doneAt) } : {};
+  const at = str(r.doneAt);
+  return at && !Number.isNaN(Date.parse(at)) ? { doneBy: str(r.doneBy), doneByName: str(r.doneByName), doneAt: at } : {};
 }
+
+/** Só itens concluídos guardam o registro de conclusão. */
+const completionIfDone = (r: Raw, status: string): ReturnType<typeof completion> => (status === 'Concluído' ? completion(r) : {});
 
 function migrateChecklistItem(r: Raw): ChecklistItem {
   // Formato antigo: { title, done }.
@@ -69,7 +73,7 @@ function migrateSubtask(r: Raw): Subtask {
     start: str(r.start),
     due: str(r.due),
     status: migrateTaskStatus(r.status),
-    ...completion(r),
+    ...completionIfDone(r, migrateTaskStatus(r.status)),
   };
 }
 
@@ -124,7 +128,7 @@ function migrateTask(r: Raw, projectId: string): Task {
     checklist: objs(hasChecklist ? r.checklist : r.subtasks).map(migrateChecklistItem),
     subtasks: hasChecklist ? objs(r.subtasks).map(migrateSubtask) : [],
     comments: objs(r.comments).map(migrateComment),
-    ...completion(r),
+    ...completionIfDone(r, migrateTaskStatus(r.status)),
   };
 }
 
@@ -132,6 +136,7 @@ function migrateBranch(r: Raw, tasks: Task[], raw: Raw[], projectId: string): Br
   const id = str(r.id) || uid('b');
   // Antes havia um único responsável, em `designer`.
   const assignees = Array.isArray(r.assignees) ? ids(r.assignees) : ids([r.designer]);
+  const status = typeof r.status === 'string' ? migrateBranchStatus(r.status) : statusFromTasks(id, tasks, raw);
   return {
     id,
     name: str(r.name),
@@ -139,10 +144,10 @@ function migrateBranch(r: Raw, tasks: Task[], raw: Raw[], projectId: string): Br
     priority: priority(r.priority),
     start: str(r.start),
     due: str(r.due),
-    status: typeof r.status === 'string' ? migrateBranchStatus(r.status) : statusFromTasks(id, tasks, raw),
+    status,
     assignees: assignees.slice(0, MAX_RESPONSIBLES),
     dependencies: migrateTaskDependencies(r.dependencies, projectId),
-    ...completion(r),
+    ...completionIfDone(r, status),
   };
 }
 
