@@ -1,6 +1,7 @@
 /**
- * Etapa aberta: dados da etapa e o Kanban das tarefas dela (A fazer, Em andamento, Concluído).
- * Arrastar muda o status da tarefa; clicar abre a tarefa (subtarefas, checklist, dependências…).
+ * Etapa aberta: dados da etapa e as tarefas dela em forma de checklist.
+ * Marcar a caixa conclui a tarefa (desmarcar volta para "A fazer"); clicar no nome abre a
+ * tarefa (subtarefas, checklist, dependências…). Tarefas novas são criadas digitando o nome.
  */
 import { openBranch, refreshProject } from '../../app/navigation';
 import { avatarStack } from '../../components/avatar';
@@ -9,11 +10,11 @@ import { icon } from '../../components/icons';
 import { datesBadge, peopleLine, priorityBadge } from '../../components/itemParts';
 import { progressRow } from '../../components/progress';
 import { showToast } from '../../components/toast';
-import { enableMouseDrag, enableMouseDrop, enableTouchDrag } from '../../components/touchDrag';
 import { branchProgress, tasksIn } from '../../services/branchService';
 import { db } from '../../services/db';
 import { canCreateTask, canEditBranch, canEditTask } from '../../services/permissionService';
-import { checklistProgress, dependenciesOf, findTask, setTaskStatus } from '../../services/taskService';
+import { RuleError } from '../../services/errors';
+import { checklistProgress, createTask, dependenciesOf, findTask, setTaskStatus } from '../../services/taskService';
 import { findUser } from '../../services/userService';
 import { emptyTaskFilters, ui } from '../../state/store';
 import type { Branch } from '../../types/branch';
@@ -50,26 +51,28 @@ function filterBar(): string {
   }</div></div>`;
 }
 
-function taskCard(p: Project, t: Task): string {
+/** Uma linha do checklist: caixa (concluída ou não), nome e os detalhes principais. */
+function taskRow(p: Project, t: Task): string {
+  const done = t.status === 'Concluído';
+  const editable = canEditTask(p, t);
   const deps = dependenciesOf(p, t);
   const subDone = t.subtasks.filter((s) => s.status === 'Concluído').length;
   const check = checklistProgress(t);
   const facts = [
-    t.subtasks.length ? `<span title="Subtarefas concluídas">${icon('branch')}${subDone}/${t.subtasks.length}</span>` : '',
-    check.total ? `<span title="Checklist">${icon('selectOn')}${check.done}/${check.total}</span>` : '',
+    t.status === 'Em andamento' ? `<span class="status ${taskStatusClass(t.status)}">Em andamento</span>` : '',
+    priorityBadge(t.priority),
+    t.subtasks.length ? `<span class="tfact" title="Subtarefas concluídas">${icon('branch')}${subDone}/${t.subtasks.length}</span>` : '',
+    check.total ? `<span class="tfact" title="Itens do checklist">${icon('selectOn')}${check.done}/${check.total}</span>` : '',
+    deps.length
+      ? `<span class="tfact" title="Depende de: ${esc(deps.map((d) => `${d.title} (${d.status})`).join(', '))}">${icon('link')}${esc(deps.map((d) => d.title).join(', '))}</span>`
+      : '',
+    datesBadge(t.start, t.due, done),
   ].join('');
-  const depLine = deps.length
-    ? `<div class="dep-line" title="Depende de: ${esc(deps.map((d) => `${d.title} (${d.status})`).join(', '))}">${icon('link')}<span>Depende de ${deps
-        .map((d) => `<b class="${d.status === 'Concluído' ? 'dep-done' : ''}">${esc(d.title)}</b>`)
-        .join(', ')}</span></div>`
-    : '';
-  return `<article class="task-card tcard" draggable="${canEditTask(p, t)}" data-action="task-open" data-id="${t.id}" tabindex="0"><div class="card-top"><h3>${esc(t.title)}</h3>${priorityBadge(
-    t.priority,
-  )}</div>${depLine}${facts ? `<div class="card-facts">${facts}</div>` : ''}<div class="task-card-footer"><span>${avatarStack(t.assignees) || '<span class="sub flat">Sem responsável</span>'}</span>${datesBadge(
-    t.start,
-    t.due,
-    t.status === 'Concluído',
-  )}</div></article>`;
+  return `<li class="trow${done ? ' done' : ''}"><label class="tcheck" title="${
+    editable ? (done ? 'Marcar como não concluída' : 'Marcar como concluída') : 'Sem permissão para alterar esta tarefa'
+  }"><input type="checkbox" data-task-done="${t.id}" ${done ? 'checked' : ''} ${editable ? '' : 'disabled'} aria-label="Concluir ${esc(t.title)}"></label><div class="tmain"><button class="tname" data-action="task-open" data-id="${
+    t.id
+  }">${esc(t.title)}</button>${facts ? `<div class="tfacts">${facts}</div>` : ''}</div><span class="tpeople">${avatarStack(t.assignees)}</span></li>`;
 }
 
 function header(p: Project, b: Branch): string {
@@ -89,34 +92,56 @@ export function renderBranchView(p: Project, b: Branch): string {
   const all = tasksIn(p, b.id);
   const list = all.filter(matches);
   const canCreate = canCreateTask(p, b);
-  const board = all.length
-    ? `<div class="board">${TASK_STATUSES.map((status) => {
-        const items = list.filter((t) => t.status === status);
-        return `<section class="column" data-status="${status}"><div class="column-head"><span>${status.toUpperCase()} · ${items.length}</span>${
-          canCreate ? `<button data-action="task-new" data-branch="${b.id}" data-status="${status}" aria-label="Nova tarefa em ${status}">${icon('plus')}</button>` : ''
-        }</div><div class="dropzone">${items.map((t) => taskCard(p, t)).join('') || '<p class="col-empty">Nenhuma tarefa</p>'}</div></section>`;
-      }).join('')}</div>`
-    : `<div class="empty">Nenhuma tarefa nesta etapa.${
+  const pending = list.filter((t) => t.status !== 'Concluído');
+  const done = list.filter((t) => t.status === 'Concluído');
+  const add = canCreate
+    ? `<form class="tadd" id="taskQuickAdd"><span class="tadd-ico">${icon('plus')}</span><input class="field" name="title" placeholder="Adicionar tarefa e apertar Enter" aria-label="Nova tarefa" autocomplete="off"><button class="ghost">Adicionar</button></form>`
+    : '';
+  const empty = all.length
+    ? ''
+    : `<p class="sub tlist-empty">${
         canCreate
-          ? `<br><br><button class="primary" data-action="task-new" data-branch="${b.id}" data-status="A fazer">${icon('plus')}<span>Criar primeira tarefa</span></button>`
-          : `<br><small>${b.assignees.length ? 'Só os responsáveis pela etapa, coordenadores e administradores criam tarefas aqui.' : 'Defina um responsável pela etapa para que ele possa criar tarefas.'}</small>`
-      }</div>`;
-  return `${header(p, b)}${all.length ? filterBar() : ''}${board}${all.length && !list.length ? `<p class="sub">${plural(0, 'tarefa encontrada', 'tarefas encontradas')} com esses filtros.</p>` : ''}`;
+          ? 'Nenhuma tarefa nesta etapa ainda. Digite acima para criar a primeira.'
+          : b.assignees.length
+            ? 'Nenhuma tarefa nesta etapa. Só os responsáveis pela etapa, coordenadores e administradores criam tarefas aqui.'
+            : 'Nenhuma tarefa nesta etapa. Defina um responsável pela etapa para que ele possa criar tarefas.'
+      }</p>`;
+  const pendingList = pending.length ? `<ul class="tlist">${pending.map((t) => taskRow(p, t)).join('')}</ul>` : all.length && list.length ? '<p class="sub tlist-empty">Tudo concluído nesta etapa.</p>' : '';
+  const doneList = done.length
+    ? `<details class="tdone" ${pending.length ? '' : 'open'}><summary>${plural(done.length, 'tarefa concluída', 'tarefas concluídas')}</summary><ul class="tlist">${done.map((t) => taskRow(p, t)).join('')}</ul></details>`
+    : '';
+  const filtered = all.length && !list.length ? '<p class="sub">Nenhuma tarefa encontrada com esses filtros.</p>' : '';
+  return `${header(p, b)}${all.length ? filterBar() : ''}<div class="tchecklist">${add}${empty}${pendingList}${doneList}${filtered}</div>`;
 }
 
 export function mountBranchView(p: Project, container: HTMLElement): void {
-  const move = (id: string, column: HTMLElement): void => {
-    const t = findTask(p, id);
-    const status = column.dataset.status as TaskStatus | undefined;
-    if (!t || !status || !TASK_STATUSES.includes(status)) return;
-    if (setTaskStatus(p, t, status)) showToast(`Tarefa em “${status}”`);
+  $$<HTMLInputElement>('[data-task-done]', container).forEach((box) =>
+    box.addEventListener('change', () => {
+      const t = findTask(p, box.dataset.taskDone);
+      if (!t) return;
+      const status: TaskStatus = box.checked ? 'Concluído' : 'A fazer';
+      if (setTaskStatus(p, t, status)) showToast(box.checked ? `“${t.title}” concluída` : `“${t.title}” reaberta`);
+      refreshProject();
+    }),
+  );
+  const form = container.querySelector<HTMLFormElement>('#taskQuickAdd');
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = form.elements.namedItem('title') as HTMLInputElement;
+    const title = input.value.trim();
+    const b = ui.branchId;
+    if (!title || !b) return;
+    try {
+      createTask(p, { title, status: 'A fazer', priority: '', assignees: [], assignee: '', start: '', due: '', branch: b, description: '', dependencies: [] });
+    } catch (error) {
+      if (!(error instanceof RuleError)) throw error;
+      showToast(error.message);
+      return;
+    }
     refreshProject();
-  };
-  $$('.tcard[draggable="true"]', container).forEach((card) => {
-    enableMouseDrag(card);
-    enableTouchDrag(card, (column) => move(card.dataset.id ?? '', column));
+    // Continua no campo para adicionar a próxima em sequência.
+    document.querySelector<HTMLInputElement>('#taskQuickAdd input')?.focus();
   });
-  $$('.column', container).forEach((column) => enableMouseDrop(column, '.tcard', move));
 }
 
 export function initBranchView(): void {
