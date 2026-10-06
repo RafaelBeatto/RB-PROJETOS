@@ -34,9 +34,10 @@ Hierarquia: **Projeto → Etapas → Tarefas → Subtarefas**. Os quatro níveis
 
 ## Desenvolvimento
 
-Requer Node.js 20 ou mais recente.
+Requer Node.js 20 ou mais recente. A aplicação fica na pasta `front/`:
 
 ```bash
+cd front
 npm install
 npm run dev        # servidor local com recarga automática
 npm run typecheck  # verificação de tipos
@@ -44,7 +45,7 @@ npm run build      # gera a versão final em dist/
 npm run preview    # serve o conteúdo de dist/ localmente
 ```
 
-O build usa caminhos relativos (`base: './'` em `vite.config.ts`), então o mesmo `dist/` funciona no GitHub Pages (`/RB-PROJETOS/`), em outro repositório ou em qualquer servidor estático.
+O build usa caminhos relativos (`base: './'` em `vite.config.ts`), então o mesmo `front/dist/` funciona no GitHub Pages (`/RB-PROJETOS/`), em outro repositório ou em qualquer servidor estático.
 
 ## Publicação no GitHub Pages
 
@@ -55,7 +56,11 @@ Configuração única no repositório: **Settings → Pages → Build and deploy
 ## Estrutura do projeto
 
 ```text
-src/
+front/                   aplicação (o site publicado)
+back/                    reservado para um futuro servidor (hoje vazio, ver back/README.md)
+docs/                    documentação
+
+front/src/
 ├── main.ts              inicialização: dados, interface, login
 ├── app/                 navegação, ações globais e atalhos de teclado
 ├── types/               modelos: projeto, etapa, tarefa, usuário, lixeira, atividade
