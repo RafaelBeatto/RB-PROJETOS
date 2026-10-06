@@ -15,6 +15,7 @@ import { ui } from '../../state/store';
 import { BRANCH_STATUSES, type Branch, type BranchDraft, type BranchStatus } from '../../types/branch';
 import { MAX_RESPONSIBLES } from '../../types/task';
 import { esc } from '../../utils/dom';
+import { bindDepPicker, depPickerHtml } from '../dependencies/depPicker';
 
 function formHtml(b: Partial<Branch>, editing: boolean): string {
   const remove = editing && canDeleteBranch(currentProject()) ? `<button class="danger" type="button" id="deleteBranch">${icon('trash')}Excluir etapa</button>` : '<span></span>';
@@ -22,7 +23,7 @@ function formHtml(b: Partial<Branch>, editing: boolean): string {
     'branchPick',
     b.assignees ?? [],
     MAX_RESPONSIBLES,
-  )}</div><p class="form-error" id="branchErr" role="alert"></p><div class="modal-actions">${remove}<button class="primary">${editing ? 'Salvar' : 'Criar etapa'}</button></div></form>`;
+  )}</div>${depPickerHtml(currentProject(), { kind: 'branch', id: b.id ?? '' }, b.dependencies ?? [], true)}<p class="form-error" id="branchErr" role="alert"></p><div class="modal-actions">${remove}<button class="primary">${editing ? 'Salvar' : 'Criar etapa'}</button></div></form>`;
 }
 
 function readDraft(form: HTMLFormElement): BranchDraft {
@@ -32,6 +33,7 @@ function readDraft(form: HTMLFormElement): BranchDraft {
     name: String(data.get('name') ?? '').trim(),
     status: BRANCH_STATUSES.includes(status) ? status : 'Em espera',
     assignees: readUserPicker(modalField('#branchPick')),
+    dependencies: data.getAll('dep').map(String),
     ...readCommon(data),
   };
 }
@@ -40,6 +42,7 @@ function readDraft(form: HTMLFormElement): BranchDraft {
 function bindForm(save: (draft: BranchDraft) => void, done: string): void {
   const form = modalField<HTMLFormElement>('#branchForm');
   bindUserPicker(modalField('#branchPick'));
+  bindDepPicker(form, currentProject(), () => ({ kind: 'branch', id: '' }), true);
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     try {

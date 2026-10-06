@@ -12,9 +12,10 @@ import { progressRow } from '../../components/progress';
 import { showToast } from '../../components/toast';
 import { branchProgress, tasksIn } from '../../services/branchService';
 import { db } from '../../services/db';
-import { canCreateTask, canEditBranch, canEditTask } from '../../services/permissionService';
+import { canCreateSubtask, canCreateTask, canEditBranch, canEditSubtask, canEditTask } from '../../services/permissionService';
 import { RuleError } from '../../services/errors';
-import { checklistProgress, createTask, dependenciesOf, findTask, setTaskStatus } from '../../services/taskService';
+import { dependencyItems } from '../../services/dependencyService';
+import { checklistProgress, createSubtask, createTask, findSubtask, findTask, setSubtaskStatus, setTaskStatus } from '../../services/taskService';
 import { findUser } from '../../services/userService';
 import { emptyTaskFilters, ui } from '../../state/store';
 import type { Branch } from '../../types/branch';
@@ -23,6 +24,9 @@ import { PRIORITIES, TASK_STATUSES, type Task, type TaskStatus } from '../../typ
 import { onClick } from '../../utils/actions';
 import { $$, esc, plural } from '../../utils/dom';
 import { taskStatusClass } from '../../utils/format';
+import { relationsHtml } from '../dependencies/depPicker';
+import { attachmentsHtml, bindAttachments } from '../tasks/attachments';
+import { openSubtaskModal } from '../tasks/subtaskModal';
 import { openTaskModal } from '../tasks/taskModal';
 import { openEditBranchModal } from './branchModals';
 
@@ -51,11 +55,38 @@ function filterBar(): string {
   }</div></div>`;
 }
 
+/** Tarefas com subtarefas e anexos abertos (continua aberto ao redesenhar a tela). */
+const expanded = new Set<string>();
+
+/** Parte expandida da linha: subtarefas (com caixas) e anexos. */
+function detailHtml(p: Project, t: Task): string {
+  const canSub = canEditSubtask(p, t);
+  const subs = t.subtasks
+    .map((st) => {
+      const done = st.status === 'Concluído';
+      return `<li class="srow${done ? ' done' : ''}"><input type="checkbox" data-sub-done="${t.id}|${st.id}" ${done ? 'checked' : ''} ${canSub ? '' : 'disabled'} aria-label="Concluir subtarefa ${esc(
+        st.title,
+      )}"><button class="sname" data-sub-open="${t.id}|${st.id}">${esc(st.title)}</button>${st.status === 'Em andamento' ? `<span class="status ${taskStatusClass(st.status)}">Em andamento</span>` : ''}${datesBadge(
+        st.start,
+        st.due,
+        done,
+      )}</li>`;
+    })
+    .join('');
+  const addSub = canCreateSubtask(p, t)
+    ? `<form class="tadd sadd" data-sub-add="${t.id}"><span class="tadd-ico">${icon('plus')}</span><input class="field" name="title" placeholder="Adicionar subtarefa e apertar Enter" aria-label="Nova subtarefa" autocomplete="off"></form>`
+    : '';
+  return `<div class="tdetail"><div class="tdetail-col"><div class="lbl">Subtarefas</div>${subs ? `<ul class="slist">${subs}</ul>` : '<span class="sub flat small">Nenhuma subtarefa.</span>'}${addSub}</div><div class="tdetail-col"><div class="lbl">Anexos</div><div data-att-root="${
+    t.id
+  }">${attachmentsHtml(t, canEditTask(p, t))}</div></div></div>`;
+}
+
 /** Uma linha do checklist: caixa (concluída ou não), nome e os detalhes principais. */
 function taskRow(p: Project, t: Task): string {
   const done = t.status === 'Concluído';
   const editable = canEditTask(p, t);
-  const deps = dependenciesOf(p, t);
+  const open = expanded.has(t.id);
+  const deps = dependencyItems(p, t.dependencies);
   const subDone = t.subtasks.filter((s) => s.status === 'Concluído').length;
   const check = checklistProgress(t);
   const facts = [
@@ -63,8 +94,9 @@ function taskRow(p: Project, t: Task): string {
     priorityBadge(t.priority),
     t.subtasks.length ? `<span class="tfact" title="Subtarefas concluídas">${icon('branch')}${subDone}/${t.subtasks.length}</span>` : '',
     check.total ? `<span class="tfact" title="Itens do checklist">${icon('selectOn')}${check.done}/${check.total}</span>` : '',
+    t.links.length ? `<span class="tfact" title="Anexos">${icon('paperclip')}${t.links.length}</span>` : '',
     deps.length
-      ? `<span class="tfact" title="Depende de: ${esc(deps.map((d) => `${d.title} (${d.status})`).join(', '))}">${icon('link')}${esc(deps.map((d) => d.title).join(', '))}</span>`
+      ? `<span class="tfact" title="Depende de: ${esc(deps.map((d) => `${d.kind === 'branch' ? 'etapa ' : ''}${d.name} (${d.status})`).join(', '))}">${icon('link')}${esc(deps.map((d) => d.name).join(', '))}</span>`
       : '',
     datesBadge(t.start, t.due, done),
   ].join('');
@@ -72,7 +104,11 @@ function taskRow(p: Project, t: Task): string {
     editable ? (done ? 'Marcar como não concluída' : 'Marcar como concluída') : 'Sem permissão para alterar esta tarefa'
   }"><input type="checkbox" data-task-done="${t.id}" ${done ? 'checked' : ''} ${editable ? '' : 'disabled'} aria-label="Concluir ${esc(t.title)}"></label><div class="tmain"><button class="tname" data-action="task-open" data-id="${
     t.id
-  }">${esc(t.title)}</button>${facts ? `<div class="tfacts">${facts}</div>` : ''}</div><span class="tpeople">${avatarStack(t.assignees)}</span></li>`;
+  }">${esc(t.title)}</button>${facts ? `<div class="tfacts">${facts}</div>` : ''}${open ? detailHtml(p, t) : ''}</div><span class="tpeople">${avatarStack(
+    t.assignees,
+  )}</span><button class="texp" data-expand="${t.id}" aria-expanded="${open}" title="${open ? 'Recolher' : 'Subtarefas e anexos'}" aria-label="${
+    open ? 'Recolher' : 'Ver subtarefas e anexos'
+  } de ${esc(t.title)}">${icon(open ? 'chevronDown' : 'chevronRight')}</button></li>`;
 }
 
 function header(p: Project, b: Branch): string {
@@ -85,7 +121,7 @@ function header(p: Project, b: Branch): string {
     b.assignees,
   )}</span><span class="p-prog" title="Tarefas concluídas">${progressRow(prog.pct)}<small>${prog.done}/${prog.total} tarefas</small></span></div>${
     b.description.trim() ? `<p class="desc">${esc(b.description)}</p>` : ''
-  }</div><div class="top-actions">${edit}${add}</div></div>`;
+  }${relationsHtml(p, b.id, b.dependencies)}</div><div class="top-actions">${edit}${add}</div></div>`;
 }
 
 export function renderBranchView(p: Project, b: Branch): string {
@@ -115,6 +151,54 @@ export function renderBranchView(p: Project, b: Branch): string {
 }
 
 export function mountBranchView(p: Project, container: HTMLElement): void {
+  $$('[data-expand]', container).forEach((el) =>
+    el.addEventListener('click', () => {
+      const id = el.dataset.expand ?? '';
+      if (expanded.has(id)) expanded.delete(id);
+      else expanded.add(id);
+      refreshProject();
+    }),
+  );
+  $$<HTMLInputElement>('[data-sub-done]', container).forEach((box) =>
+    box.addEventListener('change', () => {
+      const [tid, sid] = (box.dataset.subDone ?? '').split('|');
+      const t = findTask(p, tid);
+      const st = t && findSubtask(t, sid);
+      if (!t || !st) return;
+      setSubtaskStatus(p, t, st, box.checked ? 'Concluído' : 'A fazer');
+      refreshProject();
+    }),
+  );
+  $$('[data-sub-open]', container).forEach((el) =>
+    el.addEventListener('click', () => {
+      const [tid, sid] = (el.dataset.subOpen ?? '').split('|');
+      openSubtaskModal(tid ?? '', sid);
+    }),
+  );
+  $$<HTMLFormElement>('[data-sub-add]', container).forEach((f) =>
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const t = findTask(p, f.dataset.subAdd);
+      const input = f.elements.namedItem('title') as HTMLInputElement;
+      const title = input.value.trim();
+      if (!t || !title) return;
+      try {
+        createSubtask(p, t, { title, description: '', priority: '', start: '', due: '', status: 'A fazer' });
+      } catch (error) {
+        if (!(error instanceof RuleError)) throw error;
+        showToast(error.message);
+        return;
+      }
+      refreshProject();
+      document.querySelector<HTMLInputElement>(`[data-sub-add="${t.id}"] input`)?.focus();
+    }),
+  );
+  $$('[data-att-root]', container).forEach((root) => {
+    const t = findTask(p, root.dataset.attRoot);
+    if (t) bindAttachments(root, p, t, refreshProject);
+  });
+  $$('[data-goto-task]', container).forEach((el) => el.addEventListener('click', () => openTaskModal(el.dataset.gotoTask)));
+  $$('[data-goto-branch]', container).forEach((el) => el.addEventListener('click', () => openBranch(el.dataset.gotoBranch ?? null)));
   $$<HTMLInputElement>('[data-task-done]', container).forEach((box) =>
     box.addEventListener('change', () => {
       const t = findTask(p, box.dataset.taskDone);

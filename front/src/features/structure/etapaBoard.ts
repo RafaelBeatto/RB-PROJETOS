@@ -3,6 +3,7 @@
  * Arrastar muda o status; clicar abre a etapa com o Kanban das tarefas.
  * A ordem dentro da coluna é a ordem de criação (não há ordenação manual).
  */
+import { dependencyItems } from '../../services/dependencyService';
 import { currentProject, openBranch, refreshProject } from '../../app/navigation';
 import { avatarStack } from '../../components/avatar';
 import { icon } from '../../components/icons';
@@ -25,11 +26,15 @@ import { openNewBranchModal } from './branchModals';
 function etapaCard(p: Project, b: Branch, movable: boolean): string {
   const prog = branchProgress(p, b);
   const lateTasks = b.status === 'Concluído' ? 0 : tasksIn(p, b.id).filter(isLate).length;
+  const deps = dependencyItems(p, b.dependencies);
+  const depLine = deps.length
+    ? `<small class="card-sub dep-sub" title="Depende de: ${esc(deps.map((d) => `${d.name} (${d.status})`).join(', '))}">${icon('link')}Depende de ${esc(deps.map((d) => d.name).join(', '))}</small>`
+    : '';
   return `<article class="task-card ecard" draggable="${movable}" data-action="branch-open" data-id="${b.id}" tabindex="0"><div class="card-top"><h3>${esc(b.name)}</h3>${priorityBadge(
     b.priority,
   )}</div>${progressRow(prog.pct)}<small class="card-sub">${prog.total ? `${prog.done} de ${plural(prog.total, 'tarefa concluída', 'tarefas concluídas')}` : 'Nenhuma tarefa'}${
     lateTasks ? ` · <span class="late-txt">${plural(lateTasks, 'atrasada', 'atrasadas')}</span>` : ''
-  }</small><div class="task-card-footer"><span>${avatarStack(b.assignees) || '<span class="sub flat">Sem responsável</span>'}</span>${datesBadge(
+  }</small>${depLine}<div class="task-card-footer"><span>${avatarStack(b.assignees) || '<span class="sub flat">Sem responsável</span>'}</span>${datesBadge(
     b.start,
     b.due,
     b.status === 'Concluído',

@@ -37,8 +37,13 @@ export interface TaskComment {
 
 export interface TaskLink {
   id: string;
+  /** Endereço (link) ou nome digitado; vazio quando é um arquivo enviado. */
   url: string;
   label: string;
+  /** Arquivo enviado: id no armazenamento de arquivos (IndexedDB), tamanho e tipo. */
+  fileId?: string;
+  size?: number;
+  mime?: string;
 }
 
 export interface Task {
@@ -56,7 +61,7 @@ export interface Task {
   branch: string;
   description: string;
   tags: string;
-  /** Ids das tarefas (do mesmo projeto) das quais esta depende. Informativo: não bloqueia nada. */
+  /** Ids de etapas ou tarefas (do mesmo projeto) das quais esta depende. Informativo: não bloqueia nada. */
   dependencies: string[];
   checklist: ChecklistItem[];
   subtasks: Subtask[];

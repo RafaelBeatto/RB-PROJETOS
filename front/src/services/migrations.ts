@@ -85,7 +85,13 @@ function migrateChatMessage(r: Raw): ChatMessage {
 }
 
 function migrateLink(r: Raw): TaskLink {
-  return { id: str(r.id) || uid('l'), url: str(r.url), label: str(r.label) };
+  const link: TaskLink = { id: str(r.id) || uid('l'), url: str(r.url), label: str(r.label) };
+  if (str(r.fileId)) {
+    link.fileId = str(r.fileId);
+    link.size = typeof r.size === 'number' ? r.size : 0;
+    link.mime = str(r.mime);
+  }
+  return link;
 }
 
 /**
@@ -97,7 +103,8 @@ function migrateTaskDependencies(v: unknown, projectId: string): string[] {
   for (const item of list(v)) {
     let target = '';
     if (typeof item === 'string') target = item;
-    else if (isObj(item) && (item.kind ?? 'task') === 'task' && (str(item.projectId) || projectId) === projectId) target = str(item.targetId);
+    // Formato com objetos: só etapa ou tarefa do mesmo projeto (dependência de projeto inteiro não existe mais).
+    else if (isObj(item) && ['task', 'branch'].includes(str(item.kind) || 'task') && (str(item.projectId) || projectId) === projectId) target = str(item.targetId);
     if (target && !out.includes(target)) out.push(target);
   }
   return out;
@@ -126,7 +133,7 @@ function migrateTask(r: Raw, projectId: string): Task {
   };
 }
 
-function migrateBranch(r: Raw, tasks: Task[], raw: Raw[]): Branch {
+function migrateBranch(r: Raw, tasks: Task[], raw: Raw[], projectId: string): Branch {
   const id = str(r.id) || uid('b');
   // Antes havia um único responsável, em `designer`.
   const assignees = Array.isArray(r.assignees) ? ids(r.assignees) : ids([r.designer]);
@@ -139,6 +146,7 @@ function migrateBranch(r: Raw, tasks: Task[], raw: Raw[]): Branch {
     due: str(r.due),
     status: typeof r.status === 'string' ? migrateBranchStatus(r.status) : statusFromTasks(id, tasks, raw),
     assignees: assignees.slice(0, MAX_RESPONSIBLES),
+    dependencies: migrateTaskDependencies(r.dependencies, projectId),
   };
 }
 
@@ -188,10 +196,11 @@ export function migrateProject(r: Raw): Project {
   const id = str(r.id) || uid('p');
   const rawBranches = objs(r.branches);
   const tasks = objs(r.tasks).map((t) => migrateTask(t, id));
-  const branches = rawBranches.map((b) => migrateBranch(b, tasks, rawBranches));
-  // Dependência só entre tarefas que existem neste projeto, e nunca da tarefa com ela mesma.
-  const taskIds = new Set(tasks.map((t) => t.id));
-  for (const t of tasks) t.dependencies = t.dependencies.filter((d) => d !== t.id && taskIds.has(d));
+  const branches = rawBranches.map((b) => migrateBranch(b, tasks, rawBranches, id));
+  // Dependência só de etapas e tarefas que existem neste projeto, e nunca do item com ele mesmo.
+  const known = new Set([...tasks.map((t) => t.id), ...branches.map((b) => b.id)]);
+  for (const t of tasks) t.dependencies = t.dependencies.filter((d) => d !== t.id && d !== t.branch && known.has(d));
+  for (const b of branches) b.dependencies = b.dependencies.filter((d) => d !== b.id && known.has(d) && !tasks.some((t) => t.id === d && t.branch === b.id));
   return {
     id,
     name: str(r.name),

@@ -330,3 +330,163 @@
 .tlist-empty {
   margin: 4px 2px;
 }
+
+/* Linha expandida do checklist: subtarefas e anexos */
+.texp {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 2px;
+  display: inline-flex;
+  cursor: pointer;
+}
+.texp:hover {
+  color: var(--text);
+  background: var(--panel2);
+}
+.tdetail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.tdetail-col {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.slist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.srow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.srow input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--green);
+}
+.srow .status {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.sname {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.sname:hover {
+  color: var(--blue);
+  text-decoration: underline;
+}
+.srow.done .sname {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.sadd {
+  padding: 2px 4px 2px 8px;
+}
+.sadd .field {
+  padding: 6px 4px;
+  font-size: 13px;
+}
+.att-list {
+  display: grid;
+  gap: 4px;
+}
+.att-list .lnk > a,
+.att-list .lnk > span,
+.att-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.att-open {
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.att-open:hover span {
+  text-decoration: underline;
+}
+.att-open small {
+  color: var(--muted);
+}
+.att-list svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.att-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.att-actions .ghost {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* Seletor de dependências: grupos e busca */
+.dep-group + .dep-group {
+  margin-top: 6px;
+}
+.dep-group .lbl {
+  padding: 4px 8px 2px;
+}
+.dep-opt span svg {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  margin-right: 4px;
+  color: var(--muted);
+}
+.dep-opt.off {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dep-search {
+  margin: 8px 0;
+}
+.dep-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.dep-sub svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+@media (max-width: 700px) {
+  .tdetail {
+    grid-template-columns: 1fr;
+  }
+}

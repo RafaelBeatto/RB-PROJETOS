@@ -12,6 +12,8 @@
  */
 import type { Project } from '../types/project';
 import type { Subtask, Task } from '../types/task';
+import { dropDependencies } from './dependencyService';
+import { deleteFile } from './fileStore';
 import { TRASH_LABELS, type TrashEntry, type TrashKind } from '../types/trash';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
@@ -257,14 +259,23 @@ export function withDependents(ids: string[]): TrashEntry[] {
   return [...out];
 }
 
-/** Ids das tarefas que deixam de existir de vez com essas entradas. */
-function taskIdsIn(entries: TrashEntry[]): Set<string> {
+/** Ids das etapas e tarefas que deixam de existir de vez com essas entradas. */
+function itemIdsIn(entries: TrashEntry[]): Set<string> {
   const ids = new Set<string>();
   for (const e of entries) {
-    if (e.kind === 'branch') for (const t of e.tasks) ids.add(t.id);
+    if (e.kind === 'branch') {
+      ids.add(e.branch.id);
+      for (const t of e.tasks) ids.add(t.id);
+    }
     if (e.kind === 'task') ids.add(e.task.id);
   }
   return ids;
+}
+
+/** Arquivos anexados às tarefas que deixam de existir de vez. */
+function fileIdsIn(entries: TrashEntry[]): string[] {
+  const tasks = entries.flatMap((e) => (e.kind === 'project' ? e.project.tasks : e.kind === 'branch' ? e.tasks : e.kind === 'task' ? [e.task] : []));
+  return tasks.flatMap((t) => t.links.map((l) => l.fileId ?? '')).filter(Boolean);
 }
 
 export function purgeEntries(ids: string[]): number {
@@ -272,17 +283,20 @@ export function purgeEntries(ids: string[]): number {
   const gone = withDependents(ids);
   const goneSet = new Set(gone);
   db.trash = db.trash.filter((e) => !goneSet.has(e));
-  // Dependências que apontavam para tarefas apagadas de vez deixam de existir.
-  const taskIds = taskIdsIn(gone);
-  if (taskIds.size) {
-    for (const p of db.projects) for (const t of p.tasks) t.dependencies = t.dependencies.filter((d) => !taskIds.has(d));
+  // Dependências que apontavam para etapas e tarefas apagadas de vez deixam de existir.
+  const itemIds = itemIdsIn(gone);
+  if (itemIds.size) {
+    for (const p of db.projects) dropDependencies(p, itemIds);
     for (const e of db.trash) {
       const tasks = e.kind === 'project' ? e.project.tasks : e.kind === 'branch' ? e.tasks : e.kind === 'task' ? [e.task] : [];
-      for (const t of tasks) t.dependencies = t.dependencies.filter((d) => !taskIds.has(d));
+      for (const t of tasks) t.dependencies = t.dependencies.filter((d) => !itemIds.has(d));
+      if (e.kind === 'branch') e.branch.dependencies = e.branch.dependencies.filter((d) => !itemIds.has(d));
+      if (e.kind === 'project') dropDependencies(e.project, itemIds);
     }
   }
   persistTrash();
   persistProjects();
+  for (const fileId of fileIdsIn(gone)) void deleteFile(fileId);
   return gone.length;
 }
 
