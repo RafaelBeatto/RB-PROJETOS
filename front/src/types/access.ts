@@ -17,7 +17,7 @@ export const ACTION_LABELS: Record<PermissionAction, string> = {
 export const PERMISSION_MODULES = {
   projects: { label: 'Projetos', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui status, marcos e encerrar (arquivar); Excluir envia para a lixeira.' },
   structure: { label: 'Etapas', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui status, responsáveis, prioridade e datas; Excluir envia para a lixeira.' },
-  tasks: { label: 'Tarefas e subtarefas', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui status, dependências, checklist, comentários e anexos.' },
+  tasks: { label: 'Tarefas e subtarefas', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui status, dependências, checklist e comentários.' },
   trash: { label: 'Lixeira', actions: ['view', 'edit', 'delete'], hint: 'Editar = restaurar; Excluir = excluir permanentemente e esvaziar.' },
   collaborators: { label: 'Colaboradores', actions: ['view'], hint: 'Acompanhamento administrativo das atividades de cada colaborador.' },
   users: { label: 'Usuários', actions: ['view', 'create', 'edit', 'delete'], hint: 'Editar inclui ativar, desativar, trocar o perfil e os projetos do Visualizador.' },

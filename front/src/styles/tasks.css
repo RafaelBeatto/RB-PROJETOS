@@ -142,20 +142,6 @@
   flex: 1;
   min-width: 0;
 }
-.lnk {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 0;
-}
-.lnk a {
-  color: var(--k-91bdfd);
-}
-.lnk button {
-  background: none;
-  border: 0;
-  color: var(--muted);
-}
 .chips .fsel {
   height: 32px;
   font-size: 12px;
@@ -379,47 +365,6 @@
   color: var(--muted);
   text-decoration: line-through;
 }
-.att-list {
-  display: grid;
-  gap: 4px;
-}
-.att-list .lnk > a,
-.att-list .lnk > span,
-.att-open {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-.att-open {
-  border: 0;
-  background: transparent;
-  color: var(--blue);
-  font: inherit;
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-}
-.att-open:hover span {
-  text-decoration: underline;
-}
-.att-open small {
-  color: var(--muted);
-}
-.att-list svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
-}
-.att-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.att-actions .ghost {
-  padding: 6px 10px;
-  font-size: 13px;
-}
 
 /* Seletor de dependências: grupos e busca */
 .dep-group + .dep-group {
@@ -464,4 +409,29 @@
   justify-self: start;
   padding: 6px 10px;
   font-size: 13px;
+}
+
+/* Quem concluiu e quando */
+.done-by,
+.done-by-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--green);
+  font-size: 12px;
+}
+.done-by svg,
+.done-by-line svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+.done-by-line {
+  margin: 2px 0 10px;
+}
+.ck-row .done-by,
+.srow .done-by,
+.sub-row .done-by {
+  color: var(--muted);
+  font-size: 11px;
 }

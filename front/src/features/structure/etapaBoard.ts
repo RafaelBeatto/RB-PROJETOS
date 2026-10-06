@@ -3,6 +3,8 @@
  * Arrastar muda o status; clicar abre a etapa com o Kanban das tarefas.
  * A ordem dentro da coluna é a ordem de criação (não há ordenação manual).
  */
+import { confirmPendingDependencies } from '../dependencies/depPicker';
+import { completionText } from '../../services/completionService';
 import { dependencyItems } from '../../services/dependencyService';
 import { currentProject, openBranch, refreshProject } from '../../app/navigation';
 import { avatarStack } from '../../components/avatar';
@@ -34,7 +36,7 @@ function etapaCard(p: Project, b: Branch, movable: boolean): string {
     b.priority,
   )}</div>${progressRow(prog.pct)}<small class="card-sub">${prog.total ? `${prog.done} de ${plural(prog.total, 'tarefa concluída', 'tarefas concluídas')}` : 'Nenhuma tarefa'}${
     lateTasks ? ` · <span class="late-txt">${plural(lateTasks, 'atrasada', 'atrasadas')}</span>` : ''
-  }</small>${depLine}<div class="task-card-footer"><span>${avatarStack(b.assignees) || '<span class="sub flat">Sem responsável</span>'}</span>${datesBadge(
+  }</small>${depLine}${b.status === 'Concluído' && b.doneAt ? `<small class="card-sub done-by">${icon('check')}${esc(completionText(b))}</small>` : ''}<div class="task-card-footer"><span>${avatarStack(b.assignees) || '<span class="sub flat">Sem responsável</span>'}</span>${datesBadge(
     b.start,
     b.due,
     b.status === 'Concluído',
@@ -79,18 +81,22 @@ export function renderEtapaBoard(p: Project): string {
 
 export function mountEtapaBoard(p: Project, container: HTMLElement): void {
   if (!canEditBranch(p)) return;
-  const move = (id: string, column: HTMLElement): void => {
+  const move = async (id: string, column: HTMLElement): Promise<void> => {
     const b = findBranch(p, id);
     const status = column.dataset.status as BranchStatus | undefined;
     if (!b || !status || !BRANCH_STATUSES.includes(status)) return;
+    if (!(await confirmPendingDependencies(p, b.dependencies, b.status, status))) {
+      refreshProject();
+      return;
+    }
     if (setBranchStatus(p, b, status)) showToast(`Etapa em “${status}”`);
     refreshProject();
   };
   $$('.ecard', container).forEach((card) => {
     enableMouseDrag(card);
-    enableTouchDrag(card, (column) => move(card.dataset.id ?? '', column));
+    enableTouchDrag(card, (column) => void move(card.dataset.id ?? '', column));
   });
-  $$('.column', container).forEach((column) => enableMouseDrop(column, '.ecard', move));
+  $$('.column', container).forEach((column) => enableMouseDrop(column, '.ecard', (id, col) => void move(id, col)));
 }
 
 export function initEtapaBoard(): void {
