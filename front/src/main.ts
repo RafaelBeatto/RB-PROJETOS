@@ -2,6 +2,7 @@ import './styles/index.css';
 import { installAppActions } from './app/appActions';
 import { goTo, homePage } from './app/navigation';
 import { installShortcuts } from './app/shortcuts';
+import { initTheme } from './app/theme';
 import { installFilters } from './components/filterBar';
 import { appShell } from './components/layout';
 import { installModal } from './components/modal';
@@ -44,6 +45,7 @@ function start(): void {
   installPermissionErrors();
   loadDatabase();
   $('#app').innerHTML = appShell();
+  initTheme();
 
   installActions();
   installModal();

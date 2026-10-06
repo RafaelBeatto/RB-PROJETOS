@@ -49,7 +49,7 @@
   background: var(--panel2);
 }
 .msg.for-me {
-  background: #fbbf2414;
+  background: var(--k-fbbf2414);
   border-left-color: var(--yellow);
 }
 .msg-head {
@@ -62,7 +62,7 @@
   font-size: 13px;
 }
 .msg.mine .msg-head b {
-  color: #93c5fd;
+  color: var(--k-93c5fd);
 }
 .msg-head time {
   color: var(--muted);
@@ -75,15 +75,15 @@
   overflow-wrap: anywhere;
 }
 .mention {
-  color: #93c5fd;
-  background: #3b82f61f;
+  color: var(--k-93c5fd);
+  background: var(--k-3b82f61f);
   border-radius: 4px;
   padding: 0 3px;
   font-weight: 600;
 }
 .mention.me {
-  color: #fde68a;
-  background: #fbbf2429;
+  color: var(--k-fde68a);
+  background: var(--k-fbbf2429);
 }
 .msg-del {
   align-self: start;
@@ -100,7 +100,7 @@
 }
 .msg-del:hover {
   color: var(--red);
-  background: #f871711a;
+  background: var(--k-f871711a);
 }
 .chat-empty {
   text-align: center;
@@ -149,7 +149,7 @@
   background: var(--panel2);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 14px 34px #0008;
+  box-shadow: 0 14px 34px var(--k-00000088);
   padding: 4px;
   z-index: 30;
 }
@@ -162,7 +162,7 @@
   cursor: pointer;
 }
 .mention-opt.active {
-  background: #3b82f629;
+  background: var(--k-3b82f629);
 }
 .mention-opt > span:last-child {
   display: flex;
@@ -178,7 +178,7 @@
   font-size: 11px;
 }
 .av.everyone {
-  --c: #fbbf24;
+  --c: var(--k-fbbf24);
   width: 22px;
   height: 22px;
   font-size: 12px;
@@ -192,7 +192,7 @@
   margin-left: 6px;
   border-radius: 9px;
   background: var(--yellow);
-  color: #111;
+  color: var(--k-111111);
   font-size: 11px;
   font-weight: 750;
 }

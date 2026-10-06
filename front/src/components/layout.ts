@@ -30,6 +30,7 @@ export function appShell(): string {
     <div class="brand">RB <i>PROJECTS</i></div>
     <div class="top-actions">
       <button class="ghost settings-top" data-action="nav" data-page="settings" data-perm="@settings" aria-label="Configurações">${icon('settings')}</button>
+      <button class="ghost theme-toggle" data-action="theme-toggle" aria-label="Trocar tema"></button>
       <button class="ghost" data-action="search" aria-label="Pesquisar">${icon('search')}<span class="hide-sm">Pesquisar</span><kbd class="hide-sm">Ctrl K</kbd></button>
       <button class="primary" data-action="project-new" data-perm="@projectCreate">${icon('plus')}<span>Projeto</span></button>
     </div>

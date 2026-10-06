@@ -36,7 +36,7 @@
     right: 0;
     bottom: 0;
     z-index: 20;
-    background: #101217;
+    background: var(--k-101217);
     border-top: 1px solid var(--line);
     border-right: 0;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));

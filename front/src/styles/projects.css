@@ -13,7 +13,7 @@
   transition: 0.18s;
 }
 .project-card:hover {
-  border-color: #45516a;
+  border-color: var(--k-45516a);
   transform: translateY(-1px);
 }
 .project-card h2 {
@@ -128,7 +128,7 @@
   border: 0;
 }
 .ms:hover {
-  background: #1b2130;
+  background: var(--k-1b2130);
 }
 .ms.done {
   color: var(--muted);

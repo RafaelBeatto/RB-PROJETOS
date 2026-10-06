@@ -6,7 +6,7 @@
   place-items: center;
   padding: 24px 16px;
   background:
-    radial-gradient(#1c222d 1px, transparent 1px) 0 0/18px 18px,
+    radial-gradient(var(--k-1c222d) 1px, transparent 1px) 0 0/18px 18px,
     var(--bg);
   overflow: auto;
 }
@@ -21,7 +21,7 @@
   padding: 34px 28px 28px;
   display: grid;
   gap: 14px;
-  box-shadow: 0 18px 50px #0007;
+  box-shadow: 0 18px 50px var(--k-00000077);
 }
 .login-brand {
   font-size: 24px;
@@ -43,8 +43,8 @@
 }
 .login-f .field:focus {
   outline: none;
-  border-color: #3b5f9a;
-  box-shadow: 0 0 0 3px #3b82f61f;
+  border-color: var(--k-3b5f9a);
+  box-shadow: 0 0 0 3px var(--k-3b82f61f);
 }
 .login-err {
   color: var(--red);

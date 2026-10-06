@@ -1,7 +1,7 @@
 .check {
   width: 17px;
   height: 17px;
-  border: 1px solid #697486;
+  border: 1px solid var(--k-697486);
   border-radius: 50%;
   display: inline-grid;
   place-items: center;
@@ -34,7 +34,7 @@
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.04em;
-  color: #c7ced9;
+  color: var(--k-c7ced9);
   margin-bottom: 11px;
 }
 .column-head button {
@@ -44,7 +44,7 @@
 }
 .task-card {
   background: var(--panel2);
-  border: 1px solid #2c3340;
+  border: 1px solid var(--k-2c3340);
   border-radius: 9px;
   padding: 12px;
   margin: 8px 0;
@@ -88,9 +88,9 @@
   color: var(--muted);
 }
 .chip.on {
-  background: #172435;
-  border-color: #2d5fb0;
-  color: #91bdfd;
+  background: var(--k-172435);
+  border-color: var(--k-2d5fb0);
+  color: var(--k-91bdfd);
 }
 .flow {
   display: flex;
@@ -149,7 +149,7 @@
   padding: 5px 0;
 }
 .lnk a {
-  color: #91bdfd;
+  color: var(--k-91bdfd);
 }
 .lnk button {
   background: none;

@@ -69,20 +69,20 @@
   font-weight: 650;
   padding: 2px 8px;
   border-radius: 99px;
-  background: #1d2a40;
-  color: #91bdfd;
+  background: var(--k-1d2a40);
+  color: var(--k-91bdfd);
 }
 .prio.media {
-  background: #33280f;
-  color: #f8d274;
+  background: var(--k-33280f);
+  color: var(--k-f8d274);
 }
 .prio.alta {
-  background: #3a2414;
-  color: #fdba74;
+  background: var(--k-3a2414);
+  color: var(--k-fdba74);
 }
 .prio.urgente {
-  background: #3a1c20;
-  color: #f6a1a1;
+  background: var(--k-3a1c20);
+  color: var(--k-f6a1a1);
 }
 .dates {
   color: var(--muted);
@@ -96,8 +96,8 @@
   margin-right: 10px;
 }
 .status.paused {
-  background: #2a2140;
-  color: #c4b5fd;
+  background: var(--k-2a2140);
+  color: var(--k-c4b5fd);
 }
 .warn-txt {
   color: var(--yellow);
@@ -131,7 +131,7 @@
   white-space: nowrap;
 }
 .desc {
-  color: #cbd4e2;
+  color: var(--k-cbd4e2);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   margin: 12px 0 0;
@@ -171,10 +171,10 @@
 }
 .dep-line .ic {
   margin-top: 2px;
-  color: #91bdfd;
+  color: var(--k-91bdfd);
 }
 .dep-line b {
-  color: #cbd4e2;
+  color: var(--k-cbd4e2);
   font-weight: 600;
 }
 .dep-line b.dep-done {
@@ -208,7 +208,7 @@
   cursor: pointer;
 }
 .dep-opt:hover {
-  background: #1b2130;
+  background: var(--k-1b2130);
 }
 .dep-opt input {
   accent-color: var(--blue);
@@ -226,9 +226,9 @@
   gap: 10px;
   margin: 16px 0 4px;
   padding: 12px 14px;
-  border: 1px solid #2d5fb0;
+  border: 1px solid var(--k-2d5fb0);
   border-radius: 10px;
-  background: #121b2a;
+  background: var(--k-121b2a);
 }
 .deps-view .lbl {
   display: flex;
@@ -278,7 +278,7 @@
   font-weight: 600;
 }
 .sub-title:hover {
-  color: #91bdfd;
+  color: var(--k-91bdfd);
 }
 .sub-row.done .sub-title,
 .ck-row.done .ck-text {
@@ -334,7 +334,7 @@
   cursor: pointer;
 }
 .trash-row.on {
-  border-color: #2d5fb0;
+  border-color: var(--k-2d5fb0);
 }
 .trash-row input {
   accent-color: var(--blue);
@@ -399,7 +399,7 @@ img.av.photo {
   margin: 0;
   pointer-events: none;
   opacity: 0.95;
-  box-shadow: 0 14px 34px #0008;
+  box-shadow: 0 14px 34px var(--k-00000088);
 }
 
 /* Formulários de projeto, etapa, tarefa e subtarefa */

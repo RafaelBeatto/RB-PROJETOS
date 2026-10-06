@@ -1,3 +1,8 @@
+/*
+ * Temas: noturno (escuro, o visual original) e claro.
+ * O tema vem de <html data-theme="dark|light">, definido em app/theme.ts.
+ * As variáveis --k-xxxxxx guardam cada cor da interface; o nome é a cor no modo noturno.
+ */
 :root {
   color-scheme: dark;
   --bg: #0c0e12;
@@ -10,7 +15,79 @@
   --green: #22c55e;
   --yellow: #fbbf24;
   --red: #f87171;
+  --on-accent: #ffffff;
   --radius: 12px;
+  --k-00000077: #00000077;
+  --k-00000088: #00000088;
+  --k-00000099: #00000099;
+  --k-05070aa6: #05070aa6;
+  --k-0c0e12: #0c0e12;
+  --k-101217: #101217;
+  --k-111111: #111111;
+  --k-121620: #121620;
+  --k-121b2a: #121b2a;
+  --k-121b2b: #121b2b;
+  --k-133523: #133523;
+  --k-151920: #151920;
+  --k-171b23: #171b23;
+  --k-172435: #172435;
+  --k-191d25: #191d25;
+  --k-1b2130: #1b2130;
+  --k-1c222d: #1c222d;
+  --k-1d2330: #1d2330;
+  --k-1d2a40: #1d2a40;
+  --k-1f1a0d: #1f1a0d;
+  --k-202633: #202633;
+  --k-222937: #222937;
+  --k-252a34: #252a34;
+  --k-2a1619: #2a1619;
+  --k-2a2140: #2a2140;
+  --k-2c3340: #2c3340;
+  --k-2d5fb0: #2d5fb0;
+  --k-33280f: #33280f;
+  --k-343b49: #343b49;
+  --k-394253: #394253;
+  --k-3a1c20: #3a1c20;
+  --k-3a2414: #3a2414;
+  --k-3a4352: #3a4352;
+  --k-3a4354: #3a4354;
+  --k-3b5f9a: #3b5f9a;
+  --k-3b82f6: #3b82f6;
+  --k-3b82f61f: #3b82f61f;
+  --k-3b82f629: #3b82f629;
+  --k-3b82f633: #3b82f633;
+  --k-3b82f6aa: #3b82f6aa;
+  --k-3d4554: #3d4554;
+  --k-45516a: #45516a;
+  --k-465268: #465268;
+  --k-4a5262: #4a5262;
+  --k-4b8df7: #4b8df7;
+  --k-5a4716: #5a4716;
+  --k-5d6676: #5d6676;
+  --k-69353b: #69353b;
+  --k-697486: #697486;
+  --k-6b7484: #6b7484;
+  --k-78df9c: #78df9c;
+  --k-7d8799: #7d8799;
+  --k-91bdfd: #91bdfd;
+  --k-93c5fd: #93c5fd;
+  --k-9aa3b2: #9aa3b2;
+  --k-9aa9c0: #9aa9c0;
+  --k-b3bdcd: #b3bdcd;
+  --k-c4b5fd: #c4b5fd;
+  --k-c7ced9: #c7ced9;
+  --k-cbd4e2: #cbd4e2;
+  --k-d9c07a: #d9c07a;
+  --k-dbe7ff: #dbe7ff;
+  --k-f4f7fb: #f4f7fb;
+  --k-f6a1a1: #f6a1a1;
+  --k-f871711a: #f871711a;
+  --k-f8d274: #f8d274;
+  --k-fbbf24: #fbbf24;
+  --k-fbbf2414: #fbbf2414;
+  --k-fbbf2429: #fbbf2429;
+  --k-fdba74: #fdba74;
+  --k-fde68a: #fde68a;
   font-family:
     Inter,
     ui-sans-serif,
@@ -19,4 +96,89 @@
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f5f8;
+  --panel: #ffffff;
+  --panel2: #f5f7fa;
+  --line: #dde2ea;
+  --text: #1a2130;
+  --muted: #5e6879;
+  --blue: #2563eb;
+  --green: #15803d;
+  --yellow: #a16207;
+  --red: #dc2626;
+  --k-00000077: #00000029;
+  --k-00000088: #0000002f;
+  --k-00000099: #00000035;
+  --k-05070aa6: #0000003a;
+  --k-0c0e12: #f3f5f8;
+  --k-101217: #ffffff;
+  --k-111111: #f7f7f7;
+  --k-121620: #f1f4f8;
+  --k-121b2a: #e6ebf4;
+  --k-121b2b: #e6ebf4;
+  --k-133523: #e5f6ed;
+  --k-151920: #ffffff;
+  --k-171b23: #f1f2f6;
+  --k-172435: #e4edfc;
+  --k-191d25: #f0f2f5;
+  --k-1b2130: #e8ebf2;
+  --k-1c222d: #eef0f4;
+  --k-1d2330: #edeff4;
+  --k-1d2a40: #e6ebf4;
+  --k-1f1a0d: #f4f0e6;
+  --k-202633: #ccd2df;
+  --k-222937: #c8cfdd;
+  --k-252a34: #cbd0da;
+  --k-2a1619: #f3e8e9;
+  --k-2a2140: #ebe7f3;
+  --k-2c3340: #bfc6d3;
+  --k-2d5fb0: #2d5fb0;
+  --k-33280f: #f7f1e3;
+  --k-343b49: #b6bdcb;
+  --k-394253: #acb5c6;
+  --k-3a1c20: #f3e7e9;
+  --k-3a2414: #f6ece4;
+  --k-3a4352: #adb6c5;
+  --k-3a4354: #abb4c5;
+  --k-3b5f9a: #3b5f9a;
+  --k-3b82f6: #3b82f6;
+  --k-3b82f61f: #3b82f61f;
+  --k-3b82f629: #3b82f629;
+  --k-3b82f633: #3b82f633;
+  --k-3b82f6aa: #3b82f6aa;
+  --k-3d4554: #abb3c2;
+  --k-45516a: #95a1ba;
+  --k-465268: #97a3b9;
+  --k-4a5262: #9da5b5;
+  --k-4b8df7: #2f74e6;
+  --k-5a4716: #e6cf8f;
+  --k-5d6676: #8992a2;
+  --k-69353b: #e9b3b3;
+  --k-697486: #798496;
+  --k-6b7484: #7b8494;
+  --k-78df9c: #218c47;
+  --k-7d8799: #667082;
+  --k-91bdfd: #1d4ed8;
+  --k-93c5fd: #0352aa;
+  --k-9aa3b2: #4d5665;
+  --k-9aa9c0: #3f4e65;
+  --k-b3bdcd: #323c4c;
+  --k-c4b5fd: #2705a9;
+  --k-c7ced9: #262d38;
+  --k-cbd4e2: #3e516f;
+  --k-d9c07a: #876e27;
+  --k-dbe7ff: #1d4ed8;
+  --k-f4f7fb: #1a2130;
+  --k-f6a1a1: #9e0f0f;
+  --k-f871711a: #a508081a;
+  --k-f8d274: #a57808;
+  --k-fbbf24: #fbbf24;
+  --k-fbbf2414: #fbbf2414;
+  --k-fbbf2429: #fbbf2429;
+  --k-fdba74: #ab5902;
+  --k-fde68a: #aa8903;
 }

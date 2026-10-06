@@ -7,6 +7,8 @@ export const STORAGE_KEYS = {
   projects: 'rb-projects-v1',
   users: 'rb-users-v1',
   auth: 'rb-projects-auth',
+  /** Tema escolhido: 'dark' (noturno) ou 'light'. */
+  theme: 'rb-theme',
   /** Perfis e permissões (controle de acesso). */
   access: 'rb-access-v1',
   /** Contratantes cadastradas pelo administrador. */

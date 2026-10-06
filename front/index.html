@@ -6,6 +6,14 @@
     <meta name="theme-color" content="#0c0e12" />
     <meta name="description" content="RB Projects — gerenciador de projetos com estrutura visual, Kanban e tarefas." />
     <title>RB Projects</title>
+    <script>
+      // Aplica o tema salvo (ou o do sistema) antes de desenhar, para a tela não piscar.
+      try {
+        var t = localStorage.getItem('rb-theme');
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
   </head>
   <body>
