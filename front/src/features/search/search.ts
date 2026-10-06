@@ -34,6 +34,8 @@ interface Result {
 
 const KIND_LABELS: Record<Kind, string> = { project: 'Projeto', branch: 'Etapa', task: 'Tarefa', subtask: 'Subtarefa', person: 'Pessoa' };
 const MAX_RESULTS = 60;
+/** Pessoas mostradas no máximo quando há muitos resultados. */
+const MAX_PEOPLE = 10;
 
 function searchProject(p: Project, q: string, out: Result[]): void {
   const has = (text: string): boolean => text.toLowerCase().includes(q);
@@ -51,17 +53,20 @@ function searchProject(p: Project, q: string, out: Result[]): void {
   }
 }
 
-function search(query: string): Result[] {
+export function search(query: string): Result[] {
   const q = query.toLowerCase().trim();
   if (!q) return [];
   const results: Result[] = [];
+  for (const p of visibleProjects()) searchProject(p, q, results);
+  // Pessoas entram depois e limitadas, para não esconderem projetos, etapas e tarefas encontrados.
+  const people: Result[] = [];
   for (const u of db.users) {
     if (`${u.name} ${u.email} ${u.role} ${u.phone}`.toLowerCase().includes(q)) {
-      results.push({ kind: 'person', label: u.name, where: [u.role, u.active ? '' : 'Inativo'].filter(Boolean).join(' · ') || 'Usuário', userId: u.id });
+      people.push({ kind: 'person', label: u.name, where: [u.role, u.active ? '' : 'Inativo'].filter(Boolean).join(' · ') || 'Usuário', userId: u.id });
     }
   }
-  for (const p of visibleProjects()) searchProject(p, q, results);
-  return results.slice(0, MAX_RESULTS);
+  const shownPeople = people.slice(0, Math.max(MAX_PEOPLE, MAX_RESULTS - results.length));
+  return [...results.slice(0, MAX_RESULTS - Math.min(shownPeople.length, MAX_PEOPLE)), ...shownPeople].slice(0, MAX_RESULTS);
 }
 
 function resultsHtml(query: string): string {

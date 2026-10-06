@@ -37,11 +37,16 @@ export function readString(key: StorageKey): string | null {
   }
 }
 
+/** Avisado quando uma gravação falha (ex.: espaço do navegador cheio); a tela mostra o alerta. */
+export const STORAGE_FAILED = 'rb-storage-failed';
+
 export function writeString(key: StorageKey, value: string): boolean {
   try {
     localStorage.setItem(key, value);
     return true;
   } catch {
+    // Sem isso a falha passaria em silêncio e as alterações se perderiam ao recarregar.
+    window.dispatchEvent(new CustomEvent(STORAGE_FAILED, { detail: key }));
     return false;
   }
 }

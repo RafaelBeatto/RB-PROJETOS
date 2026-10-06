@@ -87,7 +87,13 @@ export function dependencyOptions(p: Project, owner: DepOwner): { item: DepItem;
 export function cleanDependencies(p: Project, owner: DepOwner, ids: string[], previous: string[] = []): string[] {
   const out: string[] = [];
   for (const id of ids) {
-    if (out.includes(id) || !findDepItem(p, id)) continue;
+    if (out.includes(id)) continue;
+    // Item que não está no projeto pode estar na lixeira: mantém a dependência que já existia,
+    // para ela voltar se o item for restaurado (apagar de vez na lixeira remove de verdade).
+    if (!findDepItem(p, id)) {
+      if (previous.includes(id)) out.push(id);
+      continue;
+    }
     const block = dependencyBlock(p, owner, id);
     if (block === 'Criaria dependência circular' && !previous.includes(id)) {
       throw new RuleError(`“${findDepItem(p, id)?.name}” já depende, direta ou indiretamente, deste item: isso criaria uma dependência circular.`);

@@ -56,7 +56,7 @@ export function trashProject(p: Project): void {
 export function trashBranch(p: Project, branchId: string): void {
   const b = findBranch(p, branchId);
   if (!b) return;
-  ensure(canDeleteBranch(p));
+  ensure(canDeleteBranch(p, b));
   const tasks = tasksIn(p, b.id).map((t) => ({ ...t, index: indexOf(p.tasks, t) }));
   const index = indexOf(p.branches, b);
   p.branches = p.branches.filter((x) => x !== b);

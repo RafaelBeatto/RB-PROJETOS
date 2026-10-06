@@ -37,6 +37,7 @@ import {
   setChecklistItemDone,
   setSubtaskStatus,
   updateTask,
+  validateTaskDraft,
 } from '../../services/taskService';
 import { describeContents, trashTask } from '../../services/trashService';
 import type { Project } from '../../types/project';
@@ -44,6 +45,7 @@ import { MAX_RESPONSIBLES, TASK_STATUSES, type Task, type TaskDraft, type TaskSt
 import { $, $$, $maybe, esc } from '../../utils/dom';
 import { taskStatusClass } from '../../utils/format';
 import { completionText } from '../../services/completionService';
+import { findDepItem } from '../../services/dependencyService';
 import { bindDepPicker, confirmPendingDependencies, depPickerHtml, relationsHtml } from '../dependencies/depPicker';
 import { openSubtaskModal } from './subtaskModal';
 
@@ -84,7 +86,8 @@ function readDraft(form: HTMLFormElement, task: Task | undefined): TaskDraft {
     // O nome antigo (sem cadastro) só continua se a caixa ficar marcada.
     assignee: data.get('keepLegacy') === 'on' ? (task?.assignee ?? '') : '',
     branch: text('branch'),
-    dependencies: data.getAll('dep').map(String),
+    // Dependências de itens que estão na lixeira não aparecem no formulário, mas continuam guardadas.
+    dependencies: [...data.getAll('dep').map(String), ...(task?.dependencies ?? []).filter((id) => !findDepItem(currentProject(), id))],
   };
 }
 
@@ -284,12 +287,17 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const draft = readDraft(form, task);
-    // Confere o obrigatório antes de perguntar sobre dependências, para não confirmar algo que não vai salvar.
-    if (!draft.title) {
-      modalField('#taskErr').textContent = 'Informe o título da tarefa.';
+    // Confere tudo antes de perguntar sobre dependências, para não confirmar algo que não vai salvar,
+    // e pergunta só sobre as dependências que de fato serão gravadas.
+    let checked: TaskDraft;
+    try {
+      checked = validateTaskDraft(p, draft, task);
+    } catch (error) {
+      if (!(error instanceof RuleError)) throw error;
+      modalField('#taskErr').textContent = error.message;
       return;
     }
-    if (!(await confirmPendingDependencies(p, draft.dependencies, task?.status ?? 'A fazer', draft.status))) return;
+    if (!(await confirmPendingDependencies(p, checked.dependencies, task?.status ?? 'A fazer', checked.status))) return;
     try {
       if (task) updateTask(p, task, draft);
       else createTask(p, draft);

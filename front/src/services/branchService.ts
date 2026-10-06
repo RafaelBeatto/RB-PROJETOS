@@ -5,7 +5,8 @@ import { pct } from '../utils/format';
 import { uid } from '../utils/ids';
 import { logActivity } from './activityService';
 import { persistProjects } from './db';
-import { canCreateBranch, canEditBranch, ensure } from './permissionService';
+import { currentUser } from './authService';
+import { canCreateBranch, canEditBranch, canSetBranchResponsibles, ensure } from './permissionService';
 import { stampCompletion } from './completionService';
 import { cleanDependencies } from './dependencyService';
 import { RuleError } from './errors';
@@ -41,6 +42,11 @@ const names = (ids: string[]): string =>
     .filter(Boolean)
     .join(' e ');
 
+/** Confere e limpa o rascunho sem gravar (o formulário usa antes de perguntar sobre dependências). */
+export function validateBranchDraft(p: Project, draft: BranchDraft, b?: Branch): BranchDraft {
+  return validate(p, draft, b);
+}
+
 function validate(p: Project, draft: BranchDraft, b?: Branch): BranchDraft {
   if (!draft.name.trim()) throw new RuleError('Informe o nome da etapa.');
   if (!BRANCH_STATUSES.includes(draft.status)) throw new RuleError('Status inválido.');
@@ -52,8 +58,20 @@ function validate(p: Project, draft: BranchDraft, b?: Branch): BranchDraft {
   };
 }
 
+/** Quem não pode definir responsáveis só pode indicar a si mesmo, e só ao criar. */
+function checkResponsibles(p: Project, next: string[], previous: string[] | undefined): void {
+  if (canSetBranchResponsibles(p)) return;
+  const me = currentUser()?.id;
+  if (previous) {
+    if (String([...next].sort()) !== String([...previous].sort())) throw new RuleError('Só coordenadores e administradores trocam os responsáveis da etapa.');
+  } else if (next.some((id) => id !== me)) {
+    throw new RuleError('Ao criar a etapa, você só pode indicar a si mesmo como responsável.');
+  }
+}
+
 export function createBranch(p: Project, input: BranchDraft): Branch {
   ensure(canCreateBranch(p));
+  checkResponsibles(p, cleanResponsibles(input.assignees), undefined);
   const branch: Branch = { id: uid('b'), ...validate(p, input) };
   stampCompletion(branch, branch.status === 'Concluído');
   p.branches.push(branch);
@@ -65,6 +83,7 @@ export function createBranch(p: Project, input: BranchDraft): Branch {
 export function updateBranch(p: Project, b: Branch, input: BranchDraft): void {
   ensure(canEditBranch(p));
   const draft = validate(p, input, b);
+  checkResponsibles(p, draft.assignees, b.assignees);
   const old = { ...b };
   Object.assign(b, draft);
   if (old.status !== b.status) stampCompletion(b, b.status === 'Concluído');

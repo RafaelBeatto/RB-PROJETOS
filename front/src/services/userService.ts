@@ -78,6 +78,17 @@ export function adminBlock(user: User, next: { active: boolean; profileId: strin
   return others ? null : 'Este é o único administrador ativo. Defina outro administrador antes de continuar.';
 }
 
+/**
+ * Hierarquia: só um administrador dá o perfil Administrador e mexe em contas de administrador.
+ * Sem isso, um Coordenador (que gerencia usuários) poderia se promover ou tomar a conta de um administrador.
+ */
+export function hierarchyBlock(user: User | undefined, nextProfileId?: string): string | null {
+  if (isAdminProfile(currentUser()?.profileId ?? '')) return null;
+  if (user && isAdminProfile(user.profileId)) return 'Só um administrador pode alterar a conta de outro administrador.';
+  if (nextProfileId && isAdminProfile(nextProfileId)) return 'Só um administrador pode dar o perfil Administrador.';
+  return null;
+}
+
 /** Ninguém exclui ou desativa a própria conta (evita se trancar fora). */
 export function selfBlock(user: User, next: { active: boolean } | 'delete'): string | null {
   if (currentUser()?.id !== user.id) return null;
@@ -92,6 +103,8 @@ export function validateUser(fields: UserFields, user?: User): string | null {
   const sameName = userByName(name);
   if (sameName && sameName !== user) return 'Já existe um usuário com esse nome.';
   if (!findProfile(fields.profileId)) return 'Escolha um perfil.';
+  const hierarchy = hierarchyBlock(user, fields.profileId);
+  if (hierarchy) return hierarchy;
   if (!user && fields.password.length < MIN_PASSWORD) return `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres.`;
   if (user && fields.password && fields.password.length < MIN_PASSWORD) return `A senha precisa ter pelo menos ${MIN_PASSWORD} caracteres.`;
   if (user) return adminBlock(user, fields) ?? selfBlock(user, fields);
@@ -202,7 +215,7 @@ export function updateUser(user: User, fields: UserFields): void {
 
 export function setUserActive(user: User, active: boolean): void {
   authorizeUsers('edit');
-  const error = adminBlock(user, { active, profileId: user.profileId }) ?? selfBlock(user, { active });
+  const error = hierarchyBlock(user) ?? adminBlock(user, { active, profileId: user.profileId }) ?? selfBlock(user, { active });
   if (error) throw new Error(error);
   user.active = active;
   persistUsers();
@@ -214,7 +227,7 @@ export function setUserActive(user: User, active: boolean): void {
  */
 export function removeUser(user: User): void {
   authorizeUsers('delete');
-  const error = adminBlock(user, 'delete') ?? selfBlock(user, 'delete');
+  const error = hierarchyBlock(user) ?? adminBlock(user, 'delete') ?? selfBlock(user, 'delete');
   if (error) throw new Error(error);
   db.users = db.users.filter((u) => u !== user);
   for (const p of db.projects) {

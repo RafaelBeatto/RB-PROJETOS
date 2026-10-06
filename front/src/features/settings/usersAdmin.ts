@@ -14,19 +14,21 @@ import { access, findProfile } from '../../services/profileService';
 import { ROLE_LABELS } from '../../types/access';
 import { photoFromFile } from '../../utils/image';
 import {
-  MIN_PASSWORD,
   addUser,
   adminBlock,
   findUser,
+  hierarchyBlock,
+  isAdminProfile,
+  MIN_PASSWORD,
   quickAddUser,
   removeUser,
   selfBlock,
   setUserActive,
   updateUser,
   userByName,
+  type UserFields,
   userLinks,
   validateUser,
-  type UserFields,
 } from '../../services/userService';
 import { emptyUserFilters, ui } from '../../state/store';
 import type { User } from '../../types/user';
@@ -164,7 +166,9 @@ function projectAccessField(u: User | undefined): string {
 }
 
 function userForm(u: User | undefined): string {
-  const profiles = access.profiles.map((p) => [p.id, `${p.name} (${ROLE_LABELS[p.role]})`] as const);
+  // Quem não é administrador não vê (nem pode dar) o perfil Administrador.
+  const canGiveAdmin = isAdminProfile(currentUser()?.profileId ?? '');
+  const profiles = access.profiles.filter((p) => canGiveAdmin || !p.admin).map((p) => [p.id, `${p.name} (${ROLE_LABELS[p.role]})`] as const);
   const selected = u?.profileId ?? access.profiles.find((p) => !p.admin)?.id ?? '';
   return `<form id="userForm" novalidate><div class="photo-field">${avatar(u ?? { name: '?', color: '#9aa3b2' })}<div><label class="ghost file-btn">Escolher foto<input type="file" accept="image/*" id="photoInput" hidden></label><button type="button" class="ghost" id="photoClear" ${
     u?.photo ? '' : 'hidden'
@@ -267,14 +271,15 @@ function openPermissionsView(user: User): void {
 
 function menuFor(user: User): MenuItem[] {
   const items: MenuItem[] = [];
-  if (canManageUsers('edit')) items.push({ label: 'Editar', icon: 'edit', run: () => openUserModal(user) });
+  const hierarchy = hierarchyBlock(user);
+  if (canManageUsers('edit')) items.push({ label: 'Editar', icon: 'edit', disabledReason: hierarchy, run: () => openUserModal(user) });
   items.push({ label: 'Ver permissões', icon: 'lock', run: () => openPermissionsView(user) });
   if (canManageUsers('edit')) {
     const next = !user.active;
     items.push({
       label: user.active ? 'Desativar' : 'Ativar',
       icon: user.active ? 'close' : 'check',
-      disabledReason: adminBlock(user, { active: next, profileId: user.profileId }) ?? selfBlock(user, { active: next }),
+      disabledReason: hierarchy ?? adminBlock(user, { active: next, profileId: user.profileId }) ?? selfBlock(user, { active: next }),
       run: () => {
         setUserActive(user, next);
         refresh();
@@ -287,7 +292,7 @@ function menuFor(user: User): MenuItem[] {
       label: 'Excluir',
       icon: 'trash',
       danger: true,
-      disabledReason: adminBlock(user, 'delete') ?? selfBlock(user, 'delete'),
+      disabledReason: hierarchy ?? adminBlock(user, 'delete') ?? selfBlock(user, 'delete'),
       run: async () => {
         const ok = await confirmDanger(
           `Excluir ${user.name}?`,

@@ -24,7 +24,7 @@ export function stampCompletion(item: Completion, done: boolean): void {
 
 /** "Concluída por Rafael em 06/10/2026 às 15:32" (ou vazio se não há registro). */
 export function completionText(item: Completion, word = 'Concluída'): string {
-  if (!item.doneAt) return '';
+  if (!item.doneAt || Number.isNaN(Date.parse(item.doneAt))) return '';
   const who = findUser(item.doneBy)?.name ?? item.doneByName ?? '';
   // Data e hora no fuso de quem vê (doneAt é guardado em UTC).
   const day = formatDate(ymdOf(new Date(item.doneAt)));
