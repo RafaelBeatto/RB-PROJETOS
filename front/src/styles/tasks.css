@@ -204,30 +204,6 @@
   gap: 10px;
   max-width: 980px;
 }
-.tadd {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--panel);
-  border: 1px dashed var(--line);
-  border-radius: 10px;
-  padding: 6px 6px 6px 12px;
-}
-.tadd:focus-within {
-  border-style: solid;
-  border-color: var(--blue);
-}
-.tadd-ico {
-  color: var(--muted);
-  display: inline-flex;
-}
-.tadd .field {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  padding: 8px 4px;
-}
 .tlist {
   list-style: none;
   margin: 0;
@@ -403,13 +379,6 @@
   color: var(--muted);
   text-decoration: line-through;
 }
-.sadd {
-  padding: 2px 4px 2px 8px;
-}
-.sadd .field {
-  padding: 6px 4px;
-  font-size: 13px;
-}
 .att-list {
   display: grid;
   gap: 4px;
@@ -489,4 +458,10 @@
   .tdetail {
     grid-template-columns: 1fr;
   }
+}
+
+.sub-new {
+  justify-self: start;
+  padding: 6px 10px;
+  font-size: 13px;
 }

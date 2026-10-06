@@ -1,7 +1,8 @@
 /**
  * Etapa aberta: dados da etapa e as tarefas dela em forma de checklist.
  * Marcar a caixa conclui a tarefa (desmarcar volta para "A fazer"); clicar no nome abre a
- * tarefa (subtarefas, checklist, dependências…). Tarefas novas são criadas digitando o nome.
+ * tarefa (subtarefas, checklist, dependências…). Tarefas e subtarefas novas só são criadas
+ * pelos formulários (botões "Nova tarefa" e "Subtarefa").
  */
 import { openBranch, refreshProject } from '../../app/navigation';
 import { avatarStack } from '../../components/avatar';
@@ -13,9 +14,8 @@ import { showToast } from '../../components/toast';
 import { branchProgress, tasksIn } from '../../services/branchService';
 import { db } from '../../services/db';
 import { canCreateSubtask, canCreateTask, canEditBranch, canEditSubtask, canEditTask } from '../../services/permissionService';
-import { RuleError } from '../../services/errors';
 import { dependencyItems } from '../../services/dependencyService';
-import { checklistProgress, createSubtask, createTask, findSubtask, findTask, setSubtaskStatus, setTaskStatus } from '../../services/taskService';
+import { checklistProgress, findSubtask, findTask, setSubtaskStatus, setTaskStatus } from '../../services/taskService';
 import { findUser } from '../../services/userService';
 import { emptyTaskFilters, ui } from '../../state/store';
 import type { Branch } from '../../types/branch';
@@ -73,9 +73,7 @@ function detailHtml(p: Project, t: Task): string {
       )}</li>`;
     })
     .join('');
-  const addSub = canCreateSubtask(p, t)
-    ? `<form class="tadd sadd" data-sub-add="${t.id}"><span class="tadd-ico">${icon('plus')}</span><input class="field" name="title" placeholder="Adicionar subtarefa e apertar Enter" aria-label="Nova subtarefa" autocomplete="off"></form>`
-    : '';
+  const addSub = canCreateSubtask(p, t) ? `<button type="button" class="ghost sub-new" data-sub-new="${t.id}">${icon('plus')}Subtarefa</button>` : '';
   return `<div class="tdetail"><div class="tdetail-col"><div class="lbl">Subtarefas</div>${subs ? `<ul class="slist">${subs}</ul>` : '<span class="sub flat small">Nenhuma subtarefa.</span>'}${addSub}</div><div class="tdetail-col"><div class="lbl">Anexos</div><div data-att-root="${
     t.id
   }">${attachmentsHtml(t, canEditTask(p, t))}</div></div></div>`;
@@ -130,14 +128,11 @@ export function renderBranchView(p: Project, b: Branch): string {
   const canCreate = canCreateTask(p, b);
   const pending = list.filter((t) => t.status !== 'Concluído');
   const done = list.filter((t) => t.status === 'Concluído');
-  const add = canCreate
-    ? `<form class="tadd" id="taskQuickAdd"><span class="tadd-ico">${icon('plus')}</span><input class="field" name="title" placeholder="Adicionar tarefa e apertar Enter" aria-label="Nova tarefa" autocomplete="off"><button class="ghost">Adicionar</button></form>`
-    : '';
   const empty = all.length
     ? ''
     : `<p class="sub tlist-empty">${
         canCreate
-          ? 'Nenhuma tarefa nesta etapa ainda. Digite acima para criar a primeira.'
+          ? 'Nenhuma tarefa nesta etapa ainda. Use “Nova tarefa” para criar a primeira.'
           : b.assignees.length
             ? 'Nenhuma tarefa nesta etapa. Só os responsáveis pela etapa, coordenadores e administradores criam tarefas aqui.'
             : 'Nenhuma tarefa nesta etapa. Defina um responsável pela etapa para que ele possa criar tarefas.'
@@ -147,7 +142,7 @@ export function renderBranchView(p: Project, b: Branch): string {
     ? `<details class="tdone" ${pending.length ? '' : 'open'}><summary>${plural(done.length, 'tarefa concluída', 'tarefas concluídas')}</summary><ul class="tlist">${done.map((t) => taskRow(p, t)).join('')}</ul></details>`
     : '';
   const filtered = all.length && !list.length ? '<p class="sub">Nenhuma tarefa encontrada com esses filtros.</p>' : '';
-  return `${header(p, b)}${all.length ? filterBar() : ''}<div class="tchecklist">${add}${empty}${pendingList}${doneList}${filtered}</div>`;
+  return `${header(p, b)}${all.length ? filterBar() : ''}<div class="tchecklist">${empty}${pendingList}${doneList}${filtered}</div>`;
 }
 
 export function mountBranchView(p: Project, container: HTMLElement): void {
@@ -175,24 +170,7 @@ export function mountBranchView(p: Project, container: HTMLElement): void {
       openSubtaskModal(tid ?? '', sid);
     }),
   );
-  $$<HTMLFormElement>('[data-sub-add]', container).forEach((f) =>
-    f.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const t = findTask(p, f.dataset.subAdd);
-      const input = f.elements.namedItem('title') as HTMLInputElement;
-      const title = input.value.trim();
-      if (!t || !title) return;
-      try {
-        createSubtask(p, t, { title, description: '', priority: '', start: '', due: '', status: 'A fazer' });
-      } catch (error) {
-        if (!(error instanceof RuleError)) throw error;
-        showToast(error.message);
-        return;
-      }
-      refreshProject();
-      document.querySelector<HTMLInputElement>(`[data-sub-add="${t.id}"] input`)?.focus();
-    }),
-  );
+  $$('[data-sub-new]', container).forEach((el) => el.addEventListener('click', () => openSubtaskModal(el.dataset.subNew ?? '')));
   $$('[data-att-root]', container).forEach((root) => {
     const t = findTask(p, root.dataset.attRoot);
     if (t) bindAttachments(root, p, t, refreshProject);
@@ -208,24 +186,6 @@ export function mountBranchView(p: Project, container: HTMLElement): void {
       refreshProject();
     }),
   );
-  const form = container.querySelector<HTMLFormElement>('#taskQuickAdd');
-  form?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const input = form.elements.namedItem('title') as HTMLInputElement;
-    const title = input.value.trim();
-    const b = ui.branchId;
-    if (!title || !b) return;
-    try {
-      createTask(p, { title, status: 'A fazer', priority: '', assignees: [], assignee: '', start: '', due: '', branch: b, description: '', dependencies: [] });
-    } catch (error) {
-      if (!(error instanceof RuleError)) throw error;
-      showToast(error.message);
-      return;
-    }
-    refreshProject();
-    // Continua no campo para adicionar a próxima em sequência.
-    document.querySelector<HTMLInputElement>('#taskQuickAdd input')?.focus();
-  });
 }
 
 export function initBranchView(): void {
