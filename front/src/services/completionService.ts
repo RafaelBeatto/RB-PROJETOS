@@ -3,7 +3,7 @@
  * Ao reabrir o item, o registro é apagado; concluir de novo registra a nova conclusão.
  */
 import type { Completion } from '../types/task';
-import { formatDate, formatTime } from '../utils/date';
+import { formatDate, formatTime, ymdOf } from '../utils/date';
 import { currentUser } from './authService';
 import { findUser } from './userService';
 
@@ -26,6 +26,7 @@ export function stampCompletion(item: Completion, done: boolean): void {
 export function completionText(item: Completion, word = 'Concluída'): string {
   if (!item.doneAt) return '';
   const who = findUser(item.doneBy)?.name ?? item.doneByName ?? '';
-  const day = formatDate(item.doneAt.slice(0, 10));
+  // Data e hora no fuso de quem vê (doneAt é guardado em UTC).
+  const day = formatDate(ymdOf(new Date(item.doneAt)));
   return `${word}${who ? ` por ${who}` : ''} em ${day} às ${formatTime(item.doneAt)}`;
 }

@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   auth: 'rb-projects-auth',
   /** Tema escolhido: 'dark' (noturno) ou 'light'. */
   theme: 'rb-theme',
+  /** Marca que os arquivos de anexos antigos já foram apagados (limpeza feita uma vez). */
+  filesCleaned: 'rb-files-cleaned',
   /** Perfis e permissões (controle de acesso). */
   access: 'rb-access-v1',
   /** Contratantes cadastradas pelo administrador. */

@@ -101,7 +101,7 @@ function subtasksHtml(p: Project, t: Task): string {
         s.start,
         s.due,
         s.status === 'Concluído',
-      )}${status}${s.doneAt ? `<small class="done-by">${icon('check')}${esc(completionText(s))}</small>` : ''}</div>`;
+      )}${status}${s.status === 'Concluído' && s.doneAt ? `<small class="done-by">${icon('check')}${esc(completionText(s))}</small>` : ''}</div>`;
     })
     .join('');
   const add = canCreateSubtask(p, t) ? `<button class="ghost" type="button" data-sub-new>${icon('plus')}Subtarefa</button>` : '';
@@ -257,7 +257,7 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
   }
   const editable = task ? canEditTask(p, task) : true;
   const etapa = findBranch(p, task?.branch ?? branch);
-  const done = task?.doneAt ? `<p class="done-by-line">${icon('check')}${esc(completionText(task))}</p>` : '';
+  const done = task?.status === 'Concluído' && task.doneAt ? `<p class="done-by-line">${icon('check')}${esc(completionText(task))}</p>` : '';
   const path = `<p class="bd-path">${esc(p.name)}${etapa ? ` / ${esc(etapa.name)}` : ''}</p>${done}`;
   const sections = task
     ? `${relationsHtml(p, task.id, task.dependencies)}<div class="sec" id="subBox">${subtasksHtml(p, task)}</div><div class="sec" id="ckBox">${checklistHtml(p, task)}</div>${extrasHtml(task, editable)}`
@@ -283,10 +283,14 @@ export function openTaskModal(id?: string, status: TaskStatus = 'A fazer', branc
   form.querySelector('[name="branch"]')?.addEventListener('change', deps.refresh);
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const pending = readDraft(form, task);
-    if (!(await confirmPendingDependencies(p, pending.dependencies, task?.status ?? 'A fazer', pending.status))) return;
+    const draft = readDraft(form, task);
+    // Confere o obrigatório antes de perguntar sobre dependências, para não confirmar algo que não vai salvar.
+    if (!draft.title) {
+      modalField('#taskErr').textContent = 'Informe o título da tarefa.';
+      return;
+    }
+    if (!(await confirmPendingDependencies(p, draft.dependencies, task?.status ?? 'A fazer', draft.status))) return;
     try {
-      const draft = readDraft(form, task);
       if (task) updateTask(p, task, draft);
       else createTask(p, draft);
     } catch (error) {

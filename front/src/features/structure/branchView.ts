@@ -70,7 +70,7 @@ function detailHtml(p: Project, t: Task): string {
         st.start,
         st.due,
         done,
-      )}${done && st.doneAt ? `<small class="done-by">${esc(completionText(st))}</small>` : ''}</li>`;
+      )}${done && st.doneAt ? `<small class="done-by">${icon('check')}${esc(completionText(st))}</small>` : ''}</li>`;
     })
     .join('');
   const addSub = canCreateSubtask(p, t) ? `<button type="button" class="ghost sub-new" data-sub-new="${t.id}">${icon('plus')}Subtarefa</button>` : '';

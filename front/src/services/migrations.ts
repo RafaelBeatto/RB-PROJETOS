@@ -69,7 +69,7 @@ function migrateSubtask(r: Raw): Subtask {
     start: str(r.start),
     due: str(r.due),
     status: migrateTaskStatus(r.status),
-    ...completion(r),
+    ...(migrateTaskStatus(r.status) === 'Concluído' ? completion(r) : {}),
   };
 }
 
@@ -124,7 +124,7 @@ function migrateTask(r: Raw, projectId: string): Task {
     checklist: objs(hasChecklist ? r.checklist : r.subtasks).map(migrateChecklistItem),
     subtasks: hasChecklist ? objs(r.subtasks).map(migrateSubtask) : [],
     comments: objs(r.comments).map(migrateComment),
-    ...completion(r),
+    ...(migrateTaskStatus(r.status) === 'Concluído' ? completion(r) : {}),
   };
 }
 
@@ -142,7 +142,7 @@ function migrateBranch(r: Raw, tasks: Task[], raw: Raw[], projectId: string): Br
     status: typeof r.status === 'string' ? migrateBranchStatus(r.status) : statusFromTasks(id, tasks, raw),
     assignees: assignees.slice(0, MAX_RESPONSIBLES),
     dependencies: migrateTaskDependencies(r.dependencies, projectId),
-    ...completion(r),
+    ...(r.status === 'Concluído' ? completion(r) : {}),
   };
 }
 

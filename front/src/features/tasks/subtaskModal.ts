@@ -30,7 +30,7 @@ export function openSubtaskModal(taskId: string, subtaskId?: string): void {
   const remove = s && canDeleteSubtask(p, t) ? `<button type="button" class="danger" id="deleteSub">${icon('trash')}Excluir</button>` : '<span></span>';
   openModal(
     s ? (editable ? 'Editar subtarefa' : 'Subtarefa') : 'Nova subtarefa',
-    `<button class="crumb" type="button" id="backToTask">${icon('chevronLeft')}${esc(t.title)}</button>${s?.doneAt ? `<p class="done-by-line">${icon('check')}${esc(completionText(s))}</p>` : ''}<form id="subForm" novalidate><fieldset class="plain" ${
+    `<button class="crumb" type="button" id="backToTask">${icon('chevronLeft')}${esc(t.title)}</button>${s?.status === 'Concluído' && s.doneAt ? `<p class="done-by-line">${icon('check')}${esc(completionText(s))}</p>` : ''}<form id="subForm" novalidate><fieldset class="plain" ${
       editable ? '' : 'disabled'
     }><div class="form-grid"><div class="form-full"><label>Título<input class="field" name="title" required value="${esc(s?.title ?? '')}"></label></div>${statusSelect(
       TASK_STATUSES,

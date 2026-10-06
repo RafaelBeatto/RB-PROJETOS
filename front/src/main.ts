@@ -3,6 +3,7 @@ import { installAppActions } from './app/appActions';
 import { goTo, homePage } from './app/navigation';
 import { installShortcuts } from './app/shortcuts';
 import { initTheme } from './app/theme';
+import { STORAGE_KEYS, readString, writeString } from './services/storage';
 import { installFilters } from './components/filterBar';
 import { appShell } from './components/layout';
 import { installModal } from './components/modal';
@@ -42,11 +43,14 @@ function installPermissionErrors(): void {
 }
 
 function start(): void {
-  // Anexos foram removidos do sistema: apaga os arquivos que tenham ficado guardados no navegador.
-  try {
-    indexedDB.deleteDatabase('rb-files');
-  } catch {
-    /* armazenamento indisponível: nada a apagar */
+  // Anexos foram removidos do sistema: apaga uma única vez os arquivos que tenham ficado no navegador.
+  if (!readString(STORAGE_KEYS.filesCleaned)) {
+    try {
+      indexedDB.deleteDatabase('rb-files');
+      writeString(STORAGE_KEYS.filesCleaned, '1');
+    } catch {
+      /* armazenamento indisponível: nada a apagar */
+    }
   }
   installPermissionErrors();
   loadDatabase();

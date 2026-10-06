@@ -67,7 +67,7 @@ export function updateBranch(p: Project, b: Branch, input: BranchDraft): void {
   const draft = validate(p, input, b);
   const old = { ...b };
   Object.assign(b, draft);
-  stampCompletion(b, b.status === 'Concluído');
+  if (old.status !== b.status) stampCompletion(b, b.status === 'Concluído');
   if (old.name !== b.name) logActivity(p, `renomeou a etapa "${old.name}" para "${b.name}"`, { kind: 'branch', branch: b.id });
   if (old.status !== b.status) logActivity(p, `moveu a etapa "${b.name}" para ${b.status}`, { kind: 'branch', branch: b.id });
   if (String(old.dependencies) !== String(b.dependencies)) logActivity(p, `alterou as dependências da etapa "${b.name}"`, { kind: 'branch', branch: b.id });

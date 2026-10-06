@@ -45,10 +45,14 @@ function bindForm(save: (draft: BranchDraft) => void, done: string, previous?: B
   bindDepPicker(form, currentProject(), () => ({ kind: 'branch', id: '' }), true);
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const pending = readDraft(form);
-    if (!(await confirmPendingDependencies(currentProject(), pending.dependencies, previous ?? 'Em espera', pending.status))) return;
+    const draft = readDraft(form);
+    if (!draft.name) {
+      modalField('#branchErr').textContent = 'Informe o nome da etapa.';
+      return;
+    }
+    if (!(await confirmPendingDependencies(currentProject(), draft.dependencies, previous ?? 'Em espera', draft.status))) return;
     try {
-      save(readDraft(form));
+      save(draft);
     } catch (error) {
       if (!(error instanceof RuleError)) throw error;
       modalField('#branchErr').textContent = error.message;

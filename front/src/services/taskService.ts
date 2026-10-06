@@ -58,7 +58,8 @@ export function updateTask(p: Project, task: Task, input: TaskDraft): void {
   if (draft.branch !== task.branch) ensure(canCreateTask(p, findBranch(p, draft.branch)));
   const old = { ...task };
   Object.assign(task, draft);
-  stampCompletion(task, task.status === 'Concluído');
+  // Só registra (ou limpa) quando o status muda: editar outra coisa não altera quem concluiu.
+  if (old.status !== task.status) stampCompletion(task, task.status === 'Concluído');
   if (old.status !== task.status) logTaskStatus(p, task);
   if (String(old.dependencies) !== String(task.dependencies)) logActivity(p, `alterou as dependências de "${task.title}"`, { kind: 'task', task: task.id, branch: task.branch });
   if (String(old.assignees) !== String(task.assignees)) {
@@ -112,7 +113,7 @@ export function updateSubtask(p: Project, t: Task, s: Subtask, input: SubtaskDra
   const draft = validateSubtask(input);
   const oldStatus = s.status;
   Object.assign(s, draft);
-  stampCompletion(s, s.status === 'Concluído');
+  if (oldStatus !== s.status) stampCompletion(s, s.status === 'Concluído');
   if (oldStatus !== s.status) logActivity(p, `moveu a subtarefa "${s.title}" (${t.title}) para ${s.status}`, { kind: 'subtask', task: t.id, branch: t.branch });
   persistProjects();
 }
